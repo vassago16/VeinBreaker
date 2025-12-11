@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading Card Creator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Trading Card Creator</h1>
+    <div class="controls">
+      <label class="file-picker">
+        <input id="jsonFile" type="file" accept="application/json" />
+        <span>Select JSON</span>
+      </label>
+      <button id="loadSample" class="btn secondary">Load Sample</button>
+      <button id="printBtn" class="btn">Print 3x3</button>
+      <label class="file-picker" style="margin-left:8px;">
+        <input id="fillGrid" type="checkbox" checked />
+        <span>Fill to 3×3</span>
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <section class="help">
+      <p>Load a local JSON file with VeinBreaker abilities. Example schema:</p>
+      <pre class="schema"><code>{
+  "abilities": [
+    {
+      "path": "spellforged",
+      "tier": 3,
+      "name": "Law of the Stormcore",
+      "type": "attack",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "1d8 + INT lightning; on hit, chain a free 1d4 bolt to another target; if Momentum >= 2, bolt deals 1d6."
+    }
+  ]
+}</code></pre>
+      <p>
+        Cost and cooldown render inside the art window. Tags, images, and other
+        extra fields are ignored unless present.
+      </p>
+    </section>
+
+    <!-- TradingCard JSON help (legacy schema) -->
+    <section class="help">
+      <p>TradingCard JSON schema:</p>
+      <pre class="schema"><code>{
+  "cards": [
+    {
+      "name": "Law of the Stormcore",
+      "type": "Attack",
+      "attack": 8,
+      "defense": 3,
+      "description": "1d8 + INT lightning; on hit chain a free 1d4 bolt to a second target; if Momentum \u2265 2, that bolt deals 1d6 instead",
+      "imageUrl": "images/stormcore.jpg",
+      "rarity": "rare",
+      "setSymbol": "VB"
+    }
+  ]
+}</code></pre>
+      <p>
+        The <code>imageUrl</code> can be a relative path next to this page or a
+        data URL (e.g. <code>data:image/png;base64,...</code>).
+      </p>
+    </section>
+
+    <section id="cards" class="cards-grid" aria-live="polite"></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
