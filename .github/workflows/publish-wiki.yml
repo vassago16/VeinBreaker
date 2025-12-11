@@ -17,6 +17,8 @@ jobs:
           fetch-depth: 0
       - name: Publish to wiki
         uses: SwiftDocOrg/github-wiki-publish-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         with:
-          path: .
-          token: ${{ secrets.GITHUB_TOKEN }}
+          path: docs/wiki   # adjust to your content root
+        # entryPoint/args only if you need them; otherwise omit
