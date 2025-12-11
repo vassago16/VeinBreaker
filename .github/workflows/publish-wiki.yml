@@ -1,0 +1,22 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.md'
+      - '!**/.github/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Publish to wiki
+        uses: SwiftDocOrg/github-wiki-publish-action@v1
+        with:
+          path: .
+          token: ${{ secrets.GITHUB_TOKEN }}

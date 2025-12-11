@@ -1,0 +1,49 @@
+{
+  "cards": [
+    {
+      "name": "Law of the Stormcore",
+      "type": "Attack",
+      "description": "1d8 + INT lightning; on hit chain a free 1d4 bolt to a second target; if Momentum \u2265 2, that bolt deals 1d6 instead",
+      "imageUrl": "images/arcanum/law-of-the-stormcore.jpg",
+      "rarity": "rare",
+      "setSymbol": "ARC"
+    },
+    {
+      "name": "Aegis Rebind",
+      "type": "Defense",
+      "description": "Gain temp HP equal to 1d6 + CON; if Shielded, also reflect 1d4 to the next attacker",
+      "imageUrl": "images/faith/aegis-rebind.jpg",
+      "rarity": "uncommon",
+      "setSymbol": "FAI"
+    },
+
+    {"name":"Gleam Strike (Tier I)","type":"Attack","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: 1d4 + WIS radiant at Near range; if you have Radiance \u2265 1, gain +1 Momentum on hit","imageUrl":"images/faith/gleam-strike.jpg","rarity":"common","setSymbol":"FAI"},
+    {"name":"Oathbound Guard (Tier I)","type":"Defense","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: Reduce dmg by 1d4; grant +1 Defense until next turn; gain +1 Momentum when dmg is reduced","imageUrl":"images/faith/oathbound-guard.jpg","rarity":"common","setSymbol":"FAI"},
+    {"name":"Hymn of Embers (Tier I)","type":"Utility","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: Next ally attack deals +1 radiant; gain 1 Radiance; gain +1 Momentum when Radiance is gained","imageUrl":"images/faith/hymn-of-embers.jpg","rarity":"common","setSymbol":"FAI"},
+    {"name":"Searing Canticle (Tier II)","type":"Attack","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: 1d6 + WIS radiant; +1 dmg if target harmed an ally last round; if that condition is met, gain +1 Momentum","imageUrl":"images/faith/searing-canticle.jpg","rarity":"uncommon","setSymbol":"FAI"},
+    {"name":"Sanctus Aegis (Tier II)","type":"Defense","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: Reduce dmg by 1d6; you and a Near ally gain +1 IDF; you and that ally each gain +1 Momentum","imageUrl":"images/faith/sanctus-aegis.jpg","rarity":"uncommon","setSymbol":"FAI"},
+    {"name":"Chorus of Resolve (Tier II)","type":"Utility","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: Ally gains 1 RP and +1 Attack; remove Exhausted; that ally gains +1 Momentum","imageUrl":"images/faith/chorus-of-resolve.jpg","rarity":"uncommon","setSymbol":"FAI"},
+    {"name":"Judgment Lance (Tier III)","type":"Attack","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: 1d8 + WIS radiant; if Radiance \u2265 1, deal +2 dmg and consume 1 Radiance; if Momentum \u2265 2, deal +2 additional dmg (total +4)","imageUrl":"images/faith/judgment-lance.jpg","rarity":"rare","setSymbol":"FAI"},
+    {"name":"Warding Reprisal (Tier III)","type":"Defense","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: Reduce dmg by 1d8; attacker takes radiant dmg equal to Radiance; if Momentum \u2265 2, attacker instead takes radiant dmg equal to 2× your Radiance","imageUrl":"images/faith/warding-reprisal.jpg","rarity":"rare","setSymbol":"FAI"},
+    {"name":"Radiant Burst (Tier III, Signature)","type":"Utility","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: Consume all Radiance: primary target takes 1d8 + WIS + 2/stack; others take 1/stack; if Momentum \u2265 2, others take 2/stack instead","imageUrl":"images/faith/radiant-burst.jpg","rarity":"mythic","setSymbol":"FAI"},
+
+    {"name":"Cutpoint Slice (Tier I)","type":"Attack","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: 1d4 + DEX; apply Bleed 1; if target was already Bleeding, gain +1 Momentum","imageUrl":"images/hemocratic/cutpoint-slice.jpg","rarity":"common","setSymbol":"HEM"},
+    {"name":"Veil Step (Tier I)","type":"Defense","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: Reduce dmg by 1d4; if avoided, apply Bleed 1 to attacker and gain +1 Momentum","imageUrl":"images/hemocratic/veil-step.jpg","rarity":"common","setSymbol":"HEM"},
+    {"name":"Wound Mark (Tier I)","type":"Utility","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: Your next Bleed application gains +1 Bleed; gain +1 Momentum when that enhanced Bleed is applied","imageUrl":"images/hemocratic/wound-mark.jpg","rarity":"common","setSymbol":"HEM"},
+    {"name":"Artery Rupture (Tier II)","type":"Attack","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: 1d6 + DEX; apply Bleed 2; if target is already Bleeding, also apply Stagger 1; gain up to +2 Momentum based on Bleed stacks applied","imageUrl":"images/hemocratic/artery-rupture.jpg","rarity":"uncommon","setSymbol":"HEM"},
+    {"name":"Veinshift Evade (Tier II)","type":"Defense","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: Reduce dmg by 1d6; if avoided, become Invisible; next attack applies +1 Bleed; if this was a Perfect Dodge, gain +2 Momentum","imageUrl":"images/hemocratic/veinshift-evade.jpg","rarity":"uncommon","setSymbol":"HEM"},
+    {"name":"Bloodletting Focus (Tier II)","type":"Utility","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: Your next two Bleed applications each gain +1 Bleed; gain +1 Momentum immediately","imageUrl":"images/hemocratic/bloodletting-focus.jpg","rarity":"uncommon","setSymbol":"HEM"},
+    {"name":"Hemorrhage Breaker (Tier III)","type":"Attack","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: 1d8 + DEX; if Bleed \u2265 3, deal +4 dmg and consume stacks for +1 dmg/stack; if Momentum \u2265 2, each consumed stack instead grants +2 dmg","imageUrl":"images/hemocratic/hemorrhage-breaker.jpg","rarity":"rare","setSymbol":"HEM"},
+    {"name":"Bloodfade Veil (Tier III)","type":"Defense","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: Reduce dmg by 1d8; become Invisible; next attack deals +2 dmg per Bleed on target; if Momentum \u2265 2, that attack deals +3 dmg per Bleed instead","imageUrl":"images/hemocratic/bloodfade-veil.jpg","rarity":"rare","setSymbol":"HEM"},
+    {"name":"Crimson Dictate (Tier III, Signature)","type":"Utility","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: All Bleeding enemies gain +2 Bleed; your next Bleed spreads to a second target; if Momentum \u2265 2, it spreads to a third target as well","imageUrl":"images/hemocratic/crimson-dictate.jpg","rarity":"mythic","setSymbol":"HEM"},
+
+    {"name":"Charge Bolt (Tier I)","type":"Attack","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: 1d4 + INT lightning; +1 dmg if you spent RP last action; if you spent RP last action, also gain +1 Momentum","imageUrl":"images/arcanum/charge-bolt.jpg","rarity":"common","setSymbol":"ARC"},
+    {"name":"Warding Pulse (Tier I)","type":"Defense","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: Reduce dmg by 1d4; attacker takes 1 lightning dmg; if dmg is reduced to 0, gain +1 Momentum","imageUrl":"images/arcanum/warding-pulse.jpg","rarity":"common","setSymbol":"ARC"},
+    {"name":"Arcane Channel (Tier I)","type":"Utility","description":"Cost: 1 (Martial Pool); Cooldown: 1; Effect: Next spell gains +1 to hit; gain +1 RP; gain +1 Momentum","imageUrl":"images/arcanum/arcane-channel.jpg","rarity":"common","setSymbol":"ARC"},
+    {"name":"Surge Lance (Tier II)","type":"Attack","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: 1d6 + INT lightning; on hit gain Arcane Charge (+1 dmg next spell); gain +1 Momentum","imageUrl":"images/arcanum/surge-lance.jpg","rarity":"uncommon","setSymbol":"ARC"},
+    {"name":"Feedback Shield (Tier II)","type":"Defense","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: Reduce dmg by 1d6; if reduced to 0, attacker takes INT dmg; gain +1 Momentum","imageUrl":"images/arcanum/feedback-shield.jpg","rarity":"uncommon","setSymbol":"ARC"},
+    {"name":"Conduit Flow (Tier II)","type":"Utility","description":"Cost: 2 (Martial Pool); Cooldown: 2; Effect: +1 INT for 1 round; next spell gains +2 dmg; gain +1 Momentum","imageUrl":"images/arcanum/conduit-flow.jpg","rarity":"uncommon","setSymbol":"ARC"},
+    {"name":"Aetheric Reversal (Tier III)","type":"Defense","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: Reduce dmg by 1d8; attacker becomes Disrupted (\u22122 to spell rolls); if Momentum \u2265 2, Disrupted becomes \u22123","imageUrl":"images/arcanum/aetheric-reversal.jpg","rarity":"rare","setSymbol":"ARC"},
+    {"name":"Arcanum Overload (Tier III, Signature)","type":"Utility","description":"Cost: 3 (Martial Pool); Cooldown: 3; Effect: Next spell has Advantage and +3 dmg; you take 1 self\u2011damage; if Momentum \u2265 2, that bonus becomes +5","imageUrl":"images/arcanum/arcanum-overload.jpg","rarity":"mythic","setSymbol":"ARC"}
+  ]
+}

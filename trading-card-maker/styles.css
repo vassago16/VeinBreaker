@@ -1,0 +1,134 @@
+:root{
+  --bg:#0b0f14;
+  --panel:#111826;
+  --text:#e6eef8;
+  --muted:#9fb3c8;
+  --accent:#51d1ff;
+  --gold:#e3b341;
+  --danger:#e55;
+  --radius:0.125in;
+  /* MTG-like physical size: 2.5in x 3.5in */
+  --card-w: 2.5in;
+  --card-h: 3.5in;
+  --gap: 0.25in;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:radial-gradient(1200px 800px at 20% 0%, #122033 0%, var(--bg) 60%);
+  color:var(--text);
+  font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+}
+
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px; background:rgba(17,24,38,.8); backdrop-filter:blur(8px);
+  border-bottom:1px solid #1d2a3d;
+}
+.app-header h1{font-size:18px;margin:0}
+.controls{display:flex;gap:12px;align-items:center}
+
+.file-picker{position:relative;display:inline-flex}
+.file-picker input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.file-picker span,.btn{
+  padding:10px 14px;border:1px solid #2b3b55;border-radius:10px;
+  color:var(--text); background:#0f1624; cursor:pointer; user-select:none;
+}
+.btn.secondary{background:#0b1320}
+.btn:hover,.file-picker:hover span{border-color:#3a5075}
+
+.help{padding:12px 20px;color:var(--muted)}
+.help code{color:var(--accent)}
+.schema{background:#0b1320;color:#bcd0ea;padding:10px 12px;border-radius:10px;overflow:auto}
+
+.cards-grid{
+  display:grid;
+  grid-template-columns:repeat(3, var(--card-w));
+  gap:var(--gap);
+  padding:var(--gap);
+  align-items:start;
+  justify-content:center;
+  margin-inline:auto;
+  max-width: calc((3 * var(--card-w)) + (2 * var(--gap)));
+}
+
+.card{
+  position:relative; width:var(--card-w); height:var(--card-h);
+  border-radius:var(--radius); overflow:hidden; border:1px solid #2a3a57;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  background:#0d1422;
+  break-inside: avoid;
+}
+.card__bg{position:absolute;inset:0;background:#0a0f18 center/cover no-repeat; filter:contrast(1.05) saturate(1.05)}
+.card__vignette{position:absolute;inset:0;background:radial-gradient(80% 65% at 50% 35%, transparent 40%, rgba(0,0,0,.45) 70%), linear-gradient(180deg, rgba(0,0,0,.2) 0%, rgba(0,0,0,.75) 75%)}
+.card__content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
+
+.card__top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.card__title{font-size:18px;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,.45)}
+.badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.badge{padding:4px 8px;border:1px solid #41567a;border-radius:999px;background:rgba(14,22,36,.7);font-size:12px;color:#cfe2ff}
+.badge--type{border-color:#5b7cae}
+.badge--cost{border-color:#e3b341;color:#ffe7a6}
+.badge--cooldown{border-color:#e55;color:#ffd0d0}
+
+.card__body{margin-top:auto;}
+.card__label{font-size:11px;letter-spacing:.08em;color:#9fb3c8;text-transform:uppercase}
+.card__effect{margin-top:6px;background:rgba(10,16,28,.7);border:1px solid #2b3b55;padding:10px;border-radius:10px;color:#d8e6fb}
+
+.card__footer{display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:11px;color:#8aa4c9;opacity:.9}
+
+/* MTG-style framing */
+.titlebar{background:linear-gradient(#222a3a,#141a28); color:#eaeff8; border:1px solid #3a4b6e; border-radius:8px; padding:6px 8px; font-weight:700; font-size:16px}
+.typeline{margin-top:8px; background:rgba(14,22,36,.8); border:1px solid #2b3b55; border-radius:8px; padding:4px 8px; font-size:12px; color:#cfe2ff; font-family: Georgia, "Times New Roman", serif}
+.image-box{position:relative; margin-top:8px; height:calc(1.9in - 15px); border-radius:8px; overflow:hidden; border:1px solid #2a3a57; background:#0a0f18 center/cover no-repeat}
+.typeline{margin-top:4px; background:rgba(14,22,36,.8); border:1px solid #2b3b55; border-radius:8px; padding:4px 8px; font-size:12px; color:#cfe2ff; font-family: Georgia, "Times New Roman", serif}
+.textbox{margin-top:8px; background:rgba(10,16,28,.7); border:1px solid #2b3b55; border-radius:10px; padding:10px; color:#d8e6fb; min-height:calc((0.7in + 15px) * 1.25)}
+.image-overlay{position:absolute; inset:0; padding:8px; display:flex; flex-direction:column; align-items:flex-end; gap:6px; background:linear-gradient(180deg, rgba(8,12,20,.7), transparent 45%); pointer-events:none}
+.overlay-badge{padding:4px 8px; border-radius:8px; border:1px solid #3a5075; background:rgba(12,20,32,.85); color:#dfe8ff; font-size:12px; font-weight:700; letter-spacing:.02em}
+.overlay-badge--muted{opacity:.9}
+.stats{display:flex; gap:8px; justify-content:flex-end; margin-top:6px}
+.stat{min-width:36px; text-align:center; padding:4px 6px; border:1px solid #41567a; border-radius:8px; background:rgba(14,22,36,.7); color:#cfe2ff; font-weight:700}
+
+/* Emblems: rarity pip and set symbol */
+.emblems{position:absolute; top:6px; right:6px; display:flex; gap:8px; align-items:center}
+.rarity{width:14px; height:14px; border-radius:50%; border:1px solid #00000066; box-shadow:0 0 0 1px #ffffff22 inset}
+.rarity.common{background:#2e2e2e}
+.rarity.uncommon{background:#8c8c8c}
+.rarity.rare{background:#e3b341}
+.rarity.mythic{background:#d2642a}
+.set-symbol{font-weight:700; font-size:12px; color:#dfe8ff; padding:2px 6px; border:1px solid #3a4b6e; border-radius:6px; background:rgba(14,22,36,.7)}
+
+/* Simple crop marks (print only) */
+@media print{
+  .card::before,
+  .card::after{content:""; position:absolute; inset:0; pointer-events:none}
+  .card::before{background:
+    linear-gradient(#000, #000) left top/10mm 0.2mm no-repeat,
+    linear-gradient(#000, #000) left top/0.2mm 10mm no-repeat,
+    linear-gradient(#000, #000) right top/10mm 0.2mm no-repeat,
+    linear-gradient(#000, #000) right top/0.2mm 10mm no-repeat,
+    linear-gradient(#000, #000) left bottom/10mm 0.2mm no-repeat,
+    linear-gradient(#000, #000) left bottom/0.2mm 10mm no-repeat,
+    linear-gradient(#000, #000) right bottom/10mm 0.2mm no-repeat,
+    linear-gradient(#000, #000) right bottom/0.2mm 10mm no-repeat;
+    opacity:.6
+  }
+}
+
+/* Print friendly */
+@media print{
+  @page { size: Letter portrait; margin: 0.25in; }
+  body{background:#fff}
+  .app-header,.help{display:none}
+  .cards-grid{
+    grid-template-columns:repeat(3, var(--card-w));
+    column-gap: var(--gap);
+    row-gap: 0in; /* 3 x 3 must fit vertically: 3*3.5in = 10.5in on Letter (11in) with 0.25in margins */
+    padding:0;
+    max-width: none;
+    margin:0;
+  }
+  .card{box-shadow:none}
+}
