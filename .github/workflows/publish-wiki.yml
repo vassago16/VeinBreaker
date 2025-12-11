@@ -19,7 +19,7 @@ jobs:
         uses: SwiftDocOrg/github-wiki-publish-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }} # or use a PAT secret with wiki push scope
+          GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.WIKI_PAT }} # or use a PAT secret with wiki push scope
         with:
           path: docs/wiki   # adjust to your content root
         # entryPoint/args only if you need them; otherwise omit
