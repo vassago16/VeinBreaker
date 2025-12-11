@@ -91,8 +91,7 @@ Resolve is your **tempo resource**, spent to declare actions in a chain.
 ### **Resolve Now Uses the Hybrid System**
 
 - **Max Resolve = 5** at character creation
-- **Resolve does NOT reset to full each turn**
-- At the **start of your turn, you regenerate 3 Resolve**
+- **Resolve refreshes 2 RP at the start of your turn**, up to your Max Resolve
 - You may carry unused Resolve from previous turns
 - Resolve cannot exceed your **Max Resolve** (5 at Tier 0, increases with higher Tiers)
 
@@ -105,18 +104,14 @@ Resolve is your **tempo resource**, spent to declare actions in a chain.
 
 ### **Resolve Example**
 
-Turn 1: You start with 5 RP → Spend 4 → End turn with 1 RP.
-Turn 2: Regen 3 → Start with 4 RP.
-Turn 3: Regen 3 → Start with 5 RP (cap).
+Turn 1: You start with 5 RP, spend 4, end turn with 1 RP.
+Turn 2: Regenerate 2 RP, start with 3 RP.
+Turn 3: Regenerate 2 RP, start with 5 RP (cap).
 
 ```
 [DUNGEON NOTE]
-“Resolve is not a gift. It is a pulse. Let it build. Let it break.”
-
-”
+"Resolve is not a gift. It is a pulse. Let it build. Let it break."
 ```
-
----
 
 ## **4.3 Step 3 — Choose Your Path Orientation**
 
@@ -211,4 +206,3 @@ Your sheet should look clean, readable, and ready for rhythm‑driven combat.
 # 
 
 ---
-

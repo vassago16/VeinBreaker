@@ -188,7 +188,7 @@ You gain RP when you:
 - Execute
 - Impress the Dungeon (rare bonuses)
 
-Resolve resets to **5** at the start of each turn unless modified.
+Resolve refreshes **2 RP at the start of your turn**, up to your Resolve cap (Tier 0 cap: **5**). Unspent RP carries over between turns; you cannot exceed your cap.
 
 ---
 
@@ -492,7 +492,7 @@ Resolve is your **tempo resource**, spent to declare actions in a chain.
 
 - **Max Resolve = 5** at character creation
 - **Resolve does NOT reset to full each turn**
-- At the **start of your turn, you regenerate 3 Resolve**
+- At the **start of your turn, you regenerate 2 Resolve**
 - You may carry unused Resolve from previous turns
 - Resolve cannot exceed your **Max Resolve** (5 at Tier 0, increases with higher Tiers)
 
@@ -505,18 +505,14 @@ Resolve is your **tempo resource**, spent to declare actions in a chain.
 
 ### **Resolve Example**
 
-Turn 1: You start with 5 RP → Spend 4 → End turn with 1 RP.
-Turn 2: Regen 3 → Start with 4 RP.
-Turn 3: Regen 3 → Start with 5 RP (cap).
+Turn 1: You start with 5 RP, spend 4, end turn with 1 RP.
+Turn 2: Regenerate 2 RP, start with 3 RP.
+Turn 3: Regenerate 2 RP, start with 5 RP (cap).
 
 ```
 [DUNGEON NOTE]
-“Resolve is not a gift. It is a pulse. Let it build. Let it break.”
-
-”
+"Resolve is not a gift. It is a pulse. Let it build. Let it break."
 ```
-
----
 
 ## **4.3 Step 3 — Choose Your Path Orientation**
 

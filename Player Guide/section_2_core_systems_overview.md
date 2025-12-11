@@ -91,7 +91,7 @@ You gain RP when you:
 - Execute
 - Impress the Dungeon (rare bonuses)
 
-Resolve resets to **5** at the start of each turn unless modified.
+Resolve refreshes **2 RP at the start of your turn**, up to your Resolve cap (Tier 0 cap: **5**). Unspent RP carries over between turns; you cannot exceed your cap.
 
 ---
 
@@ -131,4 +131,3 @@ You cannot change an action mid-chain unless an item, boon, or ability explicitl
 # 
 
 ---
-

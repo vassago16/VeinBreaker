@@ -24,7 +24,7 @@ Tags unlock actions; they don’t change damage dice.
 | Piercing       | Precision/Pierce effects             |
 
 ## 3) Combat Structure (Your Turn)
-- Start of turn: RP +3 (to max), Balance 0, Heat 0 (unless stabilized), Momentum 0.
+- Start of turn: RP +2 (to max), Balance 0, Heat 0 (unless stabilized), Momentum 0.
 - Declare your chain: list all actions and targets; each action costs 1 RP, paid upfront. No changes mid-chain unless an effect allows it.
 
 ## 4) A3 Contest (Rolls)
