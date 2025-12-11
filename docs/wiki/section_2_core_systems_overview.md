@@ -1,4 +1,4 @@
-# 🩸 **SECTION 2 — CORE SYSTEMS OVERVIEW (Dynamic Rhythm Model)**
+# 🩸 **SECTION 2 — CORE SYSTEMS OVERVIEW**
 
 Veinbreaker’s combat is built on three interlocking flows:
 
@@ -19,6 +19,10 @@ Balance modifies your **Attack Value (AV)**:
 
 - Positive Balance **adds** to Attack Value.
 - Negative Balance **subtracts** from Attack Value.
+
+Every action after your first affects balance.
+Typical action costs are light attack −1 Balance, heavy −2  
+A movment action will help you regain 2 balance
 
 Balance resets to **0 at the start of your turn** unless a debuff prevents it.
 
@@ -42,7 +46,7 @@ Heat resets when your chain ends.
 - **Heat 4:** +3 damage, increased Execution pressure
 - **Heat 5:** +4 damage, high Interrupt risk
 
-### **Heat Spend (New Core Mechanic)**
+### **Heat Spend**
 
 Heat can be spent **between actions in a chain**.
 
