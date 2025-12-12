@@ -20,6 +20,7 @@ Your paths into the rules. Expand and jump where you need.
 - [[Core Systems Overview|02_core_systems_overview]]
 - [[Attributes & Foundation|03_attributes_and_character_foundation]]
 - [[Character Creation|04_character_creation]]
+- [[Player Death|player_death]]
 - [[Weapons & Tools|05_weapons_and_tools]]
 - [[Combat Flow|06_combat_flow]]
 - [[Reactions|07_reactions]]

@@ -165,6 +165,37 @@ Every time a player performs an **Execute**, they gain **1 Blood Mark**. Each ma
 
 ---
 
+## ☠️  — DEATH & THE DUN
+
+Death is not a reset.  
+It is a **scar**.
+
+When a player character dies:
+
+- They **respawn at the last Safe Room**
+- All current combat and effects end
+- All **unspent Veinscore is lost**
+- Blood Marks are retained
+
+They gain a **Dun**.
+
+---
+
+### The Dun (Death Unmark)
+
+A **Dun** is a *faded, inert Blood Mark*.
+
+- Grants **no bonuses**
+- Cannot be spent, cleansed, or converted
+- Persists permanently
+- **Adds +1 to Total Blood Marks**
+
+> The Dungeon does not care *how* you were marked.  
+> Only that you were.
+
+---
+
+
 ### 🔻 Losing & Cleansing Blood Marks
 
 Blood Marks are meant to **stack**, not vanish. The Dungeon wants you deeper.
@@ -224,9 +255,229 @@ Players must **escape, hide, or repel** — killing the Hunter is *impossible*.
 
 ---
 
-## Book V — The Hunter Walks [Pursuit & Terror]
+# 📕 Book V — The Hunter Walks  
+## *[Pursuit & Terror]*
 
-*(To be fully expanded — will define the Dungeon Hunter, its clock, and how it changes a run.)*
+> *“You taught the Dungeon how to kill like you.  
+> Now it wants to see if you can outrun yourself.”*
+
+The Hunter is not a monster.  
+It is **the Dungeon’s attention made mobile**.
+
+When Blood Marks rise, when Veinscore is hoarded, when executions become routine, the Dungeon stops watching passively.
+
+It **hunts**.
+
+This Book defines how pursuit works, how terror escalates, and how a run permanently changes once the Hunter begins to walk.
+
+---
+
+## 🩸 V.1 — WHEN THE HUNTER IS BORN
+
+The Hunter is **not random**. It is *earned*.
+
+The Hunter becomes active when **any** of the following occur:
+
+- A player reaches **Blood Mark 3**
+- The **Tremor Clock** fills
+- A Dungeon Favor explicitly “turns its gaze”
+- A Veinscore Hoard event is triggered (GM discretion)
+
+> **Hunter Activation is irreversible for the run.**  
+> Once the Hunter Walks, the Dungeon no longer pretends you are guests.
+
+---
+
+## ⏱ V.2 — THE PURSUIT CLOCK (VISIBLE PRESSURE)
+
+Once active, place a **Pursuit Clock** on the table.
+
+This clock represents *how close the Hunter is*, not where it is.
+
+### Clock Size (Choose One)
+
+- **Short Hunt (4 segments)** — brutal, fast one-shots
+- **Standard Hunt (6 segments)** — default campaign mode
+- **Relentless Hunt (8 segments)** — long runs, high mastery tables
+
+---
+
+### ⏫ What Advances the Pursuit Clock
+
+Tick the clock **once** when any of the following happen:
+
+- A player performs an **Execution**
+- A chain reaches **6+ actions**
+- A safe room is used
+- A Vein Sigil is looted or consumed
+- A Blood Mark is gained
+- The party lingers after combat
+- A boss phase transition completes
+
+Tick it **twice** if:
+- The action was loud, flashy, or cruel
+- The party mocks or taunts the Dungeon
+- The Dungeon was recently impressed
+
+> The Hunter advances faster when entertained.
+
+---
+
+## 👁 V.3 — TERROR STATES (ESCALATION PHASES)
+
+As the Pursuit Clock fills, the Dungeon’s behavior changes.
+
+### 🟡 **State I — Unease** *(0–1 ticks)*
+
+- Sounds carry farther
+- Footsteps echo where no one stands
+- Minor UI distortions appear
+
+**Mechanical Pressure**
+- +1 Interrupt chance for enemies
+- GM begins foreshadowing the Hunter
+
+---
+
+### 🟠 **State II — Stalked** *(2–3 ticks)*
+
+- Distant breathing
+- Shadows lag behind movement
+- Doors hesitate before opening
+
+**Mechanical Pressure**
+- Enemies gain **+1 Interrupt**
+- First failed Reaction per encounter causes **Distracted**
+- Movement actions feel “watched”
+
+---
+
+### 🔴 **State III — Closing** *(4–5 ticks)*
+
+- Lights dim
+- Walls pulse
+- The Dungeon speaks in full sentences
+
+**Mechanical Pressure**
+- Interrupts occur **earlier in chains**
+- Safe rooms are no longer safe
+- Running becomes a **chain action**
+- One random enemy per encounter gains a **Hunter Trait**
+
+---
+
+### ⚫ **State IV — The Hunter Walks** *(Clock Full)*
+
+The Hunter manifests.
+
+Not fully.  
+Not cleanly.  
+Enough.
+
+---
+
+## 💀 V.4 — THE HUNTER (ENTITY RULES)
+
+The Hunter **cannot be killed**.
+
+Do not give it HP.  
+Do not give it loot.  
+Do not let players “solve” it.
+
+### The Hunter Has:
+
+- **Infinite Interrupts**
+- **Perfect Pathing** (no terrain penalties)
+- **Adaptive Defense** (repeats are punished)
+- **No fixed position** — it is always “near enough”
+
+---
+
+### 🩸 Hunter Actions (GM Menu)
+
+Each round the Hunter is present, choose **ONE**:
+
+- **Break the Chain** — Immediately end a declared chain
+- **Steal Momentum** — Set all player Momentum to 0
+- **Mark the Bold** — Give +1 Blood Mark to the most aggressive player
+- **Seal the Exit** — Lock movement options for one round
+- **Mock the Weak** — Impose Disadvantage on Resolve Actions
+
+> The Hunter does not roll dice.  
+> It enforces consequences.
+
+---
+
+## 🏃 V.5 — ESCAPE, HIDE, OR REPULSE
+
+When the Hunter appears, players must choose **one strategy**:
+
+### **Run**
+- Requires chained Movement actions
+- Balance penalties stack faster
+- One stumble may end the escape
+
+### **Hide**
+- Requires environment use, silence, sacrifice
+- Costs time → advances the clock
+- Success resets the clock **by 2**
+
+### **Repulse**
+- Spend Resolve, Relics, or Blood Marks
+- Push the Hunter back temporarily
+- Costs something **permanent**
+
+> Victory against the Hunter is measured in **survival**, not dominance.
+
+---
+
+## 🕯 V.6 — AFTERMATH: A CHANGED RUN
+
+Once the Hunter has appeared at least once:
+
+- Blood Mark gain accelerates
+- Veinscore drops improve — but are dangerous
+- NPCs react with fear or reverence
+- The Dungeon’s tone hardens
+
+At **two Hunter appearances**:
+- Aberrant enemies become common
+- Bosses gain new phases
+- Safe mechanics erode
+
+At **three appearances**:
+- The Dungeon begins grooming a successor
+
+---
+
+## 👑 V.7 — BECOMING THE HUNTER (END STATE)
+
+At **Blood Mark 5+**, the Dungeon may offer a choice:
+
+- **Ascend** — Gain permanent power, lose humanity
+- **Fall** — Become prey forever
+- **Refuse** — The Hunter never stops
+
+This is not balance.  
+This is *judgment*.
+
+> *“You wanted to be seen.  
+> Now decide what you are worth.”*
+
+---
+
+## 📌 GM PRINCIPLES (READ THIS)
+
+- The Hunter should feel **inevitable**, not random
+- Do not overuse it — **anticipation is terror**
+- Never fully explain it
+- Let silence do work
+- If players feel safe, you are doing it wrong
+
+---
+
+### END OF BOOK V  
+### NEXT: **Book VI — Hall of Bosses [Bosscraft]**
 
 ---
 

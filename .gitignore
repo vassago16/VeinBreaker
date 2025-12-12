@@ -25,4 +25,4 @@ pnpm-debug.log*
 .env
 .env.*
 .tmp.driveupload
-.tmp.driveupload
+.tmp.driveupload*
