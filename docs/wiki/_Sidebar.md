@@ -57,6 +57,7 @@ Your paths into the rules. Expand and jump where you need.
 - [[Loot by Ability|loot-type-ability]]
 - [[Loot by Relic|loot-type-relic]]
 - [[Loot by Upgrade|loot-type-upgrade]]
+- [[Loot by VeinSigil|loot-type-VeinSigil]]
 </details>
 
 <details>

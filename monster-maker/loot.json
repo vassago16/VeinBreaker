@@ -7,30 +7,140 @@
     "ability",
     "relic",
     "upgrade",
-    "Veinsigil"
+    "veinsigil"
   ],
   "loot": [
+    {
+      "name": "Faint Vein Sigil",
+      "tier": 1,
+      "type": "veinsigil",
+      "rarity": "common",
+      "tags": ["vein", "currency"],
+      "description": "A hairline glyph etched into brittle crystal.",
+      "effects": [
+        { "type": "grant_veinscore", "value": 1 }
+      ]
+    },
+    {
+      "name": "Pulse-Scar Shard",
+      "tier": 1,
+      "type": "relic",
+      "rarity": "common",
+      "tags": ["momentum"],
+      "description": "A fragment that throbs when danger nears.",
+      "effects": [
+        { "type": "trigger", "on": "perfect_defense", "effect": "Gain +1 Momentum (1/round)" }
+      ]
+    },
     {
       "name": "Hemostone Knife",
       "tier": 1,
       "type": "weapon",
       "rarity": "uncommon",
-      "tags": ["bleed", "light"],
-      "description": "Light blade that digs for veins; easy to conceal.",
+      "tags": ["slashing", "finesse"],
+      "description": "A blade grown along a vein of iron-rich stone.",
       "effects": [
-        { "type": "attack_bonus", "value": "+1 to Bleed applications" },
-        { "type": "trigger", "on": "hit_bleeding_target", "effect": "gain 1 Momentum (1/turn)" }
+        { "type": "status_bonus", "effect": "+1 Bleed on hit (1/turn)" }
       ]
     },
     {
-      "name": "Radiant Draught",
+      "name": "Stonepulse Wraps",
+      "tier": 1,
+      "type": "armor",
+      "rarity": "common",
+      "tags": ["stonepulse", "light"],
+      "description": "Cloth stiffened by rhythmic mineral growth.",
+      "effects": [
+        { "type": "defense_bonus", "value": "+1 IDF vs Interrupts" }
+      ]
+    },
+    {
+      "name": "Resolve Draught",
       "tier": 1,
       "type": "consumable",
       "rarity": "common",
-      "tags": ["radiance", "potion"],
-      "description": "Glowing vial; burns like sunlight.",
+      "tags": ["resolve", "potion"],
+      "description": "A bitter vial that snaps focus into place.",
       "effects": [
-        { "type": "consume", "effect": "Gain 2 Radiance; next attack deals +2 radiant" }
+        { "type": "consume", "effect": "Gain +2 RP immediately" }
+      ]
+    },
+    {
+      "name": "Cracked Rhythm Coin",
+      "tier": 1,
+      "type": "relic",
+      "rarity": "common",
+      "tags": ["balance"],
+      "description": "A coin that never lands flat.",
+      "effects": [
+        { "type": "trigger", "on": "chain_start", "effect": "Ignore first Balance penalty this turn" }
+      ]
+    },
+    {
+      "name": "Bloodglass Dart",
+      "tier": 1,
+      "type": "consumable",
+      "rarity": "common",
+      "tags": ["bleed", "throwable"],
+      "description": "Shatters into vein-hungry shards.",
+      "effects": [
+        { "type": "consume", "effect": "Apply Bleed 2 on hit" }
+      ]
+    },
+    {
+      "name": "Canticle Fragment: First Note",
+      "tier": 1,
+      "type": "ability",
+      "rarity": "uncommon",
+      "tags": ["faith", "ability_unlock"],
+      "description": "A single verse burned into bone.",
+      "effects": [
+        { "type": "ability_unlock", "ability_ref": "canticle.first_note" }
+      ]
+    },
+    {
+      "name": "Vein-Locked Buckle",
+      "tier": 1,
+      "type": "upgrade",
+      "rarity": "common",
+      "tags": ["armor"],
+      "description": "Tightens when struck.",
+      "effects": [
+        { "type": "trigger", "on": "take_damage", "effect": "Gain +1 Momentum (1/round)" }
+      ]
+    },
+    {
+      "name": "Ashen Heat Vial",
+      "tier": 1,
+      "type": "consumable",
+      "rarity": "common",
+      "tags": ["heat"],
+      "description": "Smolders even when sealed.",
+      "effects": [
+        { "type": "consume", "effect": "Gain Heat 2 immediately" }
+      ]
+    },
+
+    {
+      "name": "True Vein Sigil",
+      "tier": 2,
+      "type": "VeinSigil",
+      "rarity": "uncommon",
+      "tags": ["vein", "currency"],
+      "description": "A pulsing rune that remembers your grip.",
+      "effects": [
+        { "type": "grant_veinscore", "value": 10 }
+      ]
+    },
+    {
+      "name": "Veinbrand Shortblade",
+      "tier": 2,
+      "type": "weapon",
+      "rarity": "uncommon",
+      "tags": ["slashing", "finesse"],
+      "description": "Leaves glowing scars instead of cuts.",
+      "effects": [
+        { "type": "trigger", "on": "hit", "effect": "Apply Vulnerable 1 (1/turn)" }
       ]
     },
     {
@@ -38,11 +148,32 @@
       "tier": 2,
       "type": "armor",
       "rarity": "uncommon",
-      "tags": ["stonepulse", "armor"],
-      "description": "Layered plating that hums with Stonepulse rhythm.",
+      "tags": ["stonepulse"],
+      "description": "Plates hum with defensive rhythm.",
       "effects": [
-        { "type": "defense_bonus", "value": "+1 Defense" },
-        { "type": "trigger", "on": "gain_momentum", "effect": "Set Balance to 0 (1/round)" }
+        { "type": "defense_bonus", "value": "+1 Defense" }
+      ]
+    },
+    {
+      "name": "Hemocratic Phial",
+      "tier": 2,
+      "type": "consumable",
+      "rarity": "uncommon",
+      "tags": ["blood"],
+      "description": "Thick, warm, impatient.",
+      "effects": [
+        { "type": "consume", "effect": "Gain +1 RP on each hit this turn" }
+      ]
+    },
+    {
+      "name": "Rhythm Anchor Charm",
+      "tier": 2,
+      "type": "relic",
+      "rarity": "uncommon",
+      "tags": ["balance"],
+      "description": "Keeps your stance from drifting.",
+      "effects": [
+        { "type": "passive", "effect": "Balance cannot drop below -2" }
       ]
     },
     {
@@ -50,10 +181,67 @@
       "tier": 2,
       "type": "ability",
       "rarity": "rare",
-      "tags": ["canticle", "ability_unlock"],
-      "description": "Scripture shard that teaches a defensive hymn.",
+      "tags": ["faith", "ability_unlock"],
+      "description": "A defensive hymn etched in light.",
       "effects": [
-        { "type": "ability_unlock", "ability_ref": "canticle.gleaming_wall", "text": "Defense reaction: Reduce dmg by 1d6; gain Radiance 1; if dmg -> 0, attacker takes radiant 1." }
+        { "type": "ability_unlock", "ability_ref": "canticle.gleaming_wall" }
+      ]
+    },
+    {
+      "name": "Conduit Filament",
+      "tier": 2,
+      "type": "upgrade",
+      "rarity": "uncommon",
+      "tags": ["magic"],
+      "description": "Threads spells more cleanly.",
+      "effects": [
+        { "type": "resource_bonus", "effect": "+1 Magic Pool (1/encounter)" }
+      ]
+    },
+    {
+      "name": "Vein-Etched Coin",
+      "tier": 2,
+      "type": "relic",
+      "rarity": "rare",
+      "tags": ["luck"],
+      "description": "The Dungeon enjoys this one.",
+      "effects": [
+        { "type": "trigger", "on": "roll", "effect": "Reroll one die (1/session)" }
+      ]
+    },
+    {
+      "name": "Heat Memory Flask",
+      "tier": 2,
+      "type": "consumable",
+      "rarity": "uncommon",
+      "tags": ["heat"],
+      "description": "Stores fury for later.",
+      "effects": [
+        { "type": "consume", "effect": "Preserve up to 2 Heat into next turn" }
+      ]
+    },
+    {
+      "name": "Blood-Tuned Grip",
+      "tier": 2,
+      "type": "upgrade",
+      "rarity": "uncommon",
+      "tags": ["weapon"],
+      "description": "Tightens when blood is spilled.",
+      "effects": [
+        { "type": "trigger", "on": "apply_bleed", "effect": "Gain +1 Momentum" }
+      ]
+    },
+
+
+    {
+      "name": "Sovereign Vein Sigil",
+      "tier": 3,
+      "type": "VeinSigil",
+      "rarity": "rare",
+      "tags": ["vein", "currency"],
+      "description": "A layered sigil that beats like a heart.",
+      "effects": [
+        { "type": "grant_veinscore", "value": 25 }
       ]
     },
     {
@@ -61,23 +249,98 @@
       "tier": 3,
       "type": "relic",
       "rarity": "rare",
-      "tags": ["blood", "corruption"],
-      "description": "A sigil that whispers for more marks.",
+      "tags": ["blood"],
+      "description": "Whispers when executions occur.",
       "effects": [
-        { "type": "trigger", "on": "execute", "effect": "Gain +1 RP and +1 Momentum" },
-        { "type": "risk", "effect": "Each Execute also adds +1 Blood Mark" }
+        { "type": "trigger", "on": "execute", "effect": "Gain +1 RP and +1 Momentum" }
       ]
     },
     {
       "name": "Stormcore Capacitor",
       "tier": 3,
       "type": "upgrade",
-      "rarity": "uncommon",
-      "tags": ["spellforged", "conduit"],
-      "description": "Stores charge for spellforged strikes.",
+      "rarity": "rare",
+      "tags": ["magic"],
+      "description": "Stores violent charge.",
       "effects": [
-        { "type": "resource_bonus", "effect": "+1 Magic Pool refresh at start of turn (1/encounter)" },
-        { "type": "trigger", "on": "cast_spell", "effect": "Gain +1 Momentum (max 1/round)" }
+        { "type": "trigger", "on": "cast_spell", "effect": "Gain +1 Momentum (1/round)" }
+      ]
+    },
+    {
+      "name": "Veinbrand Greatblade",
+      "tier": 3,
+      "type": "weapon",
+      "rarity": "rare",
+      "tags": ["heavy", "slashing"],
+      "description": "Carves glowing wounds through armor.",
+      "effects": [
+        { "type": "trigger", "on": "hit", "effect": "Apply Stagger 1 on heavy attacks" }
+      ]
+    },
+    {
+      "name": "Canticle Relic: Halo of Strain",
+      "tier": 3,
+      "type": "ability",
+      "rarity": "rare",
+      "tags": ["faith", "ability_unlock"],
+      "description": "Light that burns the bearer.",
+      "effects": [
+        { "type": "ability_unlock", "ability_ref": "canticle.halo_of_strain" }
+      ]
+    },
+    {
+      "name": "Rhythm Severance Charm",
+      "tier": 3,
+      "type": "relic",
+      "rarity": "rare",
+      "tags": ["interrupt"],
+      "description": "Cuts enemy timing apart.",
+      "effects": [
+        { "type": "trigger", "on": "perfect_defense", "effect": "Cancel next enemy Interrupt" }
+      ]
+    },
+    {
+      "name": "Bloodglass Crown",
+      "tier": 3,
+      "type": "armor",
+      "rarity": "rare",
+      "tags": ["blood"],
+      "description": "Pain sharpens awareness.",
+      "effects": [
+        { "type": "trigger", "on": "take_damage", "effect": "Gain +1 Positive Balance" }
+      ]
+    },
+    {
+      "name": "Vein-Threaded Focus",
+      "tier": 3,
+      "type": "upgrade",
+      "rarity": "rare",
+      "tags": ["magic"],
+      "description": "Spells remember prior fury.",
+      "effects": [
+        { "type": "passive", "effect": "Heat loss reduced by 1 each turn" }
+      ]
+    },
+    {
+      "name": "Execution Token",
+      "tier": 3,
+      "type": "relic",
+      "rarity": "rare",
+      "tags": ["execution"],
+      "description": "Warm only when killing intent is true.",
+      "effects": [
+        { "type": "trigger", "on": "prime_enemy", "effect": "Execution costs 0 RP (1/encounter)" }
+      ]
+    },
+    {
+      "name": "Dungeon Writ",
+      "tier": 3,
+      "type": "consumable",
+      "rarity": "rare",
+      "tags": ["meta"],
+      "description": "A signed indulgence.",
+      "effects": [
+        { "type": "consume", "effect": "Gain Advantage on next A3 contest" }
       ]
     }
   ]
