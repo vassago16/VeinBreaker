@@ -47,6 +47,16 @@ Your paths into the rules. Expand and jump where you need.
 - [[Tier 3 Enemies|tier-3-beasts]]
 - [[Tier 4 Enemies|tier-4-beasts]]
 - [[Tier 5 Enemies|tier-5-beasts]]
+- **Loot**
+- [[Loot Tier 1|loot-tier-1]]
+- [[Loot Tier 2|loot-tier-2]]
+- [[Loot Tier 3|loot-tier-3]]
+- [[Loot by Weapon|loot-type-weapon]]
+- [[Loot by Armor|loot-type-armor]]
+- [[Loot by Consumable|loot-type-consumable]]
+- [[Loot by Ability|loot-type-ability]]
+- [[Loot by Relic|loot-type-relic]]
+- [[Loot by Upgrade|loot-type-upgrade]]
 </details>
 
 <details>

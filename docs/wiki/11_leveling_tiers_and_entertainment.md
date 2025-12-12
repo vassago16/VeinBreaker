@@ -11,7 +11,7 @@ Leveling is fueled by **Veinscore (⟟)**, earned through exploration, victories
 
 ---
 
-# ⭐ **11.1 VEINSCORE — THE CURRENCY OF ASCENT**
+#  **11.1 VEINSCORE — THE CURRENCY OF ASCENT**
 
 Veinscore is spent to increase Attributes and unlock higher Tiers.
 
@@ -29,10 +29,35 @@ Unspent Veinscore is dangerous—if you die, it is lost.
 [DUNGEON WHISPER]
 “Spend it before I take it back.”
 ```
+A Vein Sigil is a crystallized symbol burned into matter — stone, bone, glass, or flesh — where the Dungeon’s attention lingered.
 
+It pulses faintly.
+It hurts to hold too long.
+The longer you keep it unspent, the more it recognizes you.
+
+“The Dungeon does not give currency. It leaves signatures.”
+
+
+| Item Name | Veinscore  Value |Tier |Visual|
+| --------- | --------- | ------|-----|
+Faint Vein Sigil|	1 ⟟	|Tier I	|Hairline glyph, dull glow|
+|True Vein Sigil|	10 ⟟|	Tier II	|Etched rune, slow pulse|
+|Sovereign Vein Sigil|	25 ⟟|	Tier III|	Multi-layered sigil, warm heartbeat|
+Ascendant Vein Sigil — ?? ⟟ 
+
+
+
+>Vein Sigil (⟟)
+>
+>
+>A crystallized mark of the Dungeon’s approval. When consumed, its pattern burns into your rhythm and becomes Veinscore. Unspent Sigils feel… aware.
+>
+>
 ---
+<br>
 
-# ⭐ **11.2 LEVEL TABLE (Revised for Rhythm System)**
+
+#  **11.2 LEVEL TABLE (Revised for Rhythm System)**
 
 | Level  | Total ⟟ Spent | Reward                         |
 | ------ | ------------- | ------------------------------ |
@@ -58,8 +83,9 @@ Unspent Veinscore is dangerous—if you die, it is lost.
 | **20** | 410           | **Ascendant Path** unlocked    |
 
 ---
+<br>
 
-# ⭐ **11.3 TIER SYSTEM — EARNING STYLE, NOT GRIND**
+#  **11.3 TIER SYSTEM — EARNING STYLE, NOT GRIND**
 
 Tier unlocks are **not automatic**. They require:
 
