@@ -1,0 +1,156 @@
+{
+  "schema": "veinbreaker.phase_machine.v1",
+
+  "phases": {
+    "idle": {
+      "description": "No active encounter or chain.",
+      "allowedTransitions": ["out_of_combat", "chain_declaration"],
+      "allowedActions": [
+        "narrate",
+        "offer_choices",
+        "enter_encounter"
+      ]
+    },
+
+    "out_of_combat": {
+      "description": "Exploration, dialogue, looting, downtime.",
+      "allowedTransitions": ["idle", "chain_declaration"],
+      "allowedActions": [
+        "narrate",
+        "generate_encounter",
+        "award_loot",
+        "advance_hunter_clock",
+        "use_safe_room"
+      ]
+    },
+
+    "chain_declaration": {
+      "description": "Player declares a full chain of actions.",
+      "allowedTransitions": ["chain_resolution"],
+      "allowedActions": [
+        "declare_chain",
+        "validate_chain",
+        "spend_resolve_for_declaration"
+      ],
+      "forbiddenActions": [
+        "interrupt",
+        "resolve_action",
+        "apply_damage"
+      ]
+    },
+
+    "chain_resolution": {
+      "description": "Declared actions resolve in order.",
+      "allowedTransitions": [
+        "interrupt_window",
+        "damage_check",
+        "post_chain"
+      ],
+      "allowedActions": [
+        "resolve_action_step",
+        "apply_action_effects",
+        "check_exposure"
+      ]
+    },
+
+    "interrupt_window": {
+      "description": "Defenders may attempt Interrupts or Defense Resolve Actions.",
+      "allowedTransitions": [
+        "chain_resolution",
+        "damage_check"
+      ],
+      "allowedActions": [
+        "attempt_interrupt",
+        "use_resolve_action(defense_window)",
+        "perfect_defense",
+        "decline_interrupt"
+      ],
+      "constraints": {
+        "maxInterruptsPerDefenderPerRound": 1,
+        "noInterruptOnFirstAction": true
+      }
+    },
+
+    "damage_check": {
+      "description": "Determine whether damage occurred and apply consequences.",
+      "allowedTransitions": [
+        "post_chain"
+      ],
+      "allowedActions": [
+        "apply_damage",
+        "end_chain_if_damage",
+        "apply_on_hit_effects"
+      ],
+      "invariantsEnforced": [
+        "damageEndsChain",
+        "noResolveAfterDamage"
+      ]
+    },
+
+    "post_chain": {
+      "description": "Cleanup after a chain ends.",
+      "allowedTransitions": [
+        "end_of_round",
+        "chain_declaration"
+      ],
+      "allowedActions": [
+        "clear_chain_state",
+        "advance_cooldowns",
+        "update_balance_heat_momentum",
+        "check_death"
+      ]
+    },
+
+    "end_of_round": {
+      "description": "Round boundary and state refresh.",
+      "allowedTransitions": [
+        "chain_declaration",
+        "out_of_combat"
+      ],
+      "allowedActions": [
+        "reset_interrupt_flags",
+        "refresh_limited_resources",
+        "advance_round_counter",
+        "advance_hunter_clock"
+      ]
+    }
+  },
+
+  "globalConstraints": {
+    "noSkippingPhases": true,
+    "phaseMustMatchActionTiming": true,
+    "illegalActionsMustBeRejected": true,
+    "aiMayNotInventTransitions": true
+  },
+
+  "interruptRules": {
+    "triggerConditions": [
+      "exposure_detected"
+    ],
+    "resolutionOrder": [
+      "resolve_defense_window_actions",
+      "interrupt_contest",
+      "damage_check"
+    ]
+  },
+
+  "resolveRules": {
+    "resolveActionsAreNonActions": true,
+    "resolveActionsDoNotAdvancePhase": true,
+    "resolveActionsRequireTimingTag": true
+  },
+
+  "deathHandling": {
+    "deathDetectedIn": "post_chain",
+    "deathImmediatelyEndsEncounter": true,
+    "transitionOnDeath": "out_of_combat"
+  },
+
+  "hunterHandling": {
+    "hunterClockAdvancesIn": [
+      "end_of_round",
+      "out_of_combat"
+    ],
+    "hunterManifestationPhase": "interrupt_window"
+  }
+}

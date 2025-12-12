@@ -1,0 +1,125 @@
+{
+  "schema": "veinbreaker.threat_budget_tables.v1",
+
+  "philosophy": {
+    "threatIsPressureNotDurability": true,
+    "noHpInflation": true,
+    "escalationBeatsAttrition": true
+  },
+
+  "baseThreatByPartySize": {
+    "1": 2,
+    "2": 3,
+    "3": 4,
+    "4": 5,
+    "5": 6
+  },
+
+  "difficultyModifiers": {
+    "easy": -1,
+    "standard": 0,
+    "hard": 1,
+    "desperate": 2
+  },
+
+  "bloodMarkPressure": {
+    "thresholds": [
+      {
+        "totalMarksAtLeast": 1,
+        "threatModifier": 0
+      },
+      {
+        "totalMarksAtLeast": 3,
+        "threatModifier": 1
+      },
+      {
+        "totalMarksAtLeast": 5,
+        "threatModifier": 2
+      }
+    ]
+  },
+
+  "dunPressure": {
+    "perDunModifier": 0.5,
+    "maxDunModifier": 2
+  },
+
+  "arenaThreatModifiers": {
+    "cramped": 1,
+    "hazardous": 1,
+    "dark": 0,
+    "open": 0,
+    "vertical": 0,
+    "safe": -1
+  },
+
+  "enemyTierCost": {
+    "1": 1,
+    "2": 2,
+    "3": 3
+  },
+
+  "enemyTemplateCostModifiers": {
+    "baseline": 0,
+    "elite": 1,
+    "swarm": -1
+  },
+
+  "compositionConstraints": {
+    "maxSingleEnemyTierAbovePartyAverage": 1,
+    "maxEliteEnemies": 1,
+    "minEnemies": 1,
+    "maxEnemies": 5
+  },
+
+  "reinforcementRules": {
+    "enabled": true,
+    "costPerWave": 1,
+    "maxWaves": 2,
+    "minimumRoundsBeforeReinforcement": 2
+  },
+
+  "hunterOverride": {
+    "hunterPresenceSetsThreatTo": "desperate",
+    "hunterIgnoresBudgetCap": true
+  },
+
+  "calculationOrder": [
+    "baseThreatByPartySize",
+    "difficultyModifiers",
+    "bloodMarkPressure",
+    "dunPressure",
+    "arenaThreatModifiers"
+  ],
+
+  "budgetFloor": 1,
+  "budgetCeiling": 8,
+
+  "validation": {
+    "finalThreatMustBeWithinFloorAndCeiling": true,
+    "enemyCostSumMustNotExceedThreat": true
+  },
+
+  "examples": [
+    {
+      "description": "3 players, standard difficulty, 3 total marks, cramped arena",
+      "calculation": {
+        "base": 4,
+        "difficulty": 0,
+        "bloodMarks": 1,
+        "arena": 1,
+        "finalThreat": 6
+      }
+    },
+    {
+      "description": "1 player, hard difficulty, 1 Dun, open arena",
+      "calculation": {
+        "base": 2,
+        "difficulty": 1,
+        "duns": 0.5,
+        "arena": 0,
+        "finalThreat": 3.5
+      }
+    }
+  ]
+}

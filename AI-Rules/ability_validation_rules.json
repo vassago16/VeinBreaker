@@ -1,0 +1,137 @@
+{
+  "schema": "veinbreaker.ability_validation_rules.v1",
+
+  "general": {
+    "abilityMustExistInCanon": true,
+    "abilityExecutionIsAtomic": true,
+    "illegalAbilityMustBeRejected": true,
+    "aiMayNotBypassValidation": true
+  },
+
+  "lookupRules": {
+    "requiredFields": [
+      "path",
+      "tier",
+      "name",
+      "type",
+      "cost",
+      "cooldown",
+      "effect"
+    ],
+    "optionalFields": [
+      "playMode",
+      "timing",
+      "tags",
+      "constraints"
+    ]
+  },
+
+  "phaseLegality": {
+    "attack": {
+      "allowedPhases": ["chain_resolution"],
+      "forbiddenPhases": ["chain_declaration", "interrupt_window", "damage_check"]
+    },
+    "movement": {
+      "allowedPhases": ["chain_resolution"],
+      "forbiddenPhases": ["chain_declaration", "damage_check"]
+    },
+    "utility": {
+      "allowedPhases": ["chain_resolution"],
+      "forbiddenPhases": ["interrupt_window", "damage_check"]
+    },
+    "resolve": {
+      "allowedPhases": ["interrupt_window", "chain_resolution"],
+      "forbiddenPhases": ["chain_declaration", "damage_check"]
+    }
+  },
+
+  "playModeRules": {
+    "action": {
+      "requiresChain": true,
+      "consumesActionSlot": true
+    },
+    "reaction": {
+      "requiresChain": false,
+      "consumesActionSlot": false
+    }
+  },
+
+  "timingValidation": {
+    "timingTagsRequiredForResolve": true,
+    "validTimingTags": [
+      "defense_window",
+      "any_window",
+      "attack_window",
+      "end_of_chain"
+    ],
+    "defenseWindowRules": {
+      "onlyBeforeInterruptRoll": true,
+      "cannotBeUsedAfterDamage": true
+    },
+    "anyWindowRules": {
+      "cannotInterruptRolls":true,
+      "cannotRetroactivelyModifyResults":true
+    }
+  },
+
+  "resourceValidation": {
+    "costMustBeAffordable": true,
+    "resolveCannotGoNegative": true,
+    "poolMustMatchPath": true,
+    "cooldownMustBeZero": true
+  },
+
+  "cooldownRules": {
+    "cooldownDecrementsAt": "post_chain",
+    "cooldownCannotBeBypassed": true,
+    "cooldownTrackedByAbilityName": true
+  },
+
+  "constraintEnforcement": {
+    "cannotDealDamage": {
+      "forbiddenEffectKeywords": ["damage", "hp loss", "wound"]
+    },
+    "cannotExtendChain": {
+      "forbiddenEffectKeywords": ["add action", "extra action", "continue chain"]
+    },
+    "cannotBeDeclared": {
+      "forbiddenPhases": ["chain_declaration"]
+    }
+  },
+
+  "chainInteraction": {
+    "resolveActionsDoNotAdvanceChain": true,
+    "resolveActionsCannotPreventChainEndAfterDamage": true,
+    "abilitiesCannotResumeEndedChain": true
+  },
+
+  "interruptInteraction": {
+    "abilitiesCannotGrantExtraInterrupts": true,
+    "interruptCapRespected": true,
+    "interruptFlagsMustBeChecked": true
+  },
+
+  "damageInteraction": {
+    "anyDamageEndsChain": true,
+    "abilitiesCannotConvertDamage": true,
+    "abilitiesCannotDelayDamageResolution": true
+  },
+
+  "enemyAbilityRules": {
+    "enemyAbilitiesFollowSameValidation": true,
+    "enemyCannotIgnoreCooldowns": true,
+    "enemyCannotBypassInterruptCap": true
+  },
+
+  "validationErrors": {
+    "ABILITY_NOT_FOUND": "Ability does not exist in canon.",
+    "INVALID_PHASE": "Ability cannot be used in the current phase.",
+    "INSUFFICIENT_RESOURCES": "Not enough resources to use ability.",
+    "COOLDOWN_ACTIVE": "Ability is on cooldown.",
+    "INVALID_TIMING": "Ability timing window not available.",
+    "CONSTRAINT_VIOLATION": "Ability violates a hard constraint.",
+    "CHAIN_VIOLATION": "Ability illegally interacts with chain state.",
+    "INTERRUPT_VIOLATION": "Ability violates interrupt rules.",
+    "DAMAGE_VIOLATION": "Ability violates damage invariants."
+  }
+}

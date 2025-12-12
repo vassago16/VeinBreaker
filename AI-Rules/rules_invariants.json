@@ -1,0 +1,177 @@
+{
+  "schema": "veinbreaker.rules_invariants.v1",
+
+  "general": {
+    "aiMayNotInventRules": true,
+    "aiMayNotModifyCanonData": true,
+    "aiMustValidateAllActions": true,
+    "aiMustRejectIllegalActions": true
+  },
+
+  "phases": {
+    "allowedPhases": [
+      "idle",
+      "chain_declaration",
+      "chain_resolution",
+      "interrupt_window",
+      "damage_check",
+      "post_chain",
+      "end_of_round",
+      "out_of_combat"
+    ],
+    "phaseOrderEnforced": true,
+    "noSkippingPhases": true
+  },
+
+  "chain": {
+    "declarationRequired": true,
+    "actionsMustBeDeclaredBeforeResolution": true,
+    "firstActionCannotBeInterrupted": true,
+    "missDoesNotEndChain": true,
+    "damageEndsChain": true,
+    "voluntaryChainEndAllowed": true,
+    "chainCannotResumeAfterEnd": true,
+    "chainCannotBeExtendedMidResolution": true
+  },
+
+  "damage": {
+    "anyHpLossCountsAsDamage": true,
+    "damageImmediatelyEndsChain": true,
+    "damageCannotBeReducedAfterApplication": true,
+    "damageCannotBeConvertedToOtherPenalties": true
+  },
+
+  "interrupts": {
+    "interruptsRequireExposure": true,
+    "exposureSources": [
+      "miss",
+      "negative_balance",
+      "overcommit",
+      "movement_during_chain",
+      "ability_defined_exposure"
+    ],
+    "maxInterruptsPerDefenderPerRound": 1,
+    "interruptCannotOccurDuringDeclaration": true,
+    "interruptOccursOnlyDuringResolution": true,
+    "interruptRequiresContest": true,
+    "interruptCannotBeRetriedIfUsed": true
+  },
+
+  "interruptResolution": {
+    "contestType": "A3",
+    "attackerUsesDefenseValue": true,
+    "defenderUsesAttackValue": true,
+    "damageOnSuccess": true,
+    "noPartialDamageStates": true
+  },
+
+  "resolve": {
+    "resolveIsNotAnAction": true,
+    "resolveCannotBeDeclaredInChain": true,
+    "resolveRequiresTimingWindow": true,
+    "resolveCannotUndoDamage": true,
+    "resolveCannotReverseChainEnd": true,
+    "resolveCannotCreateActions": true,
+    "resolveCannotGrantExtraInterrupts": true,
+    "resolveCostsResolvePoints": true
+  },
+
+  "resolveTiming": {
+    "validTimingWindows": [
+      "defense_window",
+      "any_window",
+      "attack_window",
+      "end_of_chain"
+    ],
+    "defenseWindowOccursBeforeInterruptRoll": true,
+    "noResolveAfterDamage": true,
+    "noResolveMidRoll": true
+  },
+
+  "perfectDefense": {
+    "perfectDefenseNegatesAllDamage": true,
+    "perfectDefenseAllowsChainContinuation": true,
+    "perfectDefenseMayGenerateMomentum": true
+  },
+
+  "resources": {
+    "resolve": {
+      "cannotGoNegative": true,
+      "mustBeAvailableToSpend": true
+    },
+    "momentum": {
+      "cannotPreventDamageByItself": true,
+      "affectsDefenseOnly": true
+    },
+    "heat": {
+      "increasesRisk": true,
+      "cannotBeSpentRetroactively": true
+    },
+    "balance": {
+      "negativeBalanceIncreasesExposure": true,
+      "positiveBalanceDoesNotGrantImmunity": true
+    }
+  },
+
+  "abilities": {
+    "mustExistInCanon": true,
+    "mustRespectTiming": true,
+    "cooldownsMustBeTracked": true,
+    "cannotOverrideInvariants": true
+  },
+
+  "enemyAI": {
+    "enemiesFollowSameInterruptRules": true,
+    "enemyMayNotExceedInterruptCap": true,
+    "enemyBehaviorIsPatternBased": true,
+    "enemyCannotIgnoreDamageEndsChain": true
+  },
+
+  "death": {
+    "hpZeroIsDeath": true,
+    "respawnAtLastSafeRoom": true,
+    "loseAllUnspentVeinscore": true,
+    "retainBloodMarks": true,
+    "gainDunOnDeath": true,
+    "deathEndsEncounter": true
+  },
+
+  "dun": {
+    "addsToTotalBloodMarks": true,
+    "grantsNoBonuses": true,
+    "cannotBeRemoved": true,
+    "cannotBeConverted": true
+  },
+
+  "bloodMarks": {
+    "bloodMarksArePermanent": true,
+    "totalMarksIncludesDuns": true,
+    "marksTriggerEscalation": true
+  },
+
+  "hunter": {
+    "hunterTriggersAtTotalMarksThreshold": 3,
+    "hunterCannotBeKilled": true,
+    "hunterIgnoresNormalCombatRules": true,
+    "hunterEnforcesPressure": true
+  },
+
+  "safeRooms": {
+    "safeRoomsResetPositionOnly": true,
+    "safeRoomsDoNotEraseMarks": true,
+    "safeRoomsWeakenAfterDeath": true
+  },
+
+  "encounters": {
+    "encountersUseThreatBudget": true,
+    "enemiesMustBeBuiltFromTemplates": true,
+    "arenaModifiersAffectThreat": true
+  },
+
+  "aiConstraints": {
+    "aiMayDescribeOnlyAuthorizedOutcomes": true,
+    "aiMayOfferOnlyLegalChoices": true,
+    "aiMayNotRetconState": true,
+    "aiMustSurfaceConsequences": true
+  }
+}
