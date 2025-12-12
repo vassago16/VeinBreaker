@@ -24,3 +24,4 @@ pnpm-debug.log*
 # Misc
 .env
 .env.*
+.tmp.driveupload
