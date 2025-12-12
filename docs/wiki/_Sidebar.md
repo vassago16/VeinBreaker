@@ -64,6 +64,8 @@ Your paths into the rules. Expand and jump where you need.
 <details>
 <summary>&#x1F9EA; Character Paths</summary>
 
+- **Tier 0**
+  - [[Resolve Basics|tier-0-resolve_basic-abilities]]
 - **Tier 1**
   - [[Stonepulse|tier-1-stonepulse-abilities]]
   - [[Canticle|tier-1-canticle-abilities]]
