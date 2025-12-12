@@ -1,0 +1,51 @@
+{
+  "id": "enemy.ashen.censor",
+  "name": "Ashen Censor",
+  "archetype_id": "archetype.controller",
+  "tier": 3,
+  "role": "controller",
+  "rarity": "uncommon",
+  "tags": ["ashen", "caster"],
+  "lore": {
+    "one_liner": "It smells burning resolve.",
+    "dungeon_voice": "Too hot. Too loud.",
+    "notes_gm": "Teaches Heat discipline and restraint."
+  },
+  "stat_block": {
+    "hp": { "max": 30 },
+    "defense": { "dv_base": 14, "idf": 1 },
+    "damage_profile": {
+      "baseline": { "dice": "1d6", "flat": 0 },
+      "spike": { "dice": "2d6", "flat": 0 }
+    }
+  },
+  "moves": [
+    {
+      "id": "move.cinder_brand",
+      "name": "Cinder Brand",
+      "type": "attack",
+      "cost": { "rp": 1 },
+      "cooldown": 1,
+      "to_hit": { "av_mod": 1 },
+      "on_hit": {
+        "damage": "baseline",
+        "effects": [{ "type": "vulnerable", "stacks": 1 }]
+      },
+      "on_miss": { "notes": "Ash scatters harmlessly." },
+      "card_text": "Marks overheated targets for punishment."
+    }
+  ],
+  "overrides": {
+    "rhythm_profile": {
+      "interrupt": {
+        "windows": [
+          {
+            "after_action_index": [2, 3],
+            "trigger_if": { "player_heat_gte": 3 },
+            "weight": 0.7
+          }
+        ]
+      }
+    }
+  }
+}

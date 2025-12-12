@@ -1,0 +1,1391 @@
+{
+  "meta": {
+    "schema": "veinbreaker.bestiary.v1",
+    "system_rules": {
+      "resolve": {
+        "regen_per_turn": 2
+      },
+      "interrupt_margin": {
+        "break_chain_on_margin_gte": 5,
+        "critical_interrupt_on_margin_gte": 10
+      }
+    },
+    "archetype_source": "archetype.json"
+  },
+  "enemies": [
+    {
+      "id": "enemy.brumklin.skitter",
+      "name": "Brumklin Skitter",
+      "archetype_id": "archetype.aggressor",
+      "tier": 1,
+      "role": "harasser",
+      "rarity": "common",
+      "tags": [
+        "brumkin",
+        "small",
+        "scout"
+      ],
+      "lore": {
+        "one_liner": "It giggles when you miss.",
+        "dungeon_voice": "Skitter skitter, slice slice.",
+        "notes_gm": "Teaches chain discipline."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 10
+        },
+        "defense": {
+          "dv_base": 10,
+          "idf": 0
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d4",
+            "flat": -1
+          },
+          "spike": {
+            "dice": "1d4",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.basic_attack",
+          "name": "Skitter Slash",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": 0
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "Opens interrupt windows."
+          },
+          "card_text": "A quick slash that punishes sloppy chains."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "early",
+            "windows": [
+              {
+                "after_action_index": [
+                  2
+                ],
+                "trigger_if": {
+                  "player_missed_last_action": true
+                },
+                "weight": 0.85,
+                "notes": "Skitter is extra mean about misses."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 5,
+              "bias": 0.25
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "If players perfect-defend a lot, Aggressor starts feinting / swapping targets."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                {
+                  "type": "off_balance",
+                  "chance": 0.2,
+                  "on": "hit",
+                  "notes": "Keeps the player from stabilizing."
+                }
+              ],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": [
+                {
+                  "type": "heat_bait",
+                  "notes": "Encourages players to spike Heat for risky damage."
+                }
+              ]
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.2,
+                  "on": "player_miss",
+                  "notes": "Aggressor gains advantage positioning when you whiff."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "hp_le_25",
+              "vulnerable_3"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "aggressor",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.opening_burst"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "player_missed_last_action": true
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.punish_miss"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.pressure_strike"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.brumklin.lurker",
+      "name": "Brumklin Lurker",
+      "archetype_id": "archetype.stalker",
+      "tier": 1,
+      "role": "stalker",
+      "rarity": "common",
+      "tags": [
+        "brumkin",
+        "small",
+        "bleed"
+      ],
+      "lore": {
+        "one_liner": "Hunts ankles and follows footsteps.",
+        "dungeon_voice": "I hear you moving. Keep moving.",
+        "notes_gm": "Teaches movement risk; punishes reposition spam."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 9
+        },
+        "defense": {
+          "dv_base": 11,
+          "idf": 0
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d4",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "1d4",
+            "flat": 1
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.hamstring_cut",
+          "name": "Hamstring Cut",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": 0
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              "bleed"
+            ]
+          },
+          "on_miss": {
+            "notes": "Stays low; baiting movement."
+          },
+          "card_text": "Low slash that opens bleeding tracks."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "late",
+            "windows": [
+              {
+                "after_action_index": [
+                  2,
+                  3
+                ],
+                "trigger_if": {
+                  "player_moved": true
+                },
+                "weight": 0.85,
+                "notes": "Highly reactive to movement."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": false
+            },
+            "punish_movement": {
+              "enabled": true,
+              "bias": 0.45
+            },
+            "reward_perfect_defense": {
+              "enabled": false
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.2,
+                  "on": "player_moved",
+                  "notes": "Stalker keeps pace / sticks close."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "vulnerable_3",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "stalker",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.mark_prey"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "player_moved": true
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.hamstring"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.bleed_cut"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.goblin.shieldbearer",
+      "name": "Goblin Shieldbearer",
+      "archetype_id": "archetype.defender",
+      "tier": 1,
+      "role": "defender",
+      "rarity": "common",
+      "tags": [
+        "goblin",
+        "shield",
+        "guard"
+      ],
+      "lore": {
+        "one_liner": "Squats behind a slab and swats patterns.",
+        "dungeon_voice": "Same move, same mistake.",
+        "notes_gm": "Forces Guard Break or varied chains."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 12
+        },
+        "defense": {
+          "dv_base": 12,
+          "idf": 1
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d4",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "1d6",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.shield_bash",
+          "name": "Shield Bash",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 1,
+          "to_hit": {
+            "av_mod": 0
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              "stagger"
+            ]
+          },
+          "on_miss": {
+            "notes": "Turtles back down, resetting stance."
+          },
+          "card_text": "Bash that staggers repeat offenders."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "mid",
+            "windows": [
+              {
+                "after_action_index": [
+                  2
+                ],
+                "trigger_if": {
+                  "repeat_count_gte": 2
+                },
+                "weight": 0.9,
+                "notes": "Punishes repeating the same action."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 4,
+              "critical_interrupt_on_margin_gte": 8
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": true,
+              "repeat_count_gte": 2,
+              "bias": 0.45
+            },
+            "punish_long_chains": {
+              "enabled": false
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": false
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.25,
+                  "on": "player_repeat",
+                  "notes": "Defender 'reads' predictable strings."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "stagger_2",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "defender",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.raise_guard"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "repeat_count_gte": 2
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.punish_repeat"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.guard_counter"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.shambler.bone",
+      "name": "Bone Shambler",
+      "archetype_id": "archetype.juggernaut",
+      "tier": 1,
+      "role": "juggernaut",
+      "rarity": "uncommon",
+      "tags": [
+        "undead",
+        "heavy"
+      ],
+      "lore": {
+        "one_liner": "Slow pile of bone that hates long chains.",
+        "dungeon_voice": "Keep hitting. See what breaks first.",
+        "notes_gm": "Shows flurry resistance and greedy-chain punish."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 18
+        },
+        "defense": {
+          "dv_base": 11,
+          "idf": 0
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "1d8",
+            "flat": 1
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.heavy_slam",
+          "name": "Heavy Slam",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 1,
+          "to_hit": {
+            "av_mod": -1
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": [
+              "off_balance"
+            ]
+          },
+          "on_miss": {
+            "notes": "Telegraphs again; still looming."
+          },
+          "card_text": "Slow crush that knocks footing loose."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "very_late",
+            "windows": [
+              {
+                "after_action_index": [
+                  5,
+                  6
+                ],
+                "trigger_if": {
+                  "chain_length_gte": 5
+                },
+                "weight": 0.9,
+                "notes": "Very punishing to long chains."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 4,
+              "critical_interrupt_on_margin_gte": 9
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 6,
+              "bias": 0.55
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "Perfect defense should feel like 'turning the truck'."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                {
+                  "type": "off_balance",
+                  "chance": 0.3,
+                  "on": "hit",
+                  "notes": "Big hits shake stance."
+                }
+              ],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": []
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "stagger_2",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 1,
+              "notes": "Harder to finish cleanly even when Primed."
+            }
+          }
+        },
+        "ai": {
+          "archetype": "juggernaut",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.telegraphed_swing"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "chain_length_gte": 6
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.crush_punish"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.heavy_slam"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.cultist.blood_eye",
+      "name": "Blood-Eyed Cultist",
+      "archetype_id": "archetype.aggressor",
+      "tier": 1,
+      "role": "aggressor",
+      "rarity": "uncommon",
+      "tags": [
+        "cultist",
+        "human",
+        "frenzy"
+      ],
+      "lore": {
+        "one_liner": "Cuts harder when you falter.",
+        "dungeon_voice": "Miss again. Bleed for it.",
+        "notes_gm": "Stacks pressure on misses; shows aggressive interrupts."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 10
+        },
+        "defense": {
+          "dv_base": 10,
+          "idf": 0
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": -1
+          },
+          "spike": {
+            "dice": "1d6",
+            "flat": 1
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.frenzy_cut",
+          "name": "Frenzy Cut",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": 1
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "Wild swing opens defense, invites riposte."
+          },
+          "card_text": "Fast slash that goads faster chains."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "early",
+            "windows": [
+              {
+                "after_action_index": [
+                  2
+                ],
+                "trigger_if": {
+                  "player_missed_last_action": true
+                },
+                "weight": 0.95,
+                "notes": "Eager to pounce on misses."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 5,
+              "bias": 0.25
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "If players perfect-defend a lot, Aggressor starts feinting / swapping targets."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                {
+                  "type": "off_balance",
+                  "chance": 0.2,
+                  "on": "hit",
+                  "notes": "Keeps the player from stabilizing."
+                }
+              ],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": [
+                {
+                  "type": "heat_bait",
+                  "notes": "Encourages players to spike Heat for risky damage."
+                }
+              ]
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.2,
+                  "on": "player_miss",
+                  "notes": "Aggressor gains advantage positioning when you whiff."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "hp_le_25",
+              "vulnerable_3"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "aggressor",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.opening_burst"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "player_missed_last_action": true
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.punish_miss"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.pressure_strike"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.ashen.censor",
+      "name": "Ashen Censor",
+      "archetype_id": "archetype.controller",
+      "tier": 3,
+      "role": "controller",
+      "rarity": "uncommon",
+      "tags": [
+        "ashen",
+        "caster"
+      ],
+      "lore": {
+        "one_liner": "It smells burning resolve.",
+        "dungeon_voice": "Too hot. Too loud.",
+        "notes_gm": "Teaches Heat discipline and restraint."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 30
+        },
+        "defense": {
+          "dv_base": 14,
+          "idf": 1
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "2d6",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.cinder_brand",
+          "name": "Cinder Brand",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 1,
+          "to_hit": {
+            "av_mod": 1
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              {
+                "type": "vulnerable",
+                "stacks": 1
+              }
+            ]
+          },
+          "on_miss": {
+            "notes": "Ash scatters harmlessly."
+          },
+          "card_text": "Marks overheated targets for punishment."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [
+                  2,
+                  3
+                ],
+                "trigger_if": {
+                  "player_heat_gte": 3
+                },
+                "weight": 0.7
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.ironbound.judge",
+      "name": "Ironbound Judge",
+      "archetype_id": "archetype.defender",
+      "tier": 4,
+      "role": "warden",
+      "rarity": "elite",
+      "tags": [
+        "ironbound",
+        "guardian"
+      ],
+      "lore": {
+        "one_liner": "It decides when your turn is over.",
+        "dungeon_voice": "ENOUGH.",
+        "notes_gm": "Hard counter to long chains and sloppy execution."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 48
+        },
+        "defense": {
+          "dv_base": 16,
+          "idf": 2
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "2d6",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "2d8",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.judgement_break",
+          "name": "Judgement Break",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 1,
+          "to_hit": {
+            "av_mod": 0
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              {
+                "type": "stagger",
+                "stacks": 2
+              }
+            ]
+          },
+          "on_miss": {
+            "notes": "Steel rings loudly."
+          },
+          "card_text": "Ends overlong chains decisively."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "mid",
+            "windows": [
+              {
+                "after_action_index": [
+                  2,
+                  3
+                ],
+                "trigger_if": {
+                  "repeat_count_gte": 2
+                },
+                "weight": 0.8,
+                "notes": "Core trigger: repeating the same action invites a hard stop."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 4,
+              "critical_interrupt_on_margin_gte": 8
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": true,
+              "repeat_count_gte": 2,
+              "bias": 0.45
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 4,
+              "bias": 0.5
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": false
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.25,
+                  "on": "player_repeat",
+                  "notes": "Defender 'reads' predictable strings."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "stagger_2",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "defender",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.raise_guard"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "repeat_count_gte": 2
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.punish_repeat"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.guard_counter"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.heartbound.adjudicator",
+      "name": "Heartbound Adjudicator",
+      "archetype_id": "archetype.aberrant",
+      "tier": 5,
+      "role": "executioner",
+      "rarity": "boss",
+      "tags": [
+        "heartbound",
+        "aberrant",
+        "boss"
+      ],
+      "lore": {
+        "one_liner": "It watches you like the Dungeon does.",
+        "dungeon_voice": "Show me something new.",
+        "notes_gm": "Mutates as Blood Marks accumulate."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 70
+        },
+        "defense": {
+          "dv_base": 18,
+          "idf": 3
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "2d8",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "3d8",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.final_edict",
+          "name": "Final Edict",
+          "type": "attack",
+          "cost": {
+            "rp": 2
+          },
+          "cooldown": 2,
+          "to_hit": {
+            "av_mod": 1
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": [
+              {
+                "type": "primed"
+              }
+            ]
+          },
+          "on_miss": {
+            "notes": "The Dungeon murmurs in disappointment."
+          },
+          "card_text": "A killing declaration \u2014 dangerous even to survive."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "adaptive",
+            "windows": [
+              {
+                "after_action_index": [
+                  2,
+                  3,
+                  4
+                ],
+                "trigger_if": {
+                  "blood_mark_gte": 3
+                },
+                "weight": 0.7,
+                "notes": "At higher Blood Marks, the creature becomes more reactive."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": true,
+              "repeat_count_gte": 2,
+              "bias": 0.25
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 5,
+              "bias": 0.25
+            },
+            "punish_movement": {
+              "enabled": true,
+              "bias": 0.25
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "If players get too clean, mutate into anti-defense tech."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": []
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "vulnerable_3",
+              "stagger_2",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          },
+          "mutations": {
+            "on_blood_mark_gte": [
+              {
+                "marks": 1,
+                "gain": "extra_interrupt_window"
+              },
+              {
+                "marks": 3,
+                "gain": "new_move"
+              },
+              {
+                "marks": 5,
+                "gain": "arena_pressure"
+              }
+            ]
+          }
+        },
+        "ai": {
+          "archetype": "aberrant",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.read_the_room"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "blood_mark_gte": 3
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.mutation_response"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.base_pattern"
+              }
+            ]
+          }
+        },
+        "mutation_engine": {
+          "enabled": true,
+          "triggers": [
+            {
+              "when": {
+                "blood_mark_increase": true
+              },
+              "do": [
+                {
+                  "type": "gain_move",
+                  "pool": "mutation.moves.tiered"
+                },
+                {
+                  "type": "gain_trait",
+                  "pool": "mutation.traits.tiered"
+                }
+              ],
+              "notes": "Every Blood Mark gained during/after encounters can add a new tool."
+            }
+          ],
+          "constraints": {
+            "max_new_moves_per_encounter": 1,
+            "max_new_traits_per_encounter": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.stonebound.mauler",
+      "name": "Stonebound Mauler",
+      "archetype_id": "archetype.bully",
+      "tier": 2,
+      "role": "enforcer",
+      "rarity": "common",
+      "tags": [
+        "stonebound",
+        "brute"
+      ],
+      "lore": {
+        "one_liner": "Every step you take makes it angrier.",
+        "dungeon_voice": "RUN. I DARE YOU.",
+        "notes_gm": "Punishes unnecessary movement and greedy chains."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 22
+        },
+        "defense": {
+          "dv_base": 12,
+          "idf": 1
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": 1
+          },
+          "spike": {
+            "dice": "1d8",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.crushing_slam",
+          "name": "Crushing Slam",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": -1
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              {
+                "type": "off_balance",
+                "stacks": 1
+              }
+            ]
+          },
+          "on_miss": {
+            "notes": "Leaves the Mauler open."
+          },
+          "card_text": "Heavy impact that rattles footing."
+        }
+      ],
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "pressure": {
+            "punish_movement": {
+              "enabled": true,
+              "bias": 0.35
+            }
+          }
+        }
+      }
+    }
+  ]
+}

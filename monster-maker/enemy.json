@@ -1,194 +1,262 @@
 {
-  "id": "enemy.slug.unique",
-  "name": "Enemy Name",
-  "version": "1.0.0",
-  "tags": ["humanoid", "hunter", "undead"],
-  "tier": 2,
-  "role": "stalker",
-  "rarity": "common",
-
-  "lore": {
-    "one_liner": "A sentence that tells the table how it feels.",
-    "dungeon_voice": "Optional Dungeon quote.",
-    "notes_gm": "What this enemy is for (teaches Parry, punishes long chains, etc.)."
-  },
-
-  "stat_block": {
-    "hp": { "max": 18 },
-    "defense": {
-      "dv_base": 12,
-      "idf": 1
-    },
-    "damage_profile": {
-      "baseline": "1d6",
-      "spike": "1d8",
-      "notes": "Keep this descriptive; your generator can map tier->dice."
-    },
-    "resistances": [
-      { "type": "bleed", "value": 1, "note": "Reduce stacks gained by 1." }
-    ],
-    "vulnerabilities": [
-      { "type": "guard_break", "value": 1, "note": "+1 effect when Guard Broken." }
-    ]
-  },
-
-  "rhythm_profile": {
-    "interrupt": {
-      "budget_per_round": 1,
-      "reserve_per_player_turn": 0,
-      "timing_bias": "early",
-      "windows": [
-        {
-          "after_action_index": [2, 3, 4],
-          "trigger_if": {
-            "chain_length_gte": 3,
-            "player_balance_lte": -2,
-            "player_missed_last_action": true
-          },
-          "weight": 0.7,
-          "notes": "High-level policy; your AI runner decides exact choice."
-        }
-      ],
-      "margin_rules": {
+  "meta": {
+    "schema": "veinbreaker.bestiary.v1",
+    "system_rules": {
+      "resolve": { "regen_per_turn": 2 },
+      "interrupt_margin": {
         "break_chain_on_margin_gte": 5,
         "critical_interrupt_on_margin_gte": 10
       }
     },
-
-    "pressure": {
-      "punish_repeats": { "enabled": true, "repeat_count_gte": 2, "bias": 0.2 },
-      "punish_long_chains": { "enabled": true, "chain_length_gte": 5, "bias": 0.3 },
-      "punish_movement": { "enabled": true, "bias": 0.2 },
-      "reward_perfect_defense": { "enabled": false, "notes": "If true, enemy 'learns' and adapts." }
-    },
-
-    "state_interactions": {
-      "balance": {
-        "inflicts": [
-          { "type": "off_balance", "chance": 0.25, "on": "hit", "notes": "Start next turn at Balance -2." }
-        ],
-        "resists": [
-          { "type": "balance_reset_denial", "value": 0, "notes": "0 means none. >0 would be 'locks balance'." }
-        ]
-      },
-      "heat": {
-        "punish_heat": [
-          { "type": "overheat", "trigger_heat_gte": 4, "effect": "heat_resets", "notes": "GM-facing lever." }
-        ],
-        "bait_heat": [
-          { "type": "heat_bait", "notes": "Encourage player to greed." }
-        ]
-      },
-      "momentum": {
-        "suppresses": [
-          { "type": "momentum_crash", "chance": 0.15, "on": "interrupt_success", "notes": "Momentum to 0." }
-        ],
-        "feeds": [
-          { "type": "gives_momentum", "value": 0, "notes": "Usually 0; some enemies teach defense." }
-        ]
-      },
-      "resolve": {
-        "drain": [
-          { "amount": 1, "chance": 0.2, "on": "interrupt_success", "notes": "Optional lever, use sparingly." }
-        ]
-      }
-    },
-
-    "primed_and_execute": {
-      "primed_conditions_used": ["vulnerable_3", "hp_le_25", "stagger_2"],
-      "execute_resistance": {
-        "dv_bonus_if_primed": 0,
-        "notes": "Bosses might have +2 here."
-      }
-    }
+    "archetype_source": "archetype.json"
   },
 
-  "ai": {
-    "archetype": "stalker",
-    "behavior_script": {
-      "opening": [
-        { "type": "move", "ref": "move.apply_bleed" }
+  "enemies": [
+    {
+      "id": "enemy.brumklin.skitter",
+      "name": "Brumklin Skitter",
+      "archetype_id": "archetype.aggressor",
+      "tier": 1,
+      "role": "harasser",
+      "rarity": "common",
+      "tags": ["brumkin", "small", "scout"],
+      "lore": {
+        "one_liner": "It giggles when you miss.",
+        "dungeon_voice": "Skitter skitter, slice slice.",
+        "notes_gm": "Teaches chain discipline."
+      },
+      "stat_block": {
+        "hp": { "max": 10 },
+        "defense": { "dv_base": 10, "idf": 0 },
+        "damage_profile": {
+          "baseline": { "dice": "1d4", "flat": -1 },
+          "spike": { "dice": "1d4", "flat": 0 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.basic_attack",
+          "name": "Skitter Slash",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": { "damage": "baseline", "effects": [] },
+          "on_miss": { "notes": "Opens interrupt windows." },
+          "card_text": "A quick slash that punishes sloppy chains."
+        }
       ],
-      "default_loop": [
-        { "type": "conditional", "if": { "player_moved": true }, "then": [{ "type": "move", "ref": "move.tripwire_punish" }] },
-        { "type": "move", "ref": "move.basic_attack" }
+
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [2],
+                "trigger_if": { "player_missed_last_action": true },
+                "weight": 0.85,
+                "notes": "Skitter is extra mean about misses."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.brumklin.lurker",
+      "name": "Brumklin Lurker",
+      "archetype_id": "archetype.stalker",
+      "tier": 1,
+      "role": "stalker",
+      "rarity": "common",
+      "tags": ["brumkin", "small", "bleed"],
+      "lore": {
+        "one_liner": "Hunts ankles and follows footsteps.",
+        "dungeon_voice": "I hear you moving. Keep moving.",
+        "notes_gm": "Teaches movement risk; punishes reposition spam."
+      },
+      "stat_block": {
+        "hp": { "max": 9 },
+        "defense": { "dv_base": 11, "idf": 0 },
+        "damage_profile": {
+          "baseline": { "dice": "1d4", "flat": 0 },
+          "spike": { "dice": "1d4", "flat": 1 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.hamstring_cut",
+          "name": "Hamstring Cut",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": { "damage": "baseline", "effects": ["bleed"] },
+          "on_miss": { "notes": "Stays low; baiting movement." },
+          "card_text": "Low slash that opens bleeding tracks."
+        }
       ],
-      "enrage": {
-        "trigger": { "hp_le_percent": 30 },
-        "add_traits": ["trait.aberrant_spike"],
-        "notes": "Optional phase behavior."
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [2, 3],
+                "trigger_if": { "player_moved": true },
+                "weight": 0.85,
+                "notes": "Highly reactive to movement."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.goblin.shieldbearer",
+      "name": "Goblin Shieldbearer",
+      "archetype_id": "archetype.defender",
+      "tier": 1,
+      "role": "defender",
+      "rarity": "common",
+      "tags": ["goblin", "shield", "guard"],
+      "lore": {
+        "one_liner": "Squats behind a slab and swats patterns.",
+        "dungeon_voice": "Same move, same mistake.",
+        "notes_gm": "Forces Guard Break or varied chains."
+      },
+      "stat_block": {
+        "hp": { "max": 12 },
+        "defense": { "dv_base": 12, "idf": 1 },
+        "damage_profile": {
+          "baseline": { "dice": "1d4", "flat": 0 },
+          "spike": { "dice": "1d6", "flat": 0 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.shield_bash",
+          "name": "Shield Bash",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 1,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": { "damage": "baseline", "effects": ["stagger"] },
+          "on_miss": { "notes": "Turtles back down, resetting stance." },
+          "card_text": "Bash that staggers repeat offenders."
+        }
+      ],
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [2],
+                "trigger_if": { "repeat_count_gte": 2 },
+                "weight": 0.9,
+                "notes": "Punishes repeating the same action."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.shambler.bone",
+      "name": "Bone Shambler",
+      "archetype_id": "archetype.juggernaut",
+      "tier": 1,
+      "role": "juggernaut",
+      "rarity": "uncommon",
+      "tags": ["undead", "heavy"],
+      "lore": {
+        "one_liner": "Slow pile of bone that hates long chains.",
+        "dungeon_voice": "Keep hitting. See what breaks first.",
+        "notes_gm": "Shows flurry resistance and greedy-chain punish."
+      },
+      "stat_block": {
+        "hp": { "max": 18 },
+        "defense": { "dv_base": 11, "idf": 0 },
+        "damage_profile": {
+          "baseline": { "dice": "1d6", "flat": 0 },
+          "spike": { "dice": "1d8", "flat": 1 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.heavy_slam",
+          "name": "Heavy Slam",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 1,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": { "damage": "spike", "effects": ["off_balance"] },
+          "on_miss": { "notes": "Telegraphs again; still looming." },
+          "card_text": "Slow crush that knocks footing loose."
+        }
+      ],
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [5, 6],
+                "trigger_if": { "chain_length_gte": 5 },
+                "weight": 0.9,
+                "notes": "Very punishing to long chains."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.cultist.blood_eye",
+      "name": "Blood-Eyed Cultist",
+      "archetype_id": "archetype.aggressor",
+      "tier": 1,
+      "role": "aggressor",
+      "rarity": "uncommon",
+      "tags": ["cultist", "human", "frenzy"],
+      "lore": {
+        "one_liner": "Cuts harder when you falter.",
+        "dungeon_voice": "Miss again. Bleed for it.",
+        "notes_gm": "Stacks pressure on misses; shows aggressive interrupts."
+      },
+      "stat_block": {
+        "hp": { "max": 10 },
+        "defense": { "dv_base": 10, "idf": 0 },
+        "damage_profile": {
+          "baseline": { "dice": "1d6", "flat": -1 },
+          "spike": { "dice": "1d6", "flat": 1 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.frenzy_cut",
+          "name": "Frenzy Cut",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 1 },
+          "on_hit": { "damage": "baseline", "effects": [] },
+          "on_miss": { "notes": "Wild swing opens defense, invites riposte." },
+          "card_text": "Fast slash that goads faster chains."
+        }
+      ],
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [2],
+                "trigger_if": { "player_missed_last_action": true },
+                "weight": 0.95,
+                "notes": "Eager to pounce on misses."
+              }
+            ]
+          }
+        }
       }
     }
-  },
-
-  "moves": [
-    {
-      "id": "move.basic_attack",
-      "name": "Basic Strike",
-      "type": "attack",
-      "cost": { "rp": 1 },
-      "cooldown": 0,
-      "to_hit": { "av_mod": 0 },
-      "on_hit": {
-        "damage": "baseline",
-        "effects": [
-          { "type": "heat_gain_target", "amount": 1, "notes": "If you track enemy heat." }
-        ]
-      },
-      "on_miss": {
-        "notes": "Miss does not end player's chain; opens interrupt windows."
-      },
-      "card_text": "A clean hit that sets up pressure."
-    },
-    {
-      "id": "move.apply_bleed",
-      "name": "Serration Cut",
-      "type": "attack",
-      "cost": { "rp": 1 },
-      "cooldown": 1,
-      "to_hit": { "av_mod": -1, "notes": "Slightly less accurate, more payoff." },
-      "on_hit": {
-        "damage": "baseline",
-        "effects": [{ "type": "bleed", "stacks": 1 }]
-      },
-      "card_text": "On hit: Bleed 1."
-    }
-  ],
-
-  "traits": [
-    {
-      "id": "trait.stalker_legs",
-      "name": "Leg-Taker",
-      "type": "passive",
-      "rules": "If the player uses a Movement action this turn, this enemy gains +1 weight to interrupt attempts.",
-      "card_text": "Punishes Movement."
-    }
-  ],
-
-  "drops": {
-    "veinscore": { "min": 1, "max": 3 },
-    "loot_table_refs": ["loot.tier2.common"],
-    "relic_chance": 0.05
-  },
-
-  "card_view": {
-    "layout": "standard_v1",
-    "front": {
-      "title": "Enemy Name",
-      "subtitle": "Tier 2 • Stalker",
-      "callouts": ["Punishes Movement", "Bleed Pressure"],
-      "stats_line": "HP 18 • DV 12 • IDF 1 • Interrupt 1/round",
-      "signature_rules": [
-        "Interrupt bias: Early (after action 2+ if chain ≥3).",
-        "On hit: can apply Bleed."
-      ]
-    },
-    "back": {
-      "moves_summary": ["Basic Strike", "Serration Cut (CD 1)"],
-      "gm_knobs": [
-        "Increase chain pressure: +0.1 weight to long-chain triggers.",
-        "Teach defense: reduce interrupt budget to 0 for first round."
-      ]
-    }
-  }
+  ]
 }

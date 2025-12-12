@@ -1,0 +1,366 @@
+{
+  "schema_version": "bestiary.archetypes.v1",
+  "archetypes": [
+    {
+      "id": "archetype.aggressor",
+      "name": "Aggressor",
+      "intent": "Push interrupts early, punish misses, force players to defend under tempo.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "early",
+            "windows": [
+              {
+                "after_action_index": [2, 3],
+                "trigger_if": { "player_missed_last_action": true },
+                "weight": 0.85,
+                "notes": "Primary lesson: missed actions invite pressure."
+              },
+              {
+                "after_action_index": [3],
+                "trigger_if": { "chain_length_gte": 3 },
+                "weight": 0.35,
+                "notes": "Secondary pressure: long-ish chains attract retaliation."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": { "enabled": false },
+            "punish_long_chains": { "enabled": true, "chain_length_gte": 5, "bias": 0.25 },
+            "punish_movement": { "enabled": false },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "If players perfect-defend a lot, Aggressor starts feinting / swapping targets."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                { "type": "off_balance", "chance": 0.2, "on": "hit", "notes": "Keeps the player from stabilizing." }
+              ],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": [
+                { "type": "heat_bait", "notes": "Encourages players to spike Heat for risky damage." }
+              ]
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                { "type": "momentum_feed", "chance": 0.2, "on": "player_miss", "notes": "Aggressor gains advantage positioning when you whiff." }
+              ]
+            },
+            "resolve": { "drain": [] }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": ["hp_le_25", "vulnerable_3"],
+            "execute_resistance": { "dv_bonus_if_primed": 0 }
+          }
+        },
+        "ai": {
+          "archetype": "aggressor",
+          "behavior_script": {
+            "opening": [{ "type": "move", "ref": "move.opening_burst" }],
+            "default_loop": [
+              { "type": "conditional", "if": { "player_missed_last_action": true }, "then": [{ "type": "move", "ref": "move.punish_miss" }] },
+              { "type": "move", "ref": "move.pressure_strike" }
+            ]
+          }
+        }
+      },
+      "recommended_overrides": [
+        "stat_block.hp.max",
+        "stat_block.defense.dv_base",
+        "moves[] (opening_burst / punish_miss / pressure_strike)",
+        "rhythm_profile.interrupt.margin_rules (tier scaling)"
+      ]
+    },
+
+    {
+      "id": "archetype.defender",
+      "name": "Defender",
+      "intent": "Turtle, punish repetition, force Guard Break / Bleed solutions.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "mid",
+            "windows": [
+              {
+                "after_action_index": [2, 3],
+                "trigger_if": { "repeat_count_gte": 2 },
+                "weight": 0.8,
+                "notes": "Core trigger: repeating the same action invites a hard stop."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 4,
+              "critical_interrupt_on_margin_gte": 8
+            }
+          },
+          "pressure": {
+            "punish_repeats": { "enabled": true, "repeat_count_gte": 2, "bias": 0.45 },
+            "punish_long_chains": { "enabled": false },
+            "punish_movement": { "enabled": false },
+            "reward_perfect_defense": { "enabled": false }
+          },
+          "state_interactions": {
+            "balance": { "inflicts": [], "resists": [] },
+            "heat": { "punish_heat": [], "bait_heat": [] },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                { "type": "momentum_feed", "chance": 0.25, "on": "player_repeat", "notes": "Defender 'reads' predictable strings." }
+              ]
+            },
+            "resolve": { "drain": [] }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": ["stagger_2", "hp_le_25"],
+            "execute_resistance": { "dv_bonus_if_primed": 0 }
+          }
+        },
+        "ai": {
+          "archetype": "defender",
+          "behavior_script": {
+            "opening": [{ "type": "move", "ref": "move.raise_guard" }],
+            "default_loop": [
+              { "type": "conditional", "if": { "repeat_count_gte": 2 }, "then": [{ "type": "move", "ref": "move.punish_repeat" }] },
+              { "type": "move", "ref": "move.guard_counter" }
+            ]
+          }
+        }
+      },
+      "recommended_overrides": [
+        "stat_block.defense.idf (usually +1)",
+        "stat_block.resistances (often includes stagger/bleed tweaks)",
+        "traits[] (guard / braced / armored hooks)"
+      ]
+    },
+
+    {
+      "id": "archetype.stalker",
+      "name": "Stalker",
+      "intent": "Punish movement, apply Bleed/Poison pressure, force clean positioning choices.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "late",
+            "windows": [
+              {
+                "after_action_index": [2, 3, 4],
+                "trigger_if": { "player_moved": true },
+                "weight": 0.75,
+                "notes": "Core trigger: movement opens you to tracking strikes."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": { "enabled": false },
+            "punish_long_chains": { "enabled": false },
+            "punish_movement": { "enabled": true, "bias": 0.45 },
+            "reward_perfect_defense": { "enabled": false }
+          },
+          "state_interactions": {
+            "balance": { "inflicts": [], "resists": [] },
+            "heat": { "punish_heat": [], "bait_heat": [] },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                { "type": "momentum_feed", "chance": 0.2, "on": "player_moved", "notes": "Stalker keeps pace / sticks close." }
+              ]
+            },
+            "resolve": { "drain": [] }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": ["vulnerable_3", "hp_le_25"],
+            "execute_resistance": { "dv_bonus_if_primed": 0 }
+          }
+        },
+        "ai": {
+          "archetype": "stalker",
+          "behavior_script": {
+            "opening": [{ "type": "move", "ref": "move.mark_prey" }],
+            "default_loop": [
+              { "type": "conditional", "if": { "player_moved": true }, "then": [{ "type": "move", "ref": "move.hamstring" }] },
+              { "type": "move", "ref": "move.bleed_cut" }
+            ]
+          }
+        }
+      },
+      "recommended_overrides": [
+        "state_interactions.balance.inflicts (optional Off-Balance)",
+        "moves[] (hamstring / bleed_cut / mark_prey)",
+        "stat_block.resistances/vulnerabilities (often vulnerable to flurry)"
+      ]
+    },
+
+    {
+      "id": "archetype.juggernaut",
+      "name": "Juggernaut",
+      "intent": "Slow, heavy, ignores flurries, punishes greedy very long chains.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "very_late",
+            "windows": [
+              {
+                "after_action_index": [5, 6],
+                "trigger_if": { "chain_length_gte": 6 },
+                "weight": 0.85,
+                "notes": "Core trigger: only snaps back when you get greedy."
+              },
+              {
+                "after_action_index": [3, 4],
+                "trigger_if": { "player_critical_miss": true },
+                "weight": 0.9,
+                "notes": "Critical miss wakes the giant."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 4,
+              "critical_interrupt_on_margin_gte": 9
+            }
+          },
+          "pressure": {
+            "punish_repeats": { "enabled": false },
+            "punish_long_chains": { "enabled": true, "chain_length_gte": 6, "bias": 0.55 },
+            "punish_movement": { "enabled": false },
+            "reward_perfect_defense": { "enabled": true, "notes": "Perfect defense should feel like 'turning the truck'." }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                { "type": "off_balance", "chance": 0.3, "on": "hit", "notes": "Big hits shake stance." }
+              ],
+              "resists": []
+            },
+            "heat": { "punish_heat": [], "bait_heat": [] },
+            "momentum": { "suppresses": [], "feeds": [] },
+            "resolve": { "drain": [] }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": ["stagger_2", "hp_le_25"],
+            "execute_resistance": { "dv_bonus_if_primed": 1, "notes": "Harder to finish cleanly even when Primed." }
+          }
+        },
+        "ai": {
+          "archetype": "juggernaut",
+          "behavior_script": {
+            "opening": [{ "type": "move", "ref": "move.telegraphed_swing" }],
+            "default_loop": [
+              { "type": "conditional", "if": { "chain_length_gte": 6 }, "then": [{ "type": "move", "ref": "move.crush_punish" }] },
+              { "type": "move", "ref": "move.heavy_slam" }
+            ]
+          }
+        }
+      },
+      "recommended_overrides": [
+        "stat_block.hp.max (usually high)",
+        "damage_profile (baseline/spike higher by tier)",
+        "traits[] (flurry resistance, phase armor, etc.)"
+      ]
+    },
+
+    {
+      "id": "archetype.aberrant",
+      "name": "Aberrant",
+      "intent": "Mutates as Blood Marks accumulate; the ‘type’ is the mutation engine, not a fixed behavior.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "adaptive",
+            "windows": [
+              {
+                "after_action_index": [2, 3, 4],
+                "trigger_if": { "blood_mark_gte": 3 },
+                "weight": 0.7,
+                "notes": "At higher Blood Marks, the creature becomes more reactive."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": { "enabled": true, "repeat_count_gte": 2, "bias": 0.25 },
+            "punish_long_chains": { "enabled": true, "chain_length_gte": 5, "bias": 0.25 },
+            "punish_movement": { "enabled": true, "bias": 0.25 },
+            "reward_perfect_defense": { "enabled": true, "notes": "If players get too clean, mutate into anti-defense tech." }
+          },
+          "state_interactions": {
+            "balance": { "inflicts": [], "resists": [] },
+            "heat": { "punish_heat": [], "bait_heat": [] },
+            "momentum": { "suppresses": [], "feeds": [] },
+            "resolve": { "drain": [] }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": ["vulnerable_3", "stagger_2", "hp_le_25"],
+            "execute_resistance": { "dv_bonus_if_primed": 0 }
+          }
+        },
+        "ai": {
+          "archetype": "aberrant",
+          "behavior_script": {
+            "opening": [{ "type": "move", "ref": "move.read_the_room" }],
+            "default_loop": [
+              { "type": "conditional", "if": { "blood_mark_gte": 3 }, "then": [{ "type": "move", "ref": "move.mutation_response" }] },
+              { "type": "move", "ref": "move.base_pattern" }
+            ]
+          }
+        },
+        "mutation_engine": {
+          "enabled": true,
+          "triggers": [
+            {
+              "when": { "blood_mark_increase": true },
+              "do": [
+                { "type": "gain_move", "pool": "mutation.moves.tiered" },
+                { "type": "gain_trait", "pool": "mutation.traits.tiered" }
+              ],
+              "notes": "Every Blood Mark gained during/after encounters can add a new tool."
+            }
+          ],
+          "constraints": {
+            "max_new_moves_per_encounter": 1,
+            "max_new_traits_per_encounter": 1
+          }
+        }
+      },
+      "recommended_overrides": [
+        "mutation_engine.pools (your content packs)",
+        "interrupt windows keyed to what you want it to ‘learn’",
+        "state_interactions that hard-counter table habits"
+      ]
+    }
+  ],
+  "glue_rules": {
+    "application_order": [
+      "load archetype.defaults",
+      "deep-merge enemy fields over defaults",
+      "validate schema",
+      "expand card_view.stats_line from computed summary (optional)"
+    ],
+    "merge_notes": "Arrays: prefer replace-by-id for moves/traits; otherwise append can create duplicates."
+  }
+}
