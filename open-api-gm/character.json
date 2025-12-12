@@ -1,0 +1,19 @@
+{
+  "path": "stonepulse",
+  "tier": 1,
+  "abilities": [
+    "Pulse Strike",
+    "Stoneguard Step"
+  ],
+  "resources": {
+    "hp": 10,
+    "resolve": 3,
+    "momentum": 0,
+    "heat": 0,
+    "balance": 0
+  },
+  "marks": {
+    "blood": 0,
+    "duns": 0
+  }
+}

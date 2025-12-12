@@ -1,0 +1,581 @@
+{
+  "poolByPath": {
+    "stonepulse": "martial",
+    "canticle": "faith",
+    "hemocratic": "shadow",
+    "spellforged": "magic",
+    "conduit": "magic",
+    "arcanum": "magic",
+    "resolve_basic": "resolve"
+  },
+  "abilities": [
+    {
+      "path": "stonepulse",
+      "tier": 1,
+      "name": "Pulse Strike",
+      "type": "attack",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
+      "tags": ["stonepulse", "attack", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 1,
+      "name": "Stoneguard Step",
+      "type": "defense",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Reduce dmg by 1d4; if reduced to 0, ignore –1 chain penalty on your next attack; gain +1 Momentum.",
+      "tags": ["stonepulse", "defense", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 1,
+      "name": "Stonepulse Rhythm",
+      "type": "utility",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Ally in Near gains +1 Attack on next hit; you gain +1 RP; grant +1 Momentum to ally.",
+      "tags": ["stonepulse", "utility", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 1,
+      "name": "Stonepulse Step",
+      "type": "movement",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Set Balance to 0; gain +1 Momentum.",
+      "tags": ["stonepulse", "movement", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 2,
+      "name": "Resonant Break",
+      "type": "attack",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "1d6 + STR; apply Stagger 1; if in Stonepulse Stance, gain +1 RP; gain +1 Momentum if target is Staggered.",
+      "tags": ["stonepulse", "attack", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 2,
+      "name": "Anchored Form",
+      "type": "defense",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "Reduce dmg by 1d6; if reduced to 0 gain Retaliate; stance grants Defense Up; gain +1 Momentum.",
+      "tags": ["stonepulse", "defense", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 2,
+      "name": "Stonepulse Focus",
+      "type": "utility",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "Gain Attack Up + Defense Up; allies in Near gain +1 IDF; you gain +1 Momentum.",
+      "tags": ["stonepulse", "utility", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 2,
+      "name": "Stonepulse Stance",
+      "type": "stance",
+      "cost": 2,
+      "cooldown": null,
+      "effect": "Enter stance: +1 Defense and +1 IDF until replaced; gain +1 Momentum at start of your turn.",
+      "tags": ["stonepulse", "stance", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 3,
+      "name": "Sundering Crash",
+      "type": "attack",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "1d8 + STR; apply Stagger 1; if target already Staggered, apply Vulnerable 1; if Momentum ≥ 2, deal +2 bonus dmg.",
+      "tags": ["stonepulse", "attack", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 3,
+      "name": "Steelguard Pivot",
+      "type": "defense",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Reduce dmg by 1d8; if reduced to 0, your next attack deals +2 dmg; if Momentum ≥ 2, that attack has Advantage.",
+      "tags": ["stonepulse", "defense", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 3,
+      "name": "Law of the Unshaken",
+      "type": "utility",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Your next melee attack has Advantage and +3 dmg; if in stance, also apply Stagger 1; if Momentum ≥ 2, deal +5 dmg instead.",
+      "tags": ["stonepulse", "signature", "momentum"]
+    },
+    {
+      "path": "stonepulse",
+      "tier": 3,
+      "name": "Stonepulse Advance",
+      "type": "movement",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Remove the cooldown from one Tier 1 or Tier 2 Stonepulse ability; set Balance to 0; gain +1 Momentum.",
+      "tags": ["stonepulse", "movement", "momentum"]
+    },
+
+    {
+      "path": "canticle",
+      "tier": 1,
+      "name": "Gleam Strike",
+      "type": "attack",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "1d4 + WIS radiant at Near range; if you have Radiance ≥ 1, gain +1 Momentum on hit.",
+      "tags": ["canticle", "attack", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 1,
+      "name": "Oathbound Guard",
+      "type": "defense",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Reduce dmg by 1d4; grant +1 Defense until next turn; gain +1 Momentum when dmg is reduced.",
+      "tags": ["canticle", "defense", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 1,
+      "name": "Hymn of Embers",
+      "type": "utility",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Next ally attack deals +1 radiant; gain 1 Radiance; gain +1 Momentum when Radiance is gained.",
+      "tags": ["canticle", "utility", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 1,
+      "name": "Radiant Glide",
+      "type": "movement",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Gain 1 Radiance; if you had 0 Radiance before, gain +1 Momentum.",
+      "tags": ["canticle", "movement", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 2,
+      "name": "Searing Canticle",
+      "type": "attack",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "1d6 + WIS radiant; +1 dmg if target harmed an ally last round; if that condition is met, gain +1 Momentum.",
+      "tags": ["canticle", "attack", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 2,
+      "name": "Sanctus Aegis",
+      "type": "defense",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "Reduce dmg by 1d6; you and a Near ally gain +1 IDF; you and that ally each gain +1 Momentum.",
+      "tags": ["canticle", "defense", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 2,
+      "name": "Chorus of Resolve",
+      "type": "utility",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "Ally gains 1 RP and +1 Attack; remove Exhausted; that ally gains +1 Momentum.",
+      "tags": ["canticle", "utility", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 2,
+      "name": "Canticle Stance",
+      "type": "stance",
+      "cost": 2,
+      "cooldown": null,
+      "effect": "Enter stance: gain 1 Radiance and +1 Momentum at start of your turn.",
+      "tags": ["canticle", "stance", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 3,
+      "name": "Judgment Lance",
+      "type": "attack",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "1d8 + WIS radiant; if Radiance ≥ 1, deal +2 dmg and consume 1 Radiance; if Momentum ≥ 2, deal +2 additional dmg (total +4).",
+      "tags": ["canticle", "attack", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 3,
+      "name": "Warding Reprisal",
+      "type": "defense",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Reduce dmg by 1d8; attacker takes radiant dmg equal to Radiance; if Momentum ≥ 2, attacker instead takes dmg equal to 2× your Radiance.",
+      "tags": ["canticle", "defense", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 3,
+      "name": "Radiant Burst",
+      "type": "utility",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Consume all Radiance: primary target takes 1d8 + WIS + 2/stack; others take 1/stack; if Momentum ≥ 2, others take 2/stack instead.",
+      "tags": ["canticle", "signature", "momentum"]
+    },
+    {
+      "path": "canticle",
+      "tier": 3,
+      "name": "Sanctified Stride",
+      "type": "movement",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Remove cooldown from one Tier 1 or Tier 2 Canticle ability; gain 1 Radiance; gain +1 Momentum.",
+      "tags": ["canticle", "movement", "momentum"]
+    },
+
+    {
+      "path": "hemocratic",
+      "tier": 1,
+      "name": "Cutpoint Slice",
+      "type": "attack",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "1d4 + DEX; apply Bleed 1; if target was already Bleeding, gain +1 Momentum.",
+      "tags": ["hemocratic", "attack", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 1,
+      "name": "Veil Step",
+      "type": "defense",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Reduce dmg by 1d4; if avoided, apply Bleed 1 to attacker and gain +1 Momentum.",
+      "tags": ["hemocratic", "defense", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 1,
+      "name": "Wound Mark",
+      "type": "utility",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Your next Bleed application gains +1 Bleed; gain +1 Momentum when that enhanced Bleed is applied.",
+      "tags": ["hemocratic", "utility", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 1,
+      "name": "Blood Slip",
+      "type": "movement",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Reduce Balance penalty by 2; if you applied Bleed this round, gain +1 Momentum.",
+      "tags": ["hemocratic", "movement", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 2,
+      "name": "Artery Rupture",
+      "type": "attack",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "1d6 + DEX; apply Bleed 2; if target is already Bleeding, also apply Stagger 1; gain up to +2 Momentum based on Bleed stacks applied.",
+      "tags": ["hemocratic", "attack", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 2,
+      "name": "Veinshift Evade",
+      "type": "defense",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "Reduce dmg by 1d6; if avoided, become Invisible; next attack applies +1 Bleed; if this was a Perfect Dodge, gain +2 Momentum.",
+      "tags": ["hemocratic", "defense", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 2,
+      "name": "Bloodletting Focus",
+      "type": "utility",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "Your next two Bleed applications each gain +1 Bleed; gain +1 Momentum immediately.",
+      "tags": ["hemocratic", "utility", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 2,
+      "name": "Bloodveil Stance",
+      "type": "stance",
+      "cost": 2,
+      "cooldown": null,
+      "effect": "Bleed you inflict deals +1 dmg/round; +1 DEX to hit Bleeding targets; gain +1 Momentum whenever a Bleed you caused deals damage (max +1/round).",
+      "tags": ["hemocratic", "stance", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 3,
+      "name": "Hemorrhage Breaker",
+      "type": "attack",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "1d8 + DEX; if Bleed ≥ 3, deal +4 dmg and consume stacks for +1 dmg/stack; if Momentum ≥ 2, each consumed stack grants +2 dmg instead.",
+      "tags": ["hemocratic", "attack", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 3,
+      "name": "Bloodfade Veil",
+      "type": "defense",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Reduce dmg by 1d8; become Invisible; next attack deals +2 dmg per Bleed; if Momentum ≥ 2, that attack deals +3 dmg per Bleed instead.",
+      "tags": ["hemocratic", "defense", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 3,
+      "name": "Crimson Dictate",
+      "type": "utility",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "All Bleeding enemies gain +2 Bleed; next Bleed spreads to second target; if Momentum ≥ 2, spreads to a third target.",
+      "tags": ["hemocratic", "signature", "momentum"]
+    },
+    {
+      "path": "hemocratic",
+      "tier": 3,
+      "name": "Sanguine Dash",
+      "type": "movement",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Remove cooldown from one Tier 1 or Tier 2 Hemocratic ability; if any enemy is Bleeding, gain +2 Momentum; reduce Balance penalty by 3.",
+      "tags": ["hemocratic", "movement", "momentum"]
+    },
+
+    {
+      "path": "spellforged",
+      "tier": 1,
+      "name": "Charge Bolt",
+      "type": "attack",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "1d4 + INT lightning; +1 dmg if you spent RP last action; if you spent RP last action, also gain +1 Momentum.",
+      "tags": ["spellforged", "attack", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 1,
+      "name": "Warding Pulse",
+      "type": "defense",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Reduce dmg by 1d4; attacker takes 1 lightning dmg; if dmg is reduced to 0, gain +1 Momentum.",
+      "tags": ["spellforged", "defense", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 1,
+      "name": "Arcane Channel",
+      "type": "utility",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Next spell gains +1 to hit; gain +1 RP; gain +1 Momentum.",
+      "tags": ["spellforged", "utility", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 1,
+      "name": "Arcane Step",
+      "type": "movement",
+      "cost": 1,
+      "cooldown": 1,
+      "effect": "Gain Arcane Ward 1 (reduce next incoming dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
+      "tags": ["spellforged", "movement", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 2,
+      "name": "Surge Lance",
+      "type": "attack",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "1d6 + INT lightning; on hit gain Arcane Charge (+1 dmg next spell); gain +1 Momentum.",
+      "tags": ["conduit", "attack", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 2,
+      "name": "Feedback Shield",
+      "type": "defense",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "Reduce dmg by 1d6; if reduced to 0, attacker takes INT dmg; gain +1 Momentum.",
+      "tags": ["conduit", "defense", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 2,
+      "name": "Conduit Flow",
+      "type": "utility",
+      "cost": 2,
+      "cooldown": 2,
+      "effect": "+1 INT for 1 round; next spell gains +2 dmg; gain +1 Momentum.",
+      "tags": ["conduit", "utility", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 2,
+      "name": "Conduit Stance",
+      "type": "stance",
+      "cost": 2,
+      "cooldown": null,
+      "effect": "+1 Arcane IDF; refresh 1 Magic Pool per round; gain +1 Momentum whenever you cast a spell (max +1/round).",
+      "tags": ["conduit", "stance", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 3,
+      "name": "Law of the Stormcore",
+      "type": "attack",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "1d8 + INT; on hit, chain a free 1d4 lightning bolt to another target; if Momentum ≥ 2, bolt deals 1d6.",
+      "tags": ["arcanum", "attack", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 3,
+      "name": "Aetheric Reversal",
+      "type": "defense",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Reduce dmg by 1d8; attacker becomes Disrupted (–2 spell rolls); if Momentum ≥ 2, Disrupted becomes –3.",
+      "tags": ["arcanum", "defense", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 3,
+      "name": "Arcanum Overload",
+      "type": "utility",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Next spell has Advantage and +3 dmg; you take 1 self-dmg; if Momentum ≥ 2, this becomes +5 dmg.",
+      "tags": ["arcanum", "signature", "momentum"]
+    },
+    {
+      "path": "spellforged",
+      "tier": 3,
+      "name": "Arcane Transcendence",
+      "type": "movement",
+      "cost": 3,
+      "cooldown": 3,
+      "effect": "Remove cooldown from one Tier 1 or Tier 2 Arcanum ability; gain Arcane Ward 2; gain +1 Momentum.",
+      "tags": ["arcanum", "movement", "momentum"]
+    },
+        {
+      "path": "resolve_basic",
+      "tier": 0,
+      "name": "Disengage",
+      "type": "resolve",
+      "playMode": "reaction",
+      "cost": 1,
+      "cooldown": 1,
+      "timing": ["defense_window"],
+      "effect": "End your current chain immediately. No further actions may be taken this chain.",
+      "tags": ["resolve", "movement", "defense_window"],
+      "constraints": {
+        "cannotDealDamage": true,
+        "cannotExtendChain": true,
+        "cannotBeDeclared": true
+      }
+    },
+    {
+      "path": "resolve_basic",
+      "tier": 0,
+      "name": "Rhythm Break",
+      "type": "resolve",
+      "playMode": "reaction",
+      "cost": 2,
+      "cooldown": 2,
+      "timing": ["defense_window"],
+      "effect": "Cancel an Interrupt attempt before the contest is rolled.",
+      "tags": ["resolve", "interrupt", "defense_window"],
+      "constraints": {
+        "cannotDealDamage": true,
+        "cannotExtendChain": true,
+        "cannotBeDeclared": true
+      }
+    },
+    {
+      "path": "resolve_basic",
+      "tier": 0,
+      "name": "Momentum Anchor",
+      "type": "resolve",
+      "playMode": "reaction",
+      "cost": 1,
+      "cooldown": 1,
+      "timing": ["any_window"],
+      "effect": "Gain +1 Momentum. May not be used after damage is dealt.",
+      "tags": ["resolve", "momentum", "any_window"],
+      "constraints": {
+        "cannotDealDamage": true,
+        "cannotExtendChain": true,
+        "cannotBeDeclared": true
+      }
+    },
+    {
+      "path": "resolve_basic",
+      "tier": 0,
+      "name": "Balance Surge",
+      "type": "resolve",
+      "playMode": "reaction",
+      "cost": 1,
+      "cooldown": 1,
+      "timing": ["any_window"],
+      "effect": "Set your Balance to 0. Cannot be used while at Positive Balance.",
+      "tags": ["resolve", "balance", "any_window"],
+      "constraints": {
+        "cannotDealDamage": true,
+        "cannotExtendChain": true,
+        "cannotBeDeclared": true
+      }
+    },
+    {
+      "path": "resolve_basic",
+      "tier": 0,
+      "name": "Last Guard",
+      "type": "resolve",
+      "playMode": "reaction",
+      "cost": 2,
+      "cooldown": 3,
+      "timing": ["defense_window"],
+      "effect": "Gain +2 Defense Value against the next Interrupt attempt this round.",
+      "tags": ["resolve", "defense", "defense_window"],
+      "constraints": {
+        "cannotDealDamage": true,
+        "cannotExtendChain": true,
+        "cannotBeDeclared": true
+      }
+    }
+  ]
+}
