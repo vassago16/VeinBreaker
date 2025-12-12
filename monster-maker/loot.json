@@ -7,13 +7,13 @@
     "ability",
     "relic",
     "upgrade",
-    "VeinSigil"
+    "veinsigil"
   ],
   "loot": [
     {
       "name": "Faint Vein Sigil",
       "tier": 1,
-      "type": "VeinSigil",
+      "type": "veinsigil",
       "rarity": "common",
       "tags": ["vein", "currency"],
       "description": "A hairline glyph etched into brittle crystal.",
