@@ -42,17 +42,29 @@ Your paths into the rules. Expand and jump where you need.
 - [[GM Upkeep Checklist|gm-upkeep-checklist]]
 - [[Status Reference|Status-v3]]
 - **Bestiary**
-- [[Tier 1 Enemies|tier-1]]
-- [[Tier 2 Enemies|tier-2]]
-- [[Tier 3 Enemies|tier-3]]
-- [[Tier 4 Enemies|tier-4]]
-- [[Tier 5 Enemies|tier-5]]
+- [[Tier 1 Enemies|tier-1-beasts]]
+- [[Tier 2 Enemies|tier-2-beasts]]
+- [[Tier 3 Enemies|tier-3-beasts]]
+- [[Tier 4 Enemies|tier-4-beasts]]
+- [[Tier 5 Enemies|tier-5-beasts]]
 </details>
 
 <details>
 <summary>&#x1F9EA; Character Paths</summary>
 
-- [[Tier 1 Abilities|tier-1-abilities]]
-- [[Tier 2 Abilities|tier-2-abilities]]
-- [[Tier 3 Abilities|tier-3-abilities]]
+- **Tier 1**
+  - [[Stonepulse|tier-1-stonepulse-abilities]]
+  - [[Canticle|tier-1-canticle-abilities]]
+  - [[Hemocratic|tier-1-hemocratic-abilities]]
+  - [[Spellforged|tier-1-spellforged-abilities]]
+- **Tier 2**
+  - [[Stonepulse|tier-2-stonepulse-abilities]]
+  - [[Canticle|tier-2-canticle-abilities]]
+  - [[Hemocratic|tier-2-hemocratic-abilities]]
+  - [[Spellforged|tier-2-spellforged-abilities]]
+- **Tier 3**
+  - [[Stonepulse|tier-3-stonepulse-abilities]]
+  - [[Canticle|tier-3-canticle-abilities]]
+  - [[Hemocratic|tier-3-hemocratic-abilities]]
+  - [[Spellforged|tier-3-spellforged-abilities]]
 </details>

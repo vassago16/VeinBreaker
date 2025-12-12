@@ -31,7 +31,7 @@ def main():
     data = json.loads((root / "abilities.json").read_text(encoding="utf-8"))
     abilities = data.get("abilities", [])
 
-    # group by tier
+    # group by tier and path
     by_tier = {}
     for ab in abilities:
         by_tier.setdefault(ab.get("tier", 0), []).append(ab)
@@ -41,25 +41,32 @@ def main():
     generated = []
 
     for tier in sorted(by_tier):
-        group = sorted(by_tier[tier], key=lambda a: (a.get("path", ""), a.get("name", "")))
-        cards = [ability_card(ab) for ab in group]
-        rows = chunk(cards, 3)
+        tier_abilities = by_tier[tier]
+        # group by path
+        by_path = {}
+        for ab in tier_abilities:
+            by_path.setdefault(ab.get("path", "unknown"), []).append(ab)
 
-        lines = [
-            f"# Tier {tier} Abilities",
-            "",
-            "|  |  |  |",
-            "| --- | --- | --- |",
-        ]
-        for row in rows:
-            # pad row to 3 columns
-            while len(row) < 3:
-                row.append("")
-            lines.append("| " + " | ".join(row) + " |")
+        for path_name, path_abilities in sorted(by_path.items()):
+            group = sorted(path_abilities, key=lambda a: a.get("name", ""))
+            cards = [ability_card(ab) for ab in group]
+            rows = chunk(cards, 3)
 
-        path = out_dir / f"tier-{tier}-abilities.md"
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        generated.append(path)
+            lines = [
+                f"# Tier {tier} - {path_name.title()} Abilities",
+                "",
+                "|  |  |  |",
+                "| --- | --- | --- |",
+            ]
+            for row in rows:
+                while len(row) < 3:
+                    row.append("")
+                lines.append("| " + " | ".join(row) + " |")
+
+            filename = f"tier-{tier}-{path_name}-abilities.md"
+            path = out_dir / filename
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            generated.append(path)
 
     # copy to wiki if present
     wiki_dir = root.parent / "docs" / "wiki"
