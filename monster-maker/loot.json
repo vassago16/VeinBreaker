@@ -1,0 +1,84 @@
+{
+  "schema": "veinbreaker.loot.v1",
+  "types": [
+    "weapon",
+    "armor",
+    "consumable",
+    "ability",
+    "relic",
+    "upgrade",
+    "Veinsigil"
+  ],
+  "loot": [
+    {
+      "name": "Hemostone Knife",
+      "tier": 1,
+      "type": "weapon",
+      "rarity": "uncommon",
+      "tags": ["bleed", "light"],
+      "description": "Light blade that digs for veins; easy to conceal.",
+      "effects": [
+        { "type": "attack_bonus", "value": "+1 to Bleed applications" },
+        { "type": "trigger", "on": "hit_bleeding_target", "effect": "gain 1 Momentum (1/turn)" }
+      ]
+    },
+    {
+      "name": "Radiant Draught",
+      "tier": 1,
+      "type": "consumable",
+      "rarity": "common",
+      "tags": ["radiance", "potion"],
+      "description": "Glowing vial; burns like sunlight.",
+      "effects": [
+        { "type": "consume", "effect": "Gain 2 Radiance; next attack deals +2 radiant" }
+      ]
+    },
+    {
+      "name": "Stonepulse Vest",
+      "tier": 2,
+      "type": "armor",
+      "rarity": "uncommon",
+      "tags": ["stonepulse", "armor"],
+      "description": "Layered plating that hums with Stonepulse rhythm.",
+      "effects": [
+        { "type": "defense_bonus", "value": "+1 Defense" },
+        { "type": "trigger", "on": "gain_momentum", "effect": "Set Balance to 0 (1/round)" }
+      ]
+    },
+    {
+      "name": "Canticle Verse: Gleaming Wall",
+      "tier": 2,
+      "type": "ability",
+      "rarity": "rare",
+      "tags": ["canticle", "ability_unlock"],
+      "description": "Scripture shard that teaches a defensive hymn.",
+      "effects": [
+        { "type": "ability_unlock", "ability_ref": "canticle.gleaming_wall", "text": "Defense reaction: Reduce dmg by 1d6; gain Radiance 1; if dmg -> 0, attacker takes radiant 1." }
+      ]
+    },
+    {
+      "name": "Blood-Bound Sigil",
+      "tier": 3,
+      "type": "relic",
+      "rarity": "rare",
+      "tags": ["blood", "corruption"],
+      "description": "A sigil that whispers for more marks.",
+      "effects": [
+        { "type": "trigger", "on": "execute", "effect": "Gain +1 RP and +1 Momentum" },
+        { "type": "risk", "effect": "Each Execute also adds +1 Blood Mark" }
+      ]
+    },
+    {
+      "name": "Stormcore Capacitor",
+      "tier": 3,
+      "type": "upgrade",
+      "rarity": "uncommon",
+      "tags": ["spellforged", "conduit"],
+      "description": "Stores charge for spellforged strikes.",
+      "effects": [
+        { "type": "resource_bonus", "effect": "+1 Magic Pool refresh at start of turn (1/encounter)" },
+        { "type": "trigger", "on": "cast_spell", "effect": "Gain +1 Momentum (max 1/round)" }
+      ]
+    }
+  ]
+}
