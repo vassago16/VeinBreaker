@@ -61,6 +61,202 @@
           }
         }
       }
+    },
+    {
+      "id": "enemy.brumklin.lurker",
+      "name": "Brumklin Lurker",
+      "archetype_id": "archetype.stalker",
+      "tier": 1,
+      "role": "stalker",
+      "rarity": "common",
+      "tags": ["brumkin", "small", "bleed"],
+      "lore": {
+        "one_liner": "Hunts ankles and follows footsteps.",
+        "dungeon_voice": "I hear you moving. Keep moving.",
+        "notes_gm": "Teaches movement risk; punishes reposition spam."
+      },
+      "stat_block": {
+        "hp": { "max": 9 },
+        "defense": { "dv_base": 11, "idf": 0 },
+        "damage_profile": {
+          "baseline": { "dice": "1d4", "flat": 0 },
+          "spike": { "dice": "1d4", "flat": 1 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.hamstring_cut",
+          "name": "Hamstring Cut",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": { "damage": "baseline", "effects": ["bleed"] },
+          "on_miss": { "notes": "Stays low; baiting movement." },
+          "card_text": "Low slash that opens bleeding tracks."
+        }
+      ],
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [2, 3],
+                "trigger_if": { "player_moved": true },
+                "weight": 0.85,
+                "notes": "Highly reactive to movement."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.goblin.shieldbearer",
+      "name": "Goblin Shieldbearer",
+      "archetype_id": "archetype.defender",
+      "tier": 1,
+      "role": "defender",
+      "rarity": "common",
+      "tags": ["goblin", "shield", "guard"],
+      "lore": {
+        "one_liner": "Squats behind a slab and swats patterns.",
+        "dungeon_voice": "Same move, same mistake.",
+        "notes_gm": "Forces Guard Break or varied chains."
+      },
+      "stat_block": {
+        "hp": { "max": 12 },
+        "defense": { "dv_base": 12, "idf": 1 },
+        "damage_profile": {
+          "baseline": { "dice": "1d4", "flat": 0 },
+          "spike": { "dice": "1d6", "flat": 0 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.shield_bash",
+          "name": "Shield Bash",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 1,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": { "damage": "baseline", "effects": ["stagger"] },
+          "on_miss": { "notes": "Turtles back down, resetting stance." },
+          "card_text": "Bash that staggers repeat offenders."
+        }
+      ],
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [2],
+                "trigger_if": { "repeat_count_gte": 2 },
+                "weight": 0.9,
+                "notes": "Punishes repeating the same action."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.shambler.bone",
+      "name": "Bone Shambler",
+      "archetype_id": "archetype.juggernaut",
+      "tier": 1,
+      "role": "juggernaut",
+      "rarity": "uncommon",
+      "tags": ["undead", "heavy"],
+      "lore": {
+        "one_liner": "Slow pile of bone that hates long chains.",
+        "dungeon_voice": "Keep hitting. See what breaks first.",
+        "notes_gm": "Shows flurry resistance and greedy-chain punish."
+      },
+      "stat_block": {
+        "hp": { "max": 18 },
+        "defense": { "dv_base": 11, "idf": 0 },
+        "damage_profile": {
+          "baseline": { "dice": "1d6", "flat": 0 },
+          "spike": { "dice": "1d8", "flat": 1 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.heavy_slam",
+          "name": "Heavy Slam",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 1,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": { "damage": "spike", "effects": ["off_balance"] },
+          "on_miss": { "notes": "Telegraphs again; still looming." },
+          "card_text": "Slow crush that knocks footing loose."
+        }
+      ],
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [5, 6],
+                "trigger_if": { "chain_length_gte": 5 },
+                "weight": 0.9,
+                "notes": "Very punishing to long chains."
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "enemy.cultist.blood_eye",
+      "name": "Blood-Eyed Cultist",
+      "archetype_id": "archetype.aggressor",
+      "tier": 1,
+      "role": "aggressor",
+      "rarity": "uncommon",
+      "tags": ["cultist", "human", "frenzy"],
+      "lore": {
+        "one_liner": "Cuts harder when you falter.",
+        "dungeon_voice": "Miss again. Bleed for it.",
+        "notes_gm": "Stacks pressure on misses; shows aggressive interrupts."
+      },
+      "stat_block": {
+        "hp": { "max": 10 },
+        "defense": { "dv_base": 10, "idf": 0 },
+        "damage_profile": {
+          "baseline": { "dice": "1d6", "flat": -1 },
+          "spike": { "dice": "1d6", "flat": 1 }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.frenzy_cut",
+          "name": "Frenzy Cut",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 1 },
+          "on_hit": { "damage": "baseline", "effects": [] },
+          "on_miss": { "notes": "Wild swing opens defense, invites riposte." },
+          "card_text": "Fast slash that goads faster chains."
+        }
+      ],
+      "overrides": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [2],
+                "trigger_if": { "player_missed_last_action": true },
+                "weight": 0.95,
+                "notes": "Eager to pounce on misses."
+              }
+            ]
+          }
+        }
+      }
     }
   ]
 }

@@ -1,0 +1,49 @@
+{
+  "id": "enemy.heartbound.adjudicator",
+  "name": "Heartbound Adjudicator",
+  "archetype_id": "archetype.aberrant",
+  "tier": 5,
+  "role": "executioner",
+  "rarity": "boss",
+  "tags": ["heartbound", "aberrant", "boss"],
+  "lore": {
+    "one_liner": "It watches you like the Dungeon does.",
+    "dungeon_voice": "Show me something new.",
+    "notes_gm": "Mutates as Blood Marks accumulate."
+  },
+  "stat_block": {
+    "hp": { "max": 70 },
+    "defense": { "dv_base": 18, "idf": 3 },
+    "damage_profile": {
+      "baseline": { "dice": "2d8", "flat": 0 },
+      "spike": { "dice": "3d8", "flat": 0 }
+    }
+  },
+  "moves": [
+    {
+      "id": "move.final_edict",
+      "name": "Final Edict",
+      "type": "attack",
+      "cost": { "rp": 2 },
+      "cooldown": 2,
+      "to_hit": { "av_mod": 1 },
+      "on_hit": {
+        "damage": "spike",
+        "effects": [{ "type": "primed" }]
+      },
+      "on_miss": { "notes": "The Dungeon murmurs in disappointment." },
+      "card_text": "A killing declaration — dangerous even to survive."
+    }
+  ],
+  "overrides": {
+    "rhythm_profile": {
+      "mutations": {
+        "on_blood_mark_gte": [
+          { "marks": 1, "gain": "extra_interrupt_window" },
+          { "marks": 3, "gain": "new_move" },
+          { "marks": 5, "gain": "arena_pressure" }
+        ]
+      }
+    }
+  }
+}

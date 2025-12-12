@@ -41,4 +41,18 @@ Your paths into the rules. Expand and jump where you need.
 - [[GM Codex|VEINBREAKER-CODEX-GM-Guide-V3]]
 - [[GM Upkeep Checklist|gm-upkeep-checklist]]
 - [[Status Reference|Status-v3]]
+- **Bestiary**
+- [[Tier 1 Enemies|tier-1]]
+- [[Tier 2 Enemies|tier-2]]
+- [[Tier 3 Enemies|tier-3]]
+- [[Tier 4 Enemies|tier-4]]
+- [[Tier 5 Enemies|tier-5]]
+</details>
+
+<details>
+<summary>&#x1F9EA; Character Paths</summary>
+
+- [[Tier 1 Abilities|tier-1-abilities]]
+- [[Tier 2 Abilities|tier-2-abilities]]
+- [[Tier 3 Abilities|tier-3-abilities]]
 </details>

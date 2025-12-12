@@ -1,5 +1,6 @@
 import json
 import copy
+import shutil
 from pathlib import Path
 
 
@@ -121,7 +122,13 @@ def render_enemy_md(enemy, archetype_lookup):
             on_miss = mv.get("on_miss", {})
             card_text = mv.get("card_text", "")
             dmg_str = format_damage(dmg_ref, stats)
-            effects_str = ", ".join(effects) if effects else "none"
+            eff_render = []
+            for eff in effects:
+                if isinstance(eff, str):
+                    eff_render.append(eff)
+                else:
+                    eff_render.append(json.dumps(eff))
+            effects_str = ", ".join(eff_render) if eff_render else "none"
             lines.append(f"- **{mv_name}** ({mv_type}) - RP {rp_cost}, CD {cd}, dmg: {dmg_str}, effects: {effects_str}")
             if on_miss.get("notes"):
                 lines.append(f"  - On miss: {on_miss.get('notes')}")
@@ -145,15 +152,89 @@ def render_enemy_md(enemy, archetype_lookup):
     return "\n".join(lines) + "\n"
 
 
+def render_enemy_card(enemy):
+    name = enemy.get("name", enemy.get("id", "Unknown"))
+    tier = enemy.get("tier", "?")
+    role = enemy.get("role", "")
+    rarity = enemy.get("rarity", "")
+    tags = ", ".join(enemy.get("tags", []))
+    stats = enemy.get("stat_block", {})
+    hp = stats.get("hp", {}).get("max", "?")
+    defense = stats.get("defense", {})
+    dv_base = defense.get("dv_base", "?")
+    idf = defense.get("idf", 0)
+    dmg = stats.get("damage_profile", {})
+    baseline = dmg.get("baseline", {})
+    spike = dmg.get("spike", {})
+    base_str = f"{baseline.get('dice','?')}{baseline.get('flat','')}"
+    spike_str = f"{spike.get('dice','?')}{spike.get('flat','')}"
+    lore = enemy.get("lore", {})
+    one_liner = lore.get("one_liner", "")
+    return "<br>".join([
+        f"**{name}** (Tier {tier} / {role} / {rarity})",
+        f"Tags: {tags}" if tags else "",
+        f"HP {hp}; DV {dv_base}, IDF {idf}",
+        f"Dmg: {base_str} / {spike_str}",
+        one_liner
+    ])
+
+
+def write_grid_by_tier(bestiary, out_dir, columns):
+    tiers = {}
+    for enemy in bestiary:
+        tiers.setdefault(enemy.get("tier", "?"), []).append(enemy)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    generated = []
+    for tier, enemies in tiers.items():
+        enemies_sorted = sorted(enemies, key=lambda e: e.get("name", e.get("id", "")))
+        cards = [render_enemy_card(e) for e in enemies_sorted]
+        rows = [cards[i:i+columns] for i in range(0, len(cards), columns)]
+        lines = ["# Tier {} Enemies".format(tier), "", "| " + " | ".join([""]*columns) + " |", "| " + " | ".join(["---"]*columns) + " |"]
+        for row in rows:
+            while len(row) < columns:
+                row.append("")
+            lines.append("| " + " | ".join(row) + " |")
+        path = out_dir / f"tier-{tier}-beasts.md"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        generated.append(path)
+    return generated
+
+
 def main():
     root = Path(__file__).parent
+    # config
+    cfg = {}
+    cfg_path = root / "config.json"
+    if cfg_path.exists():
+        try:
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        except Exception:
+            cfg = {}
+    md_mode = cfg.get("markdown_mode", "both")  # "single", "grid", "both"
+    md_columns = cfg.get("markdown_columns", 3)
+
     archetypes = json.loads((root / "archetype.json").read_text(encoding="utf-8"))
     data = json.loads((root / "enemy.json").read_text(encoding="utf-8"))
 
     arch_list = archetypes.get("archetypes", [])
     arch_map = {a.get("id"): a for a in arch_list}
     meta = data.get("meta", {})
-    enemies = data.get("enemies", [])
+    enemies = list(data.get("enemies", []))
+
+    # Load any beast JSON files (single enemy object or list or {"enemies": [...]})
+    beasts_dir = root / "bestiary" / "beasts"
+    if beasts_dir.exists():
+        for beast_file in beasts_dir.glob("*.json"):
+            try:
+                beast_data = json.loads(beast_file.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if isinstance(beast_data, dict) and "enemies" in beast_data:
+                enemies.extend(beast_data.get("enemies", []))
+            elif isinstance(beast_data, list):
+                enemies.extend(beast_data)
+            elif isinstance(beast_data, dict):
+                enemies.append(beast_data)
 
     bestiary = []
     for enemy in enemies:
@@ -174,10 +255,22 @@ def main():
     # Write Markdown cards
     md_dir = root / "bestiary"
     md_dir.mkdir(parents=True, exist_ok=True)
-    for enemy in bestiary:
-        eid = enemy.get("id", "unknown").replace(".", "_")
-        md_path = md_dir / f"{eid}.md"
-        md_path.write_text(render_enemy_md(enemy, arch_map), encoding="utf-8")
+    # markdown output modes
+    generated_grid = []
+    if md_mode in {"single", "both"}:
+        for enemy in bestiary:
+            eid = enemy.get("id", "unknown").replace(".", "_")
+            md_path = md_dir / f"{eid}.md"
+            md_path.write_text(render_enemy_md(enemy, arch_map), encoding="utf-8")
+    if md_mode in {"grid", "both"}:
+        generated_grid = write_grid_by_tier(bestiary, md_dir, md_columns)
+
+    # Copy grid outputs to wiki if present
+    wiki_dir = root.parent / "docs" / "wiki"
+    if wiki_dir.exists() and generated_grid:
+        wiki_dir.mkdir(parents=True, exist_ok=True)
+        for src in generated_grid:
+            shutil.copy(src, wiki_dir / src.name)
 
 
 if __name__ == "__main__":

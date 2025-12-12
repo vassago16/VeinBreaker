@@ -1,0 +1,45 @@
+{
+  "id": "enemy.ironbound.judge",
+  "name": "Ironbound Judge",
+  "archetype_id": "archetype.defender",
+  "tier": 4,
+  "role": "warden",
+  "rarity": "elite",
+  "tags": ["ironbound", "guardian"],
+  "lore": {
+    "one_liner": "It decides when your turn is over.",
+    "dungeon_voice": "ENOUGH.",
+    "notes_gm": "Hard counter to long chains and sloppy execution."
+  },
+  "stat_block": {
+    "hp": { "max": 48 },
+    "defense": { "dv_base": 16, "idf": 2 },
+    "damage_profile": {
+      "baseline": { "dice": "2d6", "flat": 0 },
+      "spike": { "dice": "2d8", "flat": 0 }
+    }
+  },
+  "moves": [
+    {
+      "id": "move.judgement_break",
+      "name": "Judgement Break",
+      "type": "attack",
+      "cost": { "rp": 1 },
+      "cooldown": 1,
+      "to_hit": { "av_mod": 0 },
+      "on_hit": {
+        "damage": "baseline",
+        "effects": [{ "type": "stagger", "stacks": 2 }]
+      },
+      "on_miss": { "notes": "Steel rings loudly." },
+      "card_text": "Ends overlong chains decisively."
+    }
+  ],
+  "overrides": {
+    "rhythm_profile": {
+      "pressure": {
+        "punish_long_chains": { "enabled": true, "chain_length_gte": 4, "bias": 0.5 }
+      }
+    }
+  }
+}
