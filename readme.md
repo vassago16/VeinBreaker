@@ -42,3 +42,14 @@ From repo root (PowerShell):
 ## Notes
 - Markdown outputs use ASCII-safe characters; emojis in sidebar are encoded as HTML entities.
 - Bestiary beast files can be added under monster-maker/bestiary/beasts/ as JSON (single enemy, list, or {"enemies": [...] }). They are auto-ingested by the builder.
+
+
+## ⚠️ Rights & Usage Notice
+
+This repository is provided for reference and discussion only.
+
+All content, code, mechanics, and narrative elements are © [Chris Weeks] [2026].  
+All rights reserved.
+
+No license is granted to copy, modify, distribute, or use this material without
+explicit written permission from the author.
