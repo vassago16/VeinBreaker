@@ -63,6 +63,7 @@ def create_character(
         "faith": spr_val // 2,
     }
 
+    
     # Resolve basic pick
     resolve_basics = list_resolve_basics(canon)
     validate(resolve_basic_choice in resolve_basics, "Must choose one resolve_basic ability")
@@ -103,5 +104,12 @@ def create_character(
             "blood": 0,
             "duns": 0
         },
+        "chain": {
+        "declared": False,
+        "abilities": [],
+        "resolve_spent": 0,
+        "stable": False,
+        "invalidated": False
+    },
         "veinscore": veinscore,
     }
