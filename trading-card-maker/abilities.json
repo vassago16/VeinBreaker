@@ -3,9 +3,7 @@
     "stonepulse": "martial",
     "canticle": "faith",
     "hemocratic": "shadow",
-    "spellforged": "magic",
-    "conduit": "magic",
-    "arcanum": "magic"
+    "spellforged": "magic"
   },
   "abilities": [
     {

@@ -119,7 +119,8 @@ body{
 
 /* Print friendly */
 @media print{
-  @page { size: Letter portrait; margin: 0.25in; }
+  /* Slightly larger top margin to prevent clipping when printed */
+  @page { size: Letter portrait; margin: 0.35in 0.25in 0.15in 0.25in; }
   body{background:#fff}
   .app-header,.help{display:none}
   .cards-grid{
@@ -130,5 +131,59 @@ body{
     max-width: none;
     margin:0;
   }
-  .card{box-shadow:none}
+.card{box-shadow:none}
+}
+
+/* Light mode option */
+body.light-mode{background:#fff;}
+.light-mode .app-header{background:#f8f9fb;color:#111;border-bottom:1px solid #ccc}
+.light-mode .app-header h1{color:#111}
+.light-mode .controls .btn,
+.light-mode .file-picker span{
+  background:#fff;
+  color:#111;
+  border:1px solid #999;
+}
+.light-mode .help{color:#333;}
+.light-mode .schema{background:#f4f6f8;color:#111;border:1px solid #ccc}
+.light-mode .cards-grid{background:#fff}
+.light-mode .card{
+  background:#fff;
+  border:1px solid #000;
+  box-shadow:none;
+}
+.light-mode .card__bg,
+.light-mode .card__vignette{display:none}
+.light-mode .titlebar{
+  background:#f4f6f8;
+  color:#000;
+  border:1px solid #000;
+}
+.light-mode .typeline,
+.light-mode .textbox{
+  background:#fff;
+  color:#000;
+  border:1px solid #000;
+}
+.light-mode .image-box{border:1px solid #000; background:#f4f6f8 center/cover no-repeat;}
+.light-mode .overlay-badge,
+.light-mode .overlay-badge--muted{
+  background:#fff;
+  color:#000;
+  border:1px solid #000;
+}
+.light-mode .badge,
+.light-mode .badge--type,
+.light-mode .badge--cost,
+.light-mode .badge--cooldown{
+  background:#fff;
+  color:#000;
+  border:1px solid #000;
+}
+.light-mode .rarity,
+.light-mode .set-symbol,
+.light-mode .stat{
+  border:1px solid #000;
+  color:#000;
+  background:#fff;
 }
