@@ -16,6 +16,7 @@ from engine.action_resolution import (
     check_exposure,
     roll,
 )
+from engine.interrupt_controller import InterruptController, apply_interrupt
 
 def load_canon():
     canon = {}
@@ -238,8 +239,9 @@ def main():
             # single attack & defense roll per chain (player & enemy)
             chain_attack_d20 = roll("1d20")
             chain_defense_d20 = roll("1d20")
+            ic = InterruptController(enemies[0] if enemies else {})
 
-            for ability_name in chain.get("abilities", []):
+            for idx, ability_name in enumerate(chain.get("abilities", [])):
                 ability = next((a for a in character.get("abilities", []) if a.get("name") == ability_name), None)
                 if not ability:
                     continue
@@ -286,6 +288,14 @@ def main():
                 result = check_exposure(character)
                 if result:
                     state["log"].append({"exposure": result})
+                # Interrupt window after first action in chain
+                if enemies and len(enemies) > 0 and ic.should_interrupt(state, idx):
+                    hit, dmg, rolls = apply_interrupt(state, character, enemies[0])
+                    if hit and dmg > 0:
+                        print(f"Enemy INTERRUPT hits! atk_d20={rolls['atk_d20']} total={rolls['atk_total']} vs def_total={rolls['def_total']} for {dmg} dmg. Chain broken.")
+                        break
+                    else:
+                        print(f"Enemy interrupt fails (atk_d20={rolls['atk_d20']} total={rolls['atk_total']} vs def_total={rolls['def_total']}).")
             # simple enemy turn if alive
             if enemies:
                 enemy_hp = enemies[0].get("hp", 0)

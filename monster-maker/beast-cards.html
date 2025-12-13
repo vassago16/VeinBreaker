@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VeinBreaker Bestiary Cards</title>
+  <link rel="stylesheet" href="beast-cards.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Bestiary Card Viewer</h1>
+    <div class="controls">
+      <label class="file-picker">
+        <input id="jsonFile" type="file" accept="application/json" />
+        <span>Select Bestiary JSON</span>
+      </label>
+      <button id="loadSample" class="btn secondary">Load sample bestiary.json</button>
+      <button id="printBtn" class="btn">Print 3x3</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="help">
+      <p>Load <code>monster-maker/bestiary.json</code> or any file with <code>{ enemies: [...] }</code>. Each enemy becomes a printable card.</p>
+    </section>
+    <section id="cards" class="cards-grid" aria-live="polite"></section>
+  </main>
+
+  <script src="beast-cards.js"></script>
+</body>
+</html>

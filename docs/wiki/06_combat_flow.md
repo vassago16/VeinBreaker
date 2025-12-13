@@ -18,9 +18,9 @@ This section explains how a turn unfolds from start to finish using the new **Dy
 
 ## **6.1 TURN START — RESET, REFRESH & RHYTHM CHECK**
 
-At the start of your turn:
+At the start of your turn the start of your turn is when a chain is declared:
 
-### ✔ **1. Resolve ****regenerates **3 RP** (up to your Max Resolve)**
+### ✔ **1. Resolve ****regenerates **2 RP** (up to your Max Resolve)**
 
 Unless a buff, debuff, or stance modifies it.
 
@@ -218,9 +218,9 @@ ENEMY ATTACK VALUE vs YOUR DEFENSE VALUE
 
 If enemy wins by:
 
-- **0–4** → Chain continues (you take hit)
+- **0–4** → Chain continues (unless you take damage)
 - **5+** → **Chain breaks immediately**
-- **10+** → **Critical Interrupt** (defender loses Momentum, gains Stagger)
+- **10+** → **Critical Interrupt** (defender  loses Momentum, gains Stagger)
 
 ### Misses do **not** end chains.
 
@@ -239,7 +239,7 @@ A chain ends when:
 
 - You complete all declared actions
 - You choose to stop early (rare)
-- You are Interrupted
+- You are Interrupted by 5+ or take damage
 - You are stunned
 - Your RP hits 0 mid‑chain (declared chain invalidates — failure)
 
