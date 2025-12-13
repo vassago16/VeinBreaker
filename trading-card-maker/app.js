@@ -1,6 +1,7 @@
 const $ = (sel, ctx=document) => ctx.querySelector(sel);
 const cardsEl = $('#cards');
 const fillGridEl = $('#fillGrid');
+const lightModeEl = $('#lightMode');
 
 $('#jsonFile').addEventListener('change', async (e) => {
   const file = e.target.files?.[0];
@@ -28,6 +29,12 @@ $('#loadSample').addEventListener('click', async () => {
 $('#printBtn').addEventListener('click', () => {
   window.print();
 });
+
+if (lightModeEl){
+  lightModeEl.addEventListener('change', () => {
+    document.body.classList.toggle('light-mode', lightModeEl.checked);
+  });
+}
 
 function renderData(data){
   let arr = Array.isArray(data)

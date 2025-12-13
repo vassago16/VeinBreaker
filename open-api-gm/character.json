@@ -3,46 +3,180 @@
   "tier": 1,
   "abilities": [
     {
+      "name": "Basic Strike",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "attack"
+      ]
+    },
+    {
+      "name": "Basic Guard",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "defense",
+        "momentum"
+      ]
+    },
+    {
+      "name": "Focus Action",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "utility",
+        "momentum"
+      ]
+    },
+    {
+      "name": "Shift",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "movement"
+      ]
+    },
+    {
       "name": "Disengage",
       "path": "resolve_basic",
       "tier": 0,
       "cooldown": 1,
-      "base_cooldown": 1
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "resolve",
+        "movement",
+        "defense_window"
+      ]
+    },
+    {
+      "name": "Rhythm Break",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 2,
+      "base_cooldown": 2,
+      "cost": 2,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "resolve",
+        "interrupt",
+        "defense_window"
+      ]
+    },
+    {
+      "name": "Momentum Anchor",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 1,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "resolve",
+        "momentum",
+        "any_window"
+      ]
+    },
+    {
+      "name": "Balance Surge",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 1,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "resolve",
+        "balance",
+        "any_window"
+      ]
     },
     {
       "name": "Pulse Strike",
       "path": "stonepulse",
       "tier": 1,
       "cooldown": 1,
-      "base_cooldown": 1
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "stonepulse",
+        "attack",
+        "momentum"
+      ]
     },
     {
-      "name": "Stoneguard Step",
-      "path": "stonepulse",
+      "name": "Charge Bolt",
+      "path": "spellforged",
       "tier": 1,
       "cooldown": 1,
-      "base_cooldown": 1
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "dice": "1d4",
+      "tags": [
+        "spellforged",
+        "attack",
+        "momentum"
+      ]
     }
   ],
+  "stats": {
+    "POW": 14,
+    "AGI": 11,
+    "MND": 11,
+    "SPR": 14
+  },
   "resources": {
-    "hp": 22,
+    "hp": 24,
     "resolve": 5,
     "resolve_cap": 5,
     "momentum": 0,
     "heat": 0,
-    "balance": 0
+    "balance": 0,
+    "idf": 0
   },
   "attributes": {
-    "POW": 12,
-    "AGI": 12,
-    "MND": 12,
-    "SPR": 12
+    "POW": 14,
+    "AGI": 11,
+    "MND": 11,
+    "SPR": 14
   },
   "pools": {
-    "martial": 6,
-    "shadow": 6,
-    "magic": 6,
-    "faith": 6
+    "martial": 7,
+    "shadow": 5,
+    "magic": 5,
+    "faith": 7
   },
   "marks": {
     "blood": 0,
@@ -55,5 +189,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 2
+  "veinscore": 0
 }

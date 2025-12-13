@@ -1,0 +1,45 @@
+{
+  "id": "enemy.stonebound.mauler",
+  "name": "Stonebound Mauler",
+  "archetype_id": "archetype.bully",
+  "tier": 2,
+  "role": "enforcer",
+  "rarity": "common",
+  "tags": ["stonebound", "brute"],
+  "lore": {
+    "one_liner": "Every step you take makes it angrier.",
+    "dungeon_voice": "RUN. I DARE YOU.",
+    "notes_gm": "Punishes unnecessary movement and greedy chains."
+  },
+  "stat_block": {
+    "hp": { "max": 22 },
+    "defense": { "dv_base": 12, "idf": 1 },
+    "damage_profile": {
+      "baseline": { "dice": "1d6", "flat": 1 },
+      "spike": { "dice": "1d8", "flat": 0 }
+    }
+  },
+  "moves": [
+    {
+      "id": "move.crushing_slam",
+      "name": "Crushing Slam",
+      "type": "attack",
+      "cost": { "rp": 1 },
+      "cooldown": 0,
+      "to_hit": { "av_mod": -1 },
+      "on_hit": {
+        "damage": "baseline",
+        "effects": [{ "type": "off_balance", "stacks": 1 }]
+      },
+      "on_miss": { "notes": "Leaves the Mauler open." },
+      "card_text": "Heavy impact that rattles footing."
+    }
+  ],
+  "overrides": {
+    "rhythm_profile": {
+      "pressure": {
+        "punish_movement": { "enabled": true, "bias": 0.35 }
+      }
+    }
+  }
+}
