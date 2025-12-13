@@ -1,5 +1,5 @@
 {
-  "path": "canticle",
+  "path": "stonepulse",
   "tier": 1,
   "abilities": [
     {
@@ -10,11 +10,16 @@
       "base_cooldown": 0,
       "cost": 1,
       "resource": "resolve",
+      "pool": "free",
       "dice": "1d4",
       "tags": [
         "core",
         "attack"
-      ]
+      ],
+      "effect": "Make a basic attack for 1d4 + stat. On hit gain +1 Heat. Applies -1 Balance penalty.",
+      "stat": "weapon",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Basic Guard",
@@ -24,12 +29,17 @@
       "base_cooldown": 0,
       "cost": 1,
       "resource": "resolve",
+      "pool": "free",
       "dice": "1d4",
       "tags": [
         "core",
         "defense",
         "momentum"
-      ]
+      ],
+      "effect": "Reduce incoming damage by 1d4. STR modifier applies to the Defense roll. If damage is reduced to 0, gain +1 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Focus Action",
@@ -39,12 +49,17 @@
       "base_cooldown": 0,
       "cost": 1,
       "resource": "resolve",
+      "pool": "free",
       "dice": "1d4",
       "tags": [
         "core",
         "utility",
         "momentum"
-      ]
+      ],
+      "effect": "Gain +1 Attack to your next attack this turn and +1 Momentum.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Shift",
@@ -54,11 +69,16 @@
       "base_cooldown": 0,
       "cost": 1,
       "resource": "resolve",
+      "pool": "free",
       "dice": "1d4",
       "tags": [
         "core",
         "movement"
-      ]
+      ],
+      "effect": "Move 1 zone. Improve Balance by +1 if negative. DEX modifier applies to the Defense roll during this movement.",
+      "stat": "DEX",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Disengage",
@@ -68,12 +88,17 @@
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
+      "pool": null,
       "dice": "1d4",
       "tags": [
         "resolve",
         "movement",
         "defense_window"
-      ]
+      ],
+      "effect": "End your current chain immediately. No further actions may be taken this chain.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Rhythm Break",
@@ -83,12 +108,17 @@
       "base_cooldown": 2,
       "cost": 2,
       "resource": "resolve",
+      "pool": null,
       "dice": "1d4",
       "tags": [
         "resolve",
         "interrupt",
         "defense_window"
-      ]
+      ],
+      "effect": "Cancel an Interrupt attempt before the contest is rolled.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Momentum Anchor",
@@ -98,12 +128,17 @@
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
+      "pool": null,
       "dice": "1d4",
       "tags": [
         "resolve",
         "momentum",
         "any_window"
-      ]
+      ],
+      "effect": "Gain +1 Momentum. May not be used after damage is dealt.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Balance Surge",
@@ -113,12 +148,17 @@
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
+      "pool": null,
       "dice": "1d4",
       "tags": [
         "resolve",
         "balance",
         "any_window"
-      ]
+      ],
+      "effect": "Set your Balance to 0. Cannot be used while at Positive Balance.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Pulse Strike",
@@ -128,12 +168,17 @@
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
+      "pool": "martial",
       "dice": "1d4",
       "tags": [
         "stonepulse",
         "attack",
         "momentum"
-      ]
+      ],
+      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     },
     {
       "name": "Charge Bolt",
@@ -143,22 +188,27 @@
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
+      "pool": "magic",
       "dice": "1d4",
       "tags": [
         "spellforged",
         "attack",
         "momentum"
-      ]
+      ],
+      "effect": "1d4 + INT lightning; +1 dmg if you spent RP last action; if you spent RP last action, also gain +1 Momentum.",
+      "stat": "INT",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     }
   ],
   "stats": {
-    "POW": 14,
-    "AGI": 11,
-    "MND": 11,
-    "SPR": 14
+    "POW": 12,
+    "AGI": 10,
+    "MND": 12,
+    "SPR": 8
   },
   "resources": {
-    "hp": 24,
+    "hp": 22,
     "resolve": 5,
     "resolve_cap": 5,
     "momentum": 0,
@@ -167,16 +217,16 @@
     "idf": 0
   },
   "attributes": {
-    "POW": 14,
-    "AGI": 11,
-    "MND": 11,
-    "SPR": 14
+    "POW": 12,
+    "AGI": 10,
+    "MND": 12,
+    "SPR": 8
   },
   "pools": {
-    "martial": 7,
+    "martial": 6,
     "shadow": 5,
-    "magic": 5,
-    "faith": 7
+    "magic": 6,
+    "faith": 4
   },
   "marks": {
     "blood": 0,
@@ -189,5 +239,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 0
+  "veinscore": 8
 }

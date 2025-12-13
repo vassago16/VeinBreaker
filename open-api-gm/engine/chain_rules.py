@@ -45,7 +45,7 @@ def validate_chain_resolve(character, resolve_spent):
 
 
 def validate_chain_costs(character, abilities):
-    total_cost = 0
+    total_cost = len(abilities)  # 1 RP per declared action
     pool_spend = {}
     for ability in abilities:
         cost = ability.get("cost", 0) or 0
@@ -53,7 +53,7 @@ def validate_chain_costs(character, abilities):
         pool = ability.get("pool")
         if pool and pool in character.get("pools", {}):
             pool_spend[pool] = pool_spend.get(pool, 0) + cost
-        else:
+        elif resource != "resolve":
             total_cost += cost
     for pool, spend in pool_spend.items():
         if spend > character.get("pools", {}).get(pool, 0):
@@ -100,10 +100,14 @@ def declare_chain(state, character, ability_names, resolve_spent=0, stabilize=Fa
     if not ok:
         return False, msg
 
+    # Spend resolve up front (1 per action + listed resolve costs)
+    total_resolve_cost = len(ability_names)  # 1 RP per action (resolve costs handled here)
+    character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - total_resolve_cost)
+
     character["chain"] = {
         "declared": True,
         "abilities": list(ability_names),
-        "resolve_spent": resolve_spent,
+        "resolve_spent": total_resolve_cost,
         "invalidated": False
     }
 

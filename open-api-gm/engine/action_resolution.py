@@ -42,29 +42,22 @@ def ability_damage_total(character, ability, base_roll):
     return base_roll
 
 
-def resolve_action_step(state, character, ability, attack_roll=None):
+def resolve_action_step(state, character, ability, attack_roll=None, balance_bonus=0):
     """
     Pay costs and roll dice; do not apply effects yet.
     """
-    # Base resolve spend per declared action
-    res = character.get("resources", {})
-    base_resolve_cost = 1
-    if "resolve" in res:
-        res["resolve"] = max(0, res.get("resolve", 0) - base_resolve_cost)
-
     cost = ability.get("cost", 0)
     resource = ability.get("resource", "resolve")
     pool = ability.get("pool")
     if cost:
         if pool and pool in character.get("pools", {}):
             character["pools"][pool] = max(0, character["pools"][pool] - cost)
-        elif resource in character.get("resources", {}):
+        elif resource != "resolve" and resource in character.get("resources", {}):
             character["resources"][resource] = max(
                 0, character["resources"][resource] - cost
             )
 
     attack_total, d20_roll = ability_attack_roll(character, ability, base_d20=attack_roll)
-    balance_bonus = character.get("resources", {}).get("balance", 0)
     to_hit = attack_total + balance_bonus
     damage_roll = roll(ability.get("dice", "1d4"))
 
@@ -82,7 +75,6 @@ def resolve_action_step(state, character, ability, attack_roll=None):
             "attack_d20": d20_roll,
             "balance_bonus": balance_bonus,
             "pool": pool,
-            "base_resolve_cost": base_resolve_cost,
             "to_hit": to_hit,
             "damage_roll": damage_roll,
         },
@@ -112,6 +104,9 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     log["defense_roll"] = defense_roll
     log["defense_d20"] = defense_d20
 
+    margin = defense_roll - to_hit
+    if margin >= 5:
+        log["perfect_defense"] = True
     if to_hit < defense_roll:
         log["hit"] = False
         # On miss, attacker drifts: Balance +2
@@ -126,13 +121,16 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     damage_applied = 0
     if enemies:
         enemy = enemies[0]
-        # heat bonus to damage
-        heat = character["resources"].get("heat", 0)
-        heat_bonus = max(0, min(4, heat - 1))
+        # heat bonus to damage (use projected heat after this hit)
+        prior_heat = character["resources"].get("heat", 0)
+        projected_heat = prior_heat + 1
+        heat_bonus = max(0, min(4, projected_heat - 1))
         dmg_total = ability_damage_total(character, ability, damage_roll) + heat_bonus
         damage_applied = dmg_total
         enemy["hp"] = enemy.get("hp", 10) - dmg_total
         enemy["momentum"] = enemy.get("momentum", 0)
+        # gain heat on successful hit
+        character["resources"]["heat"] = projected_heat
 
     if "momentum" in tags:
         character["resources"]["momentum"] = character["resources"].get("momentum", 0) + 1

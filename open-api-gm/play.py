@@ -195,6 +195,8 @@ def main():
             state["phase"]["resolve_regen"] = (before, regen, after)
             # balance reset to 0
             res["balance"] = 0
+            # momentum resets each turn
+            res["momentum"] = 0
             # heat reset: if prior heat >=3 set to 2 else 0
             prior_heat = res.get("heat", 0)
             res["heat"] = 2 if prior_heat >= 3 else 0
@@ -240,6 +242,7 @@ def main():
             chain_attack_d20 = roll("1d20")
             chain_defense_d20 = roll("1d20")
             ic = InterruptController(enemies[0] if enemies else {})
+            print(f"Chain contests: player d20={chain_attack_d20} vs enemy DV d20={chain_defense_d20}")
 
             for idx, ability_name in enumerate(chain.get("abilities", [])):
                 ability = next((a for a in character.get("abilities", []) if a.get("name") == ability_name), None)
@@ -248,7 +251,8 @@ def main():
                 # snapshot resources before action
                 res_before = character.get("resources", {}).copy()
                 pre_enemy_hp = enemies[0].get("hp", 10) if enemies else None
-                pending = resolve_action_step(state, character, ability, attack_roll=chain_attack_d20)
+                balance_bonus = 0 if idx == 0 else character.get("resources", {}).get("balance", 0)
+                pending = resolve_action_step(state, character, ability, attack_roll=chain_attack_d20, balance_bonus=balance_bonus)
                 result = apply_action_effects(state, character, enemies, defense_d20=chain_defense_d20)
                 to_hit = pending.get("to_hit") if isinstance(pending, dict) else None
                 attack_d20 = pending.get("attack_d20") if isinstance(pending, dict) else None
@@ -291,11 +295,17 @@ def main():
                 # Interrupt window after first action in chain
                 if enemies and len(enemies) > 0 and ic.should_interrupt(state, idx):
                     hit, dmg, rolls = apply_interrupt(state, character, enemies[0])
+                    atk_mod = enemies[0].get("attack_mod", 0)
+                    def_mod = character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
+                    print(f"Interrupt contest: enemy ({rolls['atk_d20']}+{atk_mod}={rolls['atk_total']}) vs player ({rolls['def_d20']}+{def_mod}={rolls['def_total']})")
                     if hit and dmg > 0:
-                        print(f"Enemy INTERRUPT hits! atk_d20={rolls['atk_d20']} total={rolls['atk_total']} vs def_total={rolls['def_total']} for {dmg} dmg. Chain broken.")
+                        print(f"Enemy INTERRUPT hits for {dmg} dmg. Chain broken.")
+                        break
+                    elif hit and rolls["atk_total"] - rolls["def_total"] >= 5:
+                        print("Enemy INTERRUPT breaks the chain (MoD>=5).")
                         break
                     else:
-                        print(f"Enemy interrupt fails (atk_d20={rolls['atk_d20']} total={rolls['atk_total']} vs def_total={rolls['def_total']}).")
+                        print("Enemy interrupt fails.")
             # simple enemy turn if alive
             if enemies:
                 enemy_hp = enemies[0].get("hp", 0)
@@ -319,8 +329,8 @@ def main():
             else:
                 state["phase"]["current"] = "chain_declaration"
                 state["phase"]["round_started"] = False
-            # heat resets when chain ends
-            character["resources"]["heat"] = 0
+            # heat resets when chain ends (unless carried via stabilize rule above; we already set on round start)
+            character["resources"]["heat"] = character["resources"].get("heat", 0) if character["resources"].get("heat", 0) <= 2 else 0
             continue
 
         actions = allowed_actions(state, phase_machine)

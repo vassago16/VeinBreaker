@@ -57,10 +57,12 @@ def apply_interrupt(state, character, enemy):
     """
     ic = InterruptController(enemy)
     hit, dmg, rolls = ic.roll_interrupt(enemy or {}, character or {})
+    margin = rolls["atk_total"] - rolls["def_total"]
     if hit and dmg > 0:
         # apply damage and break chain
         character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg)
-        # invalidate chain
+    if hit and margin >= 5:
+        # invalidate chain even if damage was 0
         if character.get("chain", {}).get("declared"):
             character["chain"]["invalidated"] = True
             character["chain"]["declared"] = False
