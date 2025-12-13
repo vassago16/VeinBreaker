@@ -1,19 +1,59 @@
 {
-  "path": "stonepulse",
+  "path": "canticle",
   "tier": 1,
   "abilities": [
-    "Pulse Strike",
-    "Stoneguard Step"
+    {
+      "name": "Disengage",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 1,
+      "base_cooldown": 1
+    },
+    {
+      "name": "Pulse Strike",
+      "path": "stonepulse",
+      "tier": 1,
+      "cooldown": 1,
+      "base_cooldown": 1
+    },
+    {
+      "name": "Stoneguard Step",
+      "path": "stonepulse",
+      "tier": 1,
+      "cooldown": 1,
+      "base_cooldown": 1
+    }
   ],
   "resources": {
-    "hp": 10,
-    "resolve": 3,
+    "hp": 22,
+    "resolve": 5,
+    "resolve_cap": 5,
     "momentum": 0,
     "heat": 0,
     "balance": 0
   },
+  "attributes": {
+    "POW": 12,
+    "AGI": 12,
+    "MND": 12,
+    "SPR": 12
+  },
+  "pools": {
+    "martial": 6,
+    "shadow": 6,
+    "magic": 6,
+    "faith": 6
+  },
   "marks": {
     "blood": 0,
     "duns": 0
-  }
+  },
+  "chain": {
+    "declared": false,
+    "abilities": [],
+    "resolve_spent": 0,
+    "stable": false,
+    "invalidated": false
+  },
+  "veinscore": 2
 }
