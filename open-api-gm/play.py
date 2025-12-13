@@ -309,6 +309,8 @@ def main():
             else:
                 state["phase"]["current"] = "chain_declaration"
                 state["phase"]["round_started"] = False
+            # heat resets when chain ends
+            character["resources"]["heat"] = 0
             continue
 
         actions = allowed_actions(state, phase_machine)

@@ -63,7 +63,9 @@ def resolve_action_step(state, character, ability, attack_roll=None):
                 0, character["resources"][resource] - cost
             )
 
-    to_hit, d20_roll = ability_attack_roll(character, ability, base_d20=attack_roll)
+    attack_total, d20_roll = ability_attack_roll(character, ability, base_d20=attack_roll)
+    balance_bonus = character.get("resources", {}).get("balance", 0)
+    to_hit = attack_total + balance_bonus
     damage_roll = roll(ability.get("dice", "1d4"))
 
     state["pending_action"] = {
@@ -78,6 +80,7 @@ def resolve_action_step(state, character, ability, attack_roll=None):
             "cost": cost,
             "resource": resource,
             "attack_d20": d20_roll,
+            "balance_bonus": balance_bonus,
             "pool": pool,
             "base_resolve_cost": base_resolve_cost,
             "to_hit": to_hit,
@@ -111,6 +114,9 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
 
     if to_hit < defense_roll:
         log["hit"] = False
+        # On miss, attacker drifts: Balance +2
+        character["resources"]["balance"] = character["resources"].get("balance", 0) + 2
+        log["balance"] = character["resources"].get("balance", 0)
         state.setdefault("log", []).append({"action_effects": log})
         state["pending_action"] = None
         return "miss"
@@ -120,7 +126,10 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     damage_applied = 0
     if enemies:
         enemy = enemies[0]
-        dmg_total = ability_damage_total(character, ability, damage_roll)
+        # heat bonus to damage
+        heat = character["resources"].get("heat", 0)
+        heat_bonus = max(0, min(4, heat - 1))
+        dmg_total = ability_damage_total(character, ability, damage_roll) + heat_bonus
         damage_applied = dmg_total
         enemy["hp"] = enemy.get("hp", 10) - dmg_total
         enemy["momentum"] = enemy.get("momentum", 0)
@@ -140,6 +149,7 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     log.update({
         "damage_applied": damage_applied,
         "to_hit": to_hit,
+        "heat_bonus": heat_bonus if 'heat_bonus' in locals() else 0,
         "heat": character["resources"].get("heat", 0),
         "balance": character["resources"].get("balance", 0),
         "resolve": character["resources"].get("resolve", 0),
