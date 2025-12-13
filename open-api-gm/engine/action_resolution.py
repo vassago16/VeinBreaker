@@ -82,6 +82,37 @@ def resolve_action_step(state, character, ability, attack_roll=None, balance_bon
     return state["pending_action"]
 
 
+def apply_momentum_feeds(enemy, trigger: str):
+    """
+    Apply momentum feeds from enemy resolved_archetype.state_interactions.momentum.feeds
+    for a given trigger (e.g., 'player_miss').
+    Returns how much momentum was gained.
+    """
+    if not enemy:
+        return 0
+    feeds = (
+        enemy.get("resolved_archetype", {})
+        .get("state_interactions", {})
+        .get("momentum", {})
+        .get("feeds", [])
+    )
+    gained = 0
+    for feed in feeds:
+        if not isinstance(feed, dict):
+            continue
+        if feed.get("on") != trigger:
+            continue
+        chance = feed.get("chance", 1)
+        try:
+            if random.random() > float(chance):
+                continue
+        except Exception:
+            continue
+        enemy["momentum"] = enemy.get("momentum", 0) + 1
+        gained += 1
+    return gained
+
+
 def apply_action_effects(state, character, enemies, defense_d20=None):
     pending = state.get("pending_action")
     if not pending or pending.get("cancelled"):
@@ -94,15 +125,25 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     tags = pending.get("tags", [])
     log = pending.get("log", {})
 
-    # Defense roll (simple DV = d20 + momentum + IDF + situational_mod (0))
+    # Defense roll: use static DV from data (no contested d20 for enemies)
     enemy = enemies[0] if enemies else None
-    situational_mod = 0
-    enemy_momentum = enemy.get("momentum", 0) if enemy else 0
-    enemy_idf = enemy.get("idf", 0) if enemy else 0
-    defense_d20 = defense_d20 if defense_d20 is not None else roll("1d20")
-    defense_roll = defense_d20 + enemy_momentum + enemy_idf + situational_mod
+    dv_base = None
+    enemy_idf = 0
+    enemy_momentum = 0
+    if enemy:
+        dv_base = enemy.get("dv_base")
+        if dv_base is None:
+            dv_base = enemy.get("stat_block", {}).get("defense", {}).get("dv_base")
+        enemy_idf = enemy.get("idf", 0)
+        enemy_momentum = enemy.get("momentum", 0)
+    defense_roll = (dv_base if dv_base is not None else 0) + enemy_idf + enemy_momentum
     log["defense_roll"] = defense_roll
-    log["defense_d20"] = defense_d20
+    log["defense_d20"] = None  # static DV (no roll)
+    log["defense_breakdown"] = {
+        "dv_base": dv_base if dv_base is not None else 0,
+        "idf": enemy_idf,
+        "momentum": enemy_momentum,
+    }
 
     margin = defense_roll - to_hit
     if margin >= 5:
@@ -112,6 +153,10 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         # On miss, attacker drifts: Balance +2
         character["resources"]["balance"] = character["resources"].get("balance", 0) + 2
         log["balance"] = character["resources"].get("balance", 0)
+        momentum_gained = apply_momentum_feeds(enemy, "player_miss")
+        if momentum_gained:
+            log["enemy_momentum_gained"] = momentum_gained
+            log["enemy_momentum"] = enemy.get("momentum", 0)
         state.setdefault("log", []).append({"action_effects": log})
         state["pending_action"] = None
         return "miss"

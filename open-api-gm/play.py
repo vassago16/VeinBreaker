@@ -18,6 +18,7 @@ from engine.action_resolution import (
     roll,
 )
 from engine.interrupt_controller import InterruptController, apply_interrupt
+from engine.status import apply_status_effects, tick_statuses
 
 def load_canon():
     canon = {}
@@ -138,6 +139,58 @@ def format_enemy_preview(enemy):
 
     return "\n".join(lines)
 
+BUFF_TYPES = {
+    "radiance",
+    "quickened",
+    "invisibility",
+    "intangible",
+    "defense up",
+    "attack up",
+    "idf up",
+    "retaliate",
+}
+
+DEBUFF_TYPES = {
+    "bleed",
+    "radiant burn",
+    "vulnerable",
+    "primed",
+    "telegraph",
+    "stagger",
+    "slowed",
+    "distracted",
+    "exhausted",
+}
+
+
+def format_status_summary(entity):
+    statuses = entity.get("statuses", {}) or {}
+    buffs = []
+    debuffs = []
+    neutrals = []
+    for name, data in statuses.items():
+        entry = name
+        stacks = data.get("stacks")
+        duration = data.get("duration")
+        parts = []
+        if stacks is not None:
+            parts.append(f"{stacks}")
+        if duration is not None:
+            parts.append(f"{duration}r")
+        if parts:
+            entry = f"{name}({'/'.join(parts)})"
+        lname = name.lower()
+        if lname in BUFF_TYPES:
+            buffs.append(entry)
+        elif lname in DEBUFF_TYPES:
+            debuffs.append(entry)
+        else:
+            neutrals.append(entry)
+    buff_str = ", ".join(buffs) if buffs else "none"
+    debuff_str = ", ".join(debuffs) if debuffs else "none"
+    neutral_str = ", ".join(neutrals) if neutrals else "none"
+    return f"Status:{neutral_str} Buff:{buff_str} Debuff:{debuff_str}"
+
 
 def load_game_data():
     root = Path(__file__).parent / "game-data"
@@ -163,6 +216,12 @@ def load_game_data():
     resolve_path = root / "resolve_abilities.json"
     if resolve_path.exists():
         data["resolve_abilities"] = json.loads(resolve_path.read_text(encoding="utf-8"))
+    loot_path = root / "loot.json"
+    if loot_path.exists():
+        try:
+            data["loot"] = json.loads(loot_path.read_text(encoding="utf-8")).get("loot", [])
+        except Exception:
+            data["loot"] = []
     bestiary = []
     bestiary_path = root / "bestiary.json"
     if bestiary_path.exists():
@@ -201,6 +260,21 @@ def load_game_data():
     data["archetypes"] = archetypes
     data["bestiary"] = [resolve_enemy_archetype(e) for e in bestiary]
     return data
+
+
+def select_loot(game_data, enemy):
+    """
+    Pick a loot item for the given enemy tier.
+    """
+    loot_table = game_data.get("loot", [])
+    if not loot_table:
+        return None
+    tier = enemy.get("tier", 1) if enemy else 1
+    tier_matches = [l for l in loot_table if l.get("tier") == tier]
+    if not tier_matches:
+        tier_matches = [l for l in loot_table if l.get("tier", 0) <= tier]
+    candidates = tier_matches or loot_table
+    return random.choice(candidates) if candidates else None
 
 def initial_state():
     return {
@@ -338,6 +412,8 @@ def main():
             # reset enemy interrupt budgets each round
             for en in state.get("enemies", []):
                 en["interrupts_used"] = 0
+                tick_statuses(en)
+            tick_statuses(ch)
 
         # start-of-round upkeep triggered when entering chain_declaration and not yet started
         if state["phase"]["current"] == "chain_declaration" and not state["phase"].get("round_started"):
@@ -348,6 +424,10 @@ def main():
         current_phase = state["phase"]["current"]
         if current_phase == "chain_declaration":
             character = state["party"]["members"][0]
+            res = character.get("resources", {})
+            hp_cur = res.get("hp", "?")
+            hp_max = res.get("hp_max") or res.get("max_hp") or res.get("maxHp") or hp_cur
+            print(f"PC HP: {hp_cur}/{hp_max} | {format_status_summary(character)}")
             usable = list_usable_abilities(state)
             if not usable:
                 print("No usable abilities available (all on cooldown).")
@@ -378,9 +458,19 @@ def main():
             chain = character.get("chain", {})
             # single attack & defense roll per chain (player & enemy)
             chain_attack_d20 = roll("1d20")
-            chain_defense_d20 = roll("1d20")
             ic = InterruptController(enemies[0] if enemies else {})
-            print(f"Chain contests: player d20={chain_attack_d20} vs enemy DV d20={chain_defense_d20}")
+            enemy = enemies[0] if enemies else None
+            enemy_dv = 0
+            enemy_dv_breakdown = {}
+            if enemy:
+                dv_base = enemy.get("dv_base") or enemy.get("stat_block", {}).get("defense", {}).get("dv_base", 0)
+                enemy_dv = dv_base + enemy.get("idf", 0) + enemy.get("momentum", 0)
+                enemy_dv_breakdown = {
+                    "dv_base": dv_base,
+                    "idf": enemy.get("idf", 0),
+                    "momentum": enemy.get("momentum", 0),
+                }
+            print(f"Chain contest: player d20={chain_attack_d20} vs enemy DV={enemy_dv} (dv/idf/mom={enemy_dv_breakdown})")
 
             for idx, ability_name in enumerate(chain.get("abilities", [])):
                 ability = next((a for a in character.get("abilities", []) if a.get("name") == ability_name), None)
@@ -391,7 +481,7 @@ def main():
                 pre_enemy_hp = enemies[0].get("hp", 10) if enemies else None
                 balance_bonus = 0 if idx == 0 else character.get("resources", {}).get("balance", 0)
                 pending = resolve_action_step(state, character, ability, attack_roll=chain_attack_d20, balance_bonus=balance_bonus)
-                result = apply_action_effects(state, character, enemies, defense_d20=chain_defense_d20)
+                result = apply_action_effects(state, character, enemies, defense_d20=None)
                 to_hit = pending.get("to_hit") if isinstance(pending, dict) else None
                 attack_d20 = pending.get("attack_d20") if isinstance(pending, dict) else None
                 damage_roll = pending.get("damage_roll") if isinstance(pending, dict) else None
@@ -415,10 +505,6 @@ def main():
                         aelog = last["action_effects"]
                         defense_d20 = aelog.get("defense_d20")
                         defense_roll = aelog.get("defense_roll")
-                if defense_d20 is None:
-                    defense_d20 = chain_defense_d20
-                if defense_roll is None and defense_d20 is not None:
-                    defense_roll = defense_d20 + enemies[0].get("momentum", 0) + enemies[0].get("idf", 0) if enemies else None
 
                 print(
                     f"Resolved {ability_name}: to_hit={to_hit}, dmg_roll={damage_roll}, "
@@ -453,12 +539,26 @@ def main():
                     if enemy_to_hit > player_def:
                         counter_dmg = roll("1d6")
                         character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - counter_dmg)
-                        print(f"Enemy counterattacks: to_hit={enemy_to_hit}, def={player_def}, dmg={counter_dmg}. PC HP now {character['resources']['hp']}.")
+                        # Apply on-hit effects from the enemy's first move, if any
+                        moves = enemies[0].get("moves", [])
+                        on_hit_effects = []
+                        if moves:
+                            on_hit_effects = moves[0].get("on_hit", {}).get("effects", [])
+                        applied = apply_status_effects(character, on_hit_effects)
+                        applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
+                        print(f"Enemy counterattacks: to_hit={enemy_to_hit}, def={player_def}, dmg={counter_dmg}. PC HP now {character['resources']['hp']}.{applied_note}")
                     else:
                         print(f"Enemy counterattack misses: to_hit={enemy_to_hit}, def={player_def}.")
             # check end conditions and loop combat
             if enemies and enemies[0].get("hp", 0) <= 0:
                 print("Enemy defeated.")
+                loot = select_loot(game_data, enemies[0])
+                if loot:
+                    state.setdefault("loot", []).append(loot)
+                    lname = loot.get("name", "Loot")
+                    lrar = loot.get("rarity", "?")
+                    ltier = loot.get("tier", "?")
+                    print(f"Loot gained: {lname} (Tier {ltier}, {lrar})")
                 enemies.clear()
                 state["phase"]["current"] = "out_of_combat"
             elif character["resources"].get("hp", 0) <= 0:

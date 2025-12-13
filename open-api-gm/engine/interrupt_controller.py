@@ -1,5 +1,6 @@
 import random
 from engine.action_resolution import roll as roll_dice
+from engine.status import apply_status_effects
 
 
 def enemy_damage_roll(enemy):
@@ -122,6 +123,13 @@ def apply_interrupt(state, character, enemy):
     """
     ic = InterruptController(enemy)
     hit, dmg, rolls = ic.roll_interrupt(enemy or {}, character or {})
+    # Apply on-hit effects from enemy's first move, if any
+    moves = enemy.get("moves", []) if enemy else []
+    on_hit_effects = []
+    if moves:
+        on_hit_effects = moves[0].get("on_hit", {}).get("effects", [])
+    if hit and on_hit_effects:
+        apply_status_effects(character, on_hit_effects)
     margin_rules = (
         (enemy or {})
         .get("resolved_archetype", {})
