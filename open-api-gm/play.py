@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from ai.narrator import narrate
-from engine.phases import allowed_actions
+from engine.phases import allowed_actions, tick_cooldowns
 from engine.apply import apply_action
 from flow.character_creation import run_character_creation
 from engine.save_load import save_character
@@ -95,8 +95,13 @@ def main():
     print('Veinbreaker AI Session Started.\n')
 
     while True:
+        # start-of-round/turn upkeep: tick cooldowns
+        tick_cooldowns(state)
         actions = allowed_actions(state, phase_machine)
-        narrate(state, actions)
+        try:
+            narrate(state, actions)
+        except Exception as e:
+            print(f"[Narrator error: {e}]")
         choice = get_player_choice(actions)
         if choice == "exit":
             print("Exiting Veinbreaker AI session.")

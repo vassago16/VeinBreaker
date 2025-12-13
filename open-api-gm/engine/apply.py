@@ -28,3 +28,15 @@ def apply_action(state, action):
             }
         }]
         return
+
+    if action.startswith("use_ability:"):
+        ability_name = action.split(":", 1)[1]
+        # find ability on the first party member for now
+        member = state.get("party", {}).get("members", [None])[0]
+        if not member:
+            return
+        for ability in member.get("abilities", []):
+            if ability.get("name") == ability_name:
+                # set cooldown to base_cooldown
+                ability["cooldown"] = ability.get("base_cooldown", 0)
+                break

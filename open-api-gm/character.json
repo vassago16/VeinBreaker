@@ -1,19 +1,52 @@
 {
-  "path": "stonepulse",
+  "path": "resolve_basic",
   "tier": 1,
   "abilities": [
-    "Pulse Strike",
-    "Stoneguard Step"
+    {
+      "name": "Momentum Anchor",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 1,
+      "base_cooldown": 1
+    },
+    {
+      "name": "Stonepulse Rhythm",
+      "path": "stonepulse",
+      "tier": 1,
+      "cooldown": 1,
+      "base_cooldown": 1
+    },
+    {
+      "name": "Stonepulse Rhythm",
+      "path": "stonepulse",
+      "tier": 1,
+      "cooldown": 1,
+      "base_cooldown": 1
+    }
   ],
   "resources": {
-    "hp": 10,
-    "resolve": 3,
+    "hp": 21,
+    "resolve": 5,
+    "resolve_cap": 5,
     "momentum": 0,
     "heat": 0,
     "balance": 0
   },
+  "attributes": {
+    "POW": 11,
+    "AGI": 11,
+    "MND": 11,
+    "SPR": 11
+  },
+  "pools": {
+    "martial": 5,
+    "shadow": 5,
+    "magic": 5,
+    "faith": 5
+  },
   "marks": {
     "blood": 0,
     "duns": 0
-  }
+  },
+  "veinscore": 6
 }
