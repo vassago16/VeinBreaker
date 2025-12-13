@@ -10,7 +10,7 @@
         "critical_interrupt_on_margin_gte": 10
       }
     },
-    "archetype_source": "archetype.json"
+    "archetype_source": "../canon/enemy_archetypes.json"
   },
   "enemies": [
     {

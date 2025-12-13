@@ -3,6 +3,7 @@ import os
 import argparse
 from pathlib import Path
 import random
+from copy import deepcopy
 from ai.narrator import narrate
 from engine.phases import allowed_actions, tick_cooldowns, list_usable_abilities
 from engine.apply import apply_action
@@ -33,10 +34,129 @@ def load_canon():
         canon["resolve_abilities.json"] = json.loads(resolve_path.read_text(encoding="utf-8"))
     return canon
 
+def deep_merge(base, overlay):
+    """Recursively merge overlay into a deepcopy of base (lists are replaced)."""
+    if isinstance(base, dict) and isinstance(overlay, dict):
+        merged = deepcopy(base)
+        for key, val in overlay.items():
+            merged[key] = deep_merge(merged[key], val) if key in merged else deepcopy(val)
+        return merged
+    # For lists or scalars, overlay replaces base
+    return deepcopy(overlay)
+
+
+def format_enemy_preview(enemy):
+    """Pretty-print an enemy for quick verification in the CLI."""
+    stat_block = enemy.get("stat_block") or {}
+    defense = stat_block.get("defense", {}) if isinstance(stat_block, dict) else {}
+    dmg_profile = stat_block.get("damage_profile", {}) if isinstance(stat_block, dict) else {}
+    name = enemy.get("name", enemy.get("id", "Enemy"))
+    tier = enemy.get("tier", "?")
+    role = enemy.get("role", "?")
+    rarity = enemy.get("rarity", "?")
+    tags = ", ".join(enemy.get("tags", []))
+    hp = enemy.get("hp", stat_block.get("hp", {}).get("max") if isinstance(stat_block, dict) else "?")
+    dv = enemy.get("dv_base", defense.get("dv_base", "?"))
+    idf = enemy.get("idf", defense.get("idf", 0))
+
+    def fmt_dmg(dmg):
+        if not isinstance(dmg, dict):
+            return "n/a"
+        dice = dmg.get("dice", "?")
+        flat = dmg.get("flat")
+        flat_str = f"{flat:+}" if isinstance(flat, (int, float)) else ""
+        return f"{dice}{flat_str}"
+
+    baseline = fmt_dmg(dmg_profile.get("baseline", {}))
+    spike = fmt_dmg(dmg_profile.get("spike", {})) if dmg_profile.get("spike") else None
+
+    def fmt_effects(effects):
+        rendered = []
+        for eff in effects or []:
+            if isinstance(eff, str):
+                rendered.append(eff)
+            elif isinstance(eff, dict):
+                rendered.append(eff.get("type", str(eff)))
+            else:
+                rendered.append(str(eff))
+        return ", ".join(rendered) if rendered else "none"
+
+    def fmt_cond(cond):
+        if not isinstance(cond, dict):
+            return ""
+        parts = []
+        for k, v in cond.items():
+            parts.append(f"{k}={v}")
+        return ", ".join(parts)
+
+    resolved = enemy.get("resolved_archetype", {}) or {}
+    archetype_id = enemy.get("archetype_id", "")
+    interrupt_windows = resolved.get("rhythm_profile", {}).get("interrupt", {}).get("windows", [])
+
+    lines = []
+    lines.append(f"Encounter: {name} (Tier {tier} / {role} / {rarity})")
+    lines.append(f"Stats: HP {hp}, DV {dv}, IDF {idf}")
+    dmg_line = f"Damage: baseline {baseline}"
+    if spike:
+        dmg_line += f", spike {spike}"
+    lines.append(dmg_line)
+    if tags:
+        lines.append(f"Tags: {tags}")
+    if archetype_id:
+        lines.append(f"Archetype: {archetype_id}")
+    if interrupt_windows:
+        win_summaries = []
+        for w in interrupt_windows:
+            idxs = w.get("after_action_index", [])
+            trig = fmt_cond(w.get("trigger_if", {}))
+            weight = w.get("weight")
+            summary = f"after {idxs}"
+            if trig:
+                summary += f" if {trig}"
+            if weight is not None:
+                summary += f" (w={weight})"
+            win_summaries.append(summary)
+        lines.append(f"Interrupt windows: { '; '.join(win_summaries) }")
+
+    moves = enemy.get("moves", [])
+    if moves:
+        lines.append("Moves:")
+        for mv in moves:
+            mv_name = mv.get("name", mv.get("id", "move"))
+            mv_type = mv.get("type", "")
+            rp = mv.get("cost", {}).get("rp")
+            cd = mv.get("cooldown", 0)
+            on_hit = mv.get("on_hit", {})
+            dmg_ref = on_hit.get("damage")
+            dmg_str = dmg_ref if isinstance(dmg_ref, str) else fmt_dmg(dmg_ref) if isinstance(dmg_ref, dict) else "n/a"
+            effects_str = fmt_effects(on_hit.get("effects"))
+            lines.append(f"- {mv_name} ({mv_type}) RP {rp} CD {cd} dmg {dmg_str} effects: {effects_str}")
+            if mv.get("on_miss", {}).get("notes"):
+                lines.append(f"  - On miss: {mv['on_miss']['notes']}")
+            if mv.get("card_text"):
+                lines.append(f"  - Text: {mv['card_text']}")
+
+    return "\n".join(lines)
+
 
 def load_game_data():
     root = Path(__file__).parent / "game-data"
     data = {}
+    archetypes = {}
+    archetypes_path = Path(__file__).parent / "canon" / "enemy_archetypes.json"
+    if archetypes_path.exists():
+        try:
+            arc_data = json.loads(archetypes_path.read_text(encoding="utf-8"))
+            for arc in arc_data.get("archetypes", []):
+                aid = arc.get("id")
+                defaults = arc.get("defaults", {})
+                if not aid:
+                    continue
+                archetypes[aid] = defaults
+                if aid.startswith("archetype."):
+                    archetypes[aid.replace("archetype.", "", 1)] = defaults
+        except Exception:
+            archetypes = {}
     abilities_path = root / "abilities.json"
     if abilities_path.exists():
         data["abilities"] = json.loads(abilities_path.read_text(encoding="utf-8"))
@@ -64,7 +184,22 @@ def load_game_data():
                     bestiary.extend(bdata)
             except Exception:
                 continue
-    data["bestiary"] = bestiary
+    def resolve_enemy_archetype(enemy):
+        aid = enemy.get("archetype_id")
+        if not aid:
+            return enemy
+        defaults = archetypes.get(aid) or archetypes.get(aid.replace("archetype.", "", 1)) if isinstance(aid, str) else None
+        if not defaults:
+            return enemy
+        merged = deep_merge(defaults, enemy.get("resolved_archetype", {}))
+        overrides = enemy.get("overrides")
+        if isinstance(overrides, dict):
+            merged = deep_merge(merged, overrides)
+        enemy["resolved_archetype"] = merged
+        return enemy
+
+    data["archetypes"] = archetypes
+    data["bestiary"] = [resolve_enemy_archetype(e) for e in bestiary]
     return data
 
 def initial_state():
@@ -200,6 +335,9 @@ def main():
             # heat reset: if prior heat >=3 set to 2 else 0
             prior_heat = res.get("heat", 0)
             res["heat"] = 2 if prior_heat >= 3 else 0
+            # reset enemy interrupt budgets each round
+            for en in state.get("enemies", []):
+                en["interrupts_used"] = 0
 
         # start-of-round upkeep triggered when entering chain_declaration and not yet started
         if state["phase"]["current"] == "chain_declaration" and not state["phase"].get("round_started"):
@@ -356,7 +494,7 @@ def main():
         if choice in ("enter_encounter", "generate_encounter"):
             if state.get("enemies"):
                 enemy = state["enemies"][0]
-                print(f"Encounter: {enemy.get('name', 'Enemy')} (HP: {enemy.get('hp', '?')})")
+                print(format_enemy_preview(enemy))
         advance_phase(state, phase_machine, prev_phase)
 
 
