@@ -23,6 +23,13 @@
       ],
       "dice": "1d4",
       "stat": "weapon",
+      "effects": {
+        "on_hit": [
+          { "type": "damage", "dice": "1d4", "stat": "weapon" },
+          { "type": "resource_delta", "resource": "heat", "delta": 1 },
+          { "type": "resource_delta", "resource": "balance", "delta": -1 }
+        ]
+      },
       "resourceDelta": {
         "heat": 1,
         "balance": -1
@@ -44,6 +51,14 @@
       ],
       "dice": "1d4",
       "stat": "STR",
+      "effects": {
+        "on_use": [
+          { "type": "reduce_damage", "dice": "1d4", "stat": "STR" }
+        ],
+        "on_success": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -62,6 +77,12 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "buff", "target": "self", "stat": "attack", "delta": 1, "duration": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -80,6 +101,12 @@
         "movement"
       ],
       "stat": "DEX",
+      "effects": {
+        "on_use": [
+          { "type": "resource_set", "resource": "balance", "value": 0 },
+          { "type": "resource_delta", "resource": "momentum", "delta": 0 }
+        ]
+      },
       "resourceDelta": {
         "balance": 1
       },
@@ -100,6 +127,12 @@
       ],
       "dice": "1d4",
       "stat": "STR",
+      "effects": {
+        "on_hit": [
+          { "type": "damage", "dice": "1d4", "stat": "STR" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -119,6 +152,14 @@
         "momentum"
       ],
       "dice": "1d4",
+      "effects": {
+        "on_use": [
+          { "type": "reduce_damage", "dice": "1d4" }
+        ],
+        "on_success": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -137,6 +178,13 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "resource_delta", "resource": "rp", "delta": 1 },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "attack_bonus", "amount": 1, "target": "self" }
+        ]
+      },
       "target": "ally",
       "range": "near",
       "resourceDelta": {
@@ -157,6 +205,12 @@
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "resource_set", "resource": "balance", "value": 0 },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -348,6 +402,12 @@
       ],
       "dice": "1d4",
       "stat": "WIS",
+      "effects": {
+        "on_hit": [
+          { "type": "damage", "dice": "1d4", "stat": "WIS" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "range": "near",
       "resourceDelta": {
         "momentum": 1
@@ -368,6 +428,15 @@
         "momentum"
       ],
       "dice": "1d4",
+      "effects": {
+        "on_use": [
+          { "type": "reduce_damage", "dice": "1d4" },
+          { "type": "defense_bonus", "amount": 1, "target": "self" }
+        ],
+        "on_success": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -387,6 +456,13 @@
         "momentum"
       ],
       "target": "ally",
+      "effects": {
+        "on_use": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "resource_delta", "resource": "radiance", "delta": 2 },
+          { "type": "attack_bonus", "amount": 1, "target": "self" }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "radiance": 2
@@ -406,6 +482,12 @@
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "resource_delta", "resource": "radiance", "delta": 2 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "radiance": 2
@@ -578,6 +660,13 @@
       ],
       "dice": "1d4",
       "stat": "DEX",
+      "effects": {
+        "on_hit": [
+          { "type": "damage", "dice": "1d4", "stat": "DEX" },
+          { "type": "status", "status": "bleed", "stacks": 1, "target": "enemy" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -603,6 +692,15 @@
         "momentum"
       ],
       "dice": "1d4",
+      "effects": {
+        "on_use": [
+          { "type": "reduce_damage", "dice": "1d4" }
+        ],
+        "on_success": [
+          { "type": "status", "status": "bleed", "stacks": 1, "target": "enemy" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -627,6 +725,11 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -645,6 +748,12 @@
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "resource_delta", "resource": "balance", "delta": 2 },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -837,6 +946,12 @@
       ],
       "dice": "1d4",
       "stat": "INT",
+      "effects": {
+        "on_hit": [
+          { "type": "damage", "dice": "1d4", "stat": "INT" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -857,6 +972,15 @@
       ],
       "dice": "1d4",
       "target": "attacker",
+      "effects": {
+        "on_use": [
+          { "type": "reduce_damage", "dice": "1d4" }
+        ],
+        "on_success": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "resource_delta", "resource": "hp", "delta": -1, "target": "enemy" }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -875,6 +999,13 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "resource_delta", "resource": "rp", "delta": 1 },
+          { "type": "attack_bonus", "amount": 1, "target": "self" }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "rp": 1
@@ -894,6 +1025,12 @@
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "status", "status": "arcane ward", "stacks": 1, "target": "self" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },

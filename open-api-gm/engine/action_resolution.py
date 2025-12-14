@@ -1,5 +1,6 @@
 import random
 from engine.stats import stat_mod
+from engine.status import apply_status_effects
 
 
 def roll(dice: str) -> int:
@@ -25,9 +26,11 @@ def ability_attack_roll(character, ability, base_d20=None):
     add_stat = ability.get("addStatToAttackRoll", True)
     stat_key = ability.get("stat")
     stats = character.get("stats") or character.get("attributes", {})
+    attack_bonus = (character.get("temp_bonuses", {}) or {}).get("attack", 0)
+    total = die_total + attack_bonus
     if add_stat and stat_key and stat_key in stats:
-        return die_total + stat_mod(stats[stat_key]), die_total
-    return die_total, die_total
+        total += stat_mod(stats[stat_key])
+    return total, die_total
 
 
 def ability_damage_total(character, ability, base_roll):
@@ -40,6 +43,45 @@ def ability_damage_total(character, ability, base_roll):
     if add_stat and stat_key and stat_key in stats:
         return base_roll + stat_mod(stats[stat_key])
     return base_roll
+
+
+def apply_effect_list(effects, actor, enemy=None, default_target="enemy"):
+    """
+    Apply a list of structured effects to targets.
+    Supported types: resource_delta, resource_set, status, buff, reduce_damage placeholder, damage_bonus placeholder.
+    """
+    if not effects:
+        return
+    for eff in effects:
+        if not isinstance(eff, dict):
+            continue
+        target = eff.get("target") or default_target
+        dest = actor if target == "self" else enemy if target == "enemy" else actor
+        if dest is None:
+            continue
+        etype = eff.get("type")
+        if etype == "resource_delta":
+            res_name = eff.get("resource")
+            delta = eff.get("delta", 0)
+            if res_name:
+                res = dest.setdefault("resources", {}) if target == "self" else dest.get("resources", dest)
+                res_val = res.get(res_name, 0)
+                res[res_name] = res_val + delta
+        elif etype == "resource_set":
+            res_name = eff.get("resource")
+            val = eff.get("value")
+            if res_name and val is not None:
+                res = dest.setdefault("resources", {}) if target == "self" else dest.get("resources", dest)
+                res[res_name] = val
+        elif etype in {"status", "buff"}:
+            apply_status_effects(dest, [eff])
+        elif etype == "reduce_damage":
+            dest.setdefault("damage_reduction", []).append(eff)
+        elif etype in {"attack_bonus", "defense_bonus", "idf_bonus"}:
+            tb = dest.setdefault("temp_bonuses", {})
+            key = "attack" if etype == "attack_bonus" else "defense" if etype == "defense_bonus" else "idf"
+            tb[key] = tb.get(key, 0) + (eff.get("amount", eff.get("delta", 0)) or 0)
+        # damage_bonus could be handled in attack contexts later
 
 
 def resolve_action_step(state, character, ability, attack_roll=None, balance_bonus=0):
@@ -59,7 +101,19 @@ def resolve_action_step(state, character, ability, attack_roll=None, balance_bon
 
     attack_total, d20_roll = ability_attack_roll(character, ability, base_d20=attack_roll)
     to_hit = attack_total + balance_bonus
-    damage_roll = roll(ability.get("dice", "1d4"))
+    # On-use effects (self-target) before rolling
+    effects = ability.get("effects") or {}
+    apply_effect_list(effects.get("on_use", []), actor=character, enemy=None, default_target="self")
+
+    # Determine damage dice from structured effects if present
+    dmg_effects = (ability.get("effects") or {}).get("on_hit", [])
+    dmg_entry = next((e for e in dmg_effects if e.get("type") == "damage"), None)
+    dice_expr = ability.get("dice", "1d4")
+    if dmg_entry and isinstance(dmg_entry, dict):
+        dice_expr = dmg_entry.get("dice", dice_expr)
+        if dmg_entry.get("stat"):
+            ability.setdefault("stat", dmg_entry.get("stat"))
+    damage_roll = roll(dice_expr)
 
     state["pending_action"] = {
         "ability": ability.get("name"),
@@ -124,19 +178,22 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     to_hit = pending.get("to_hit", 0)
     tags = pending.get("tags", [])
     log = pending.get("log", {})
+    effects = ability.get("effects") or {}
 
     # Defense roll: use static DV from data (no contested d20 for enemies)
     enemy = enemies[0] if enemies else None
     dv_base = None
     enemy_idf = 0
     enemy_momentum = 0
+    enemy_tb = {}
     if enemy:
         dv_base = enemy.get("dv_base")
         if dv_base is None:
             dv_base = enemy.get("stat_block", {}).get("defense", {}).get("dv_base")
         enemy_idf = enemy.get("idf", 0)
         enemy_momentum = enemy.get("momentum", 0)
-    defense_roll = (dv_base if dv_base is not None else 0) + enemy_idf + enemy_momentum
+        enemy_tb = enemy.get("temp_bonuses", {}) or {}
+    defense_roll = (dv_base if dv_base is not None else 0) + enemy_idf + enemy_momentum + enemy_tb.get("defense", 0) + enemy_tb.get("idf", 0)
     log["defense_roll"] = defense_roll
     log["defense_d20"] = None  # static DV (no roll)
     log["defense_breakdown"] = {
@@ -157,6 +214,8 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         if momentum_gained:
             log["enemy_momentum_gained"] = momentum_gained
             log["enemy_momentum"] = enemy.get("momentum", 0)
+        # apply structured on_miss effects
+        apply_effect_list(effects.get("on_miss", []), actor=character, enemy=enemy, default_target="self")
         state.setdefault("log", []).append({"action_effects": log})
         state["pending_action"] = None
         return "miss"
@@ -170,12 +229,20 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         prior_heat = character["resources"].get("heat", 0)
         projected_heat = prior_heat + 1
         heat_bonus = max(0, min(4, projected_heat - 1))
-        dmg_total = ability_damage_total(character, ability, damage_roll) + heat_bonus
+        # structured damage support
+        dmg_extra_flat = 0
+        dmg_effects = effects.get("on_hit", [])
+        dmg_entry = next((e for e in dmg_effects if e.get("type") == "damage"), None)
+        if dmg_entry and isinstance(dmg_entry, dict):
+            dmg_extra_flat = dmg_entry.get("flat", 0) or 0
+        dmg_total = ability_damage_total(character, ability, damage_roll) + heat_bonus + dmg_extra_flat
         damage_applied = dmg_total
         enemy["hp"] = enemy.get("hp", 10) - dmg_total
         enemy["momentum"] = enemy.get("momentum", 0)
         # gain heat on successful hit
         character["resources"]["heat"] = projected_heat
+        # apply structured on_hit effects (statuses, resource deltas)
+        apply_effect_list(effects.get("on_hit", []), actor=character, enemy=enemy, default_target="enemy")
 
     if "momentum" in tags:
         character["resources"]["momentum"] = character["resources"].get("momentum", 0) + 1

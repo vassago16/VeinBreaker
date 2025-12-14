@@ -16,6 +16,7 @@ from engine.action_resolution import (
     apply_action_effects,
     check_exposure,
     roll,
+    apply_effect_list,
 )
 from engine.interrupt_controller import InterruptController, apply_interrupt
 from engine.status import apply_status_effects, tick_statuses
@@ -389,6 +390,21 @@ def build_enemy_chain(enemy):
         chain.append(moves[0])
     return chain
 
+
+def compute_damage_reduction(target):
+    """Consume and roll any stored damage_reduction effects on the target."""
+    dr_list = target.pop("damage_reduction", [])
+    total = 0
+    for eff in dr_list:
+        if not isinstance(eff, dict):
+            continue
+        dice = eff.get("dice")
+        flat = eff.get("flat", 0)
+        if dice:
+            total += roll(dice)
+        if isinstance(flat, (int, float)):
+            total += flat
+    return total
 def initial_state():
     return {
         'phase': {
@@ -681,6 +697,11 @@ def main():
                                         character["pools"][pool] = max(0, character["pools"][pool] - cost)
                                     elif cost:
                                         character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - cost)
+                                    # apply defense ability on_use effects (e.g., reduce_damage)
+                                    apply_effect_list(defense_ability.get("effects", {}).get("on_use", []), actor=character, enemy=enemy, default_target="self")
+                                    # store any on_success effects for when damage is fully prevented
+                                    if defense_ability.get("effects", {}).get("on_success"):
+                                        character.setdefault("damage_reduction_success", []).extend(defense_ability["effects"]["on_success"])
                                     int_d20 = roll("1d20")
                                     int_total = int_d20 + character["resources"].get("momentum", 0)
                                     print(f"Player interrupt attempt: d20={int_d20}+momentum={character['resources'].get('momentum',0)} => {int_total}")
@@ -694,14 +715,20 @@ def main():
                                     print("No defense abilities available.")
                         # proceed with move
                         player_def_d20 = roll("1d20")
-                        player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
+                        tb = character.get("temp_bonuses", {}) or {}
+                        player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0) + tb.get("idf", 0) + tb.get("defense", 0)
                         if enemy_to_hit > player_def:
                             counter_dmg = enemy_move_damage(enemy, move)
-                            character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - counter_dmg)
+                            reduction = compute_damage_reduction(character)
+                            dmg_after = max(0, counter_dmg - reduction)
+                            character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg_after)
+                            # apply on_success effects if fully prevented
+                            if dmg_after == 0 and character.get("damage_reduction_success"):
+                                apply_effect_list(character.pop("damage_reduction_success", []), actor=character, enemy=enemy, default_target="self")
                             on_hit_effects = move.get("on_hit", {}).get("effects", [])
                             applied = apply_status_effects(character, on_hit_effects)
                             applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
-                            print(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> HIT for {counter_dmg}. PC HP {character['resources']['hp']}.{applied_note}")
+                            print(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> HIT for {counter_dmg - reduction} (raw {counter_dmg}, reduced {reduction}). PC HP {character['resources']['hp']}.{applied_note}")
                         else:
                             print(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> MISS.")
             # check end conditions and loop combat
