@@ -104,7 +104,7 @@
       "name": "Pulse Strike",
       "path": "stonepulse",
       "tier": 1,
-      "cooldown": 9,
+      "cooldown": 1,
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
@@ -142,13 +142,13 @@
     }
   ],
   "stats": {
-    "POW": 9,
-    "AGI": 10,
-    "MND": 11,
-    "SPR": 12
+    "POW": 14,
+    "AGI": 14,
+    "MND": 14,
+    "SPR": 8
   },
   "resources": {
-    "hp": 19,
+    "hp": 24,
     "resolve": 5,
     "resolve_cap": 5,
     "momentum": 0,
@@ -157,16 +157,16 @@
     "idf": 0
   },
   "attributes": {
-    "POW": 9,
-    "AGI": 10,
-    "MND": 11,
-    "SPR": 12
+    "POW": 14,
+    "AGI": 14,
+    "MND": 14,
+    "SPR": 8
   },
   "pools": {
-    "martial": 4,
-    "shadow": 5,
-    "magic": 5,
-    "faith": 6
+    "martial": 7,
+    "shadow": 7,
+    "magic": 7,
+    "faith": 4
   },
   "marks": {
     "blood": 0,
@@ -179,5 +179,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 8
+  "veinscore": 0
 }

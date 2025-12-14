@@ -1,5 +1,5 @@
 import random
-from engine.action_resolution import roll as roll_dice
+from engine.action_resolution import roll as roll_dice, resolve_defense_reaction
 from engine.status import apply_status_effects
 
 
@@ -117,9 +117,10 @@ class InterruptController:
         }
 
 
-def apply_interrupt(state, character, enemy):
+def apply_interrupt(state, character, enemy, defense_ability=None, defense_block_roll=None):
     """
     Attempts an interrupt; if damage > 0, break the chain.
+    If a defense_ability is provided, resolve it against the incoming damage.
     """
     ic = InterruptController(enemy)
     hit, dmg, rolls = ic.roll_interrupt(enemy or {}, character or {})
@@ -140,7 +141,18 @@ def apply_interrupt(state, character, enemy):
     break_chain_on_margin = margin_rules.get("break_chain_on_margin_gte", 5)
     margin = rolls["atk_total"] - rolls["def_total"]
     if hit and dmg > 0:
-        # apply damage and break chain
+        # Allow a defensive reaction to mitigate/reflect damage
+        if defense_ability:
+            summary = resolve_defense_reaction(
+                state,
+                defender=character,
+                attacker=enemy,
+                ability=defense_ability,
+                incoming_damage=dmg,
+                block_roll=defense_block_roll,
+            )
+            dmg = summary.get("damage_after_block", dmg)
+        # apply any remaining damage and break chain
         character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg)
     if hit and margin >= break_chain_on_margin:
         # invalidate chain even if damage was 0

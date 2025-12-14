@@ -5,6 +5,7 @@ from pathlib import Path
 import random
 from copy import deepcopy
 from ai.narrator import narrate
+from game_context import NARRATOR, NARRATION
 from engine.phases import allowed_actions, tick_cooldowns, list_usable_abilities
 from engine.apply import apply_action
 from flow.character_creation import run_character_creation
@@ -17,9 +18,25 @@ from engine.action_resolution import (
     check_exposure,
     roll,
     apply_effect_list,
+    build_narration_payload,
 )
 from engine.interrupt_controller import InterruptController, apply_interrupt
 from engine.status import apply_status_effects, tick_statuses
+
+LOG_FILE = Path(__file__).parent / "narration.log"
+
+
+def append_log(entry: str) -> None:
+    try:
+        with LOG_FILE.open("a", encoding="utf-8") as f:
+            f.write(entry + "\n")
+    except Exception:
+        pass
+
+
+def log_flags(prefix: str, state: dict) -> None:
+    flags = state.get("flags", {})
+    append_log(f"{prefix} flags={flags}")
 
 def load_canon():
     canon = {}
@@ -526,6 +543,8 @@ def main():
             save_character(character)
 
     state = initial_state()
+    state["flags"] = {"narration_enabled": not args.nonarrate}
+    append_log(f"SESSION_START flags={state.get('flags')}")
     state["party"]["members"][0].update(character)
     state["game_data"] = game_data
     # hydrate abilities from game data (fills effect/pool/etc. for older saves)
@@ -679,6 +698,54 @@ def main():
                     f"  attack_d20={attack_d20}"
                     + (f"\n  statuses_applied={statuses_applied}" if statuses_applied else "")
                 )
+                # Emit narration attached by action_resolution, if present; otherwise try now
+                if state.get("log"):
+                    last = state["log"][-1]
+                    if "action_effects" in last:
+                        last["action_effects"].setdefault("chain_index", idx + 1)
+                    narration = last.get("narration")
+                    if narration:
+                        print(f"\n[NARRATOR]\n{narration}\n")
+                        append_log(f"NARRATION_COMBAT: {narration}")
+                    elif state.get("flags", {}).get("narration_enabled"):
+                        log_flags("COMBAT_STEP", state)
+                        effects = last.get("action_effects")
+                        if not effects:
+                            append_log("NARRATION_SKIP: no action_effects")
+                        elif not NARRATION and not NARRATOR:
+                            append_log("NARRATION_SKIP: no narrator available")
+                        elif effects and NARRATION:
+                            try:
+                                narration = NARRATION.combat_step(
+                                    action_effects=effects,
+                                    chain_index=effects.get("chain_index", idx + 1),
+                                )
+                                if narration:
+                                    last["narration"] = narration
+                                    print(f"\n[NARRATOR]\n{narration}\n")
+                                    append_log(f"NARRATION_COMBAT: {narration}")
+                                else:
+                                    append_log("NARRATION_EMPTY: combat_step returned None/empty")
+                            except Exception as e:
+                                last["narration_error"] = str(e)
+                                print(f"\n[NARRATOR ERROR]\n{e}\n")
+                                append_log(f"NARRATION_ERROR: {e}")
+                        elif effects and NARRATOR:
+                            try:
+                                payload = build_narration_payload(state=state, effects=effects)
+                                narration = NARRATOR.narrate(payload, scene_tag="combat")
+                                last["narration"] = narration
+                                print(f"\n[NARRATOR]\n{narration}\n")
+                                append_log(f"NARRATION_COMBAT: {narration}")
+                                if not narration:
+                                    append_log("NARRATION_EMPTY: direct narrate returned empty")
+                            except Exception as e:
+                                last["narration_error"] = str(e)
+                                print(f"\n[NARRATOR ERROR]\n{e}\n")
+                                append_log(f"NARRATION_ERROR: {e}")
+                    elif last.get("narration_error"):
+                        print(f"\n[NARRATOR ERROR]\n{last.get('narration_error')}\n")
+                        append_log(f"NARRATION_ERROR: {last.get('narration_error')}")
                 result = check_exposure(character)
                 if result:
                     state["log"].append({"exposure": result})
@@ -772,6 +839,29 @@ def main():
             # check end conditions and loop combat
             if enemies and enemies[0].get("hp", 0) <= 0:
                 print("Enemy defeated.")
+                # Aftermath narration hook
+                if state.get("flags", {}).get("narration_enabled") and NARRATION:
+                    log_flags("AFTERMATH", state)
+                    try:
+                        enemy_name = enemies[0].get("name", enemies[0].get("id", "Enemy"))
+                        aftermath_text = NARRATION.aftermath(
+                            location="encounter",
+                            enemies_defeated=[{"name": enemy_name, "condition": "defeated"}],
+                            player_state={
+                                "hp": character["resources"].get("hp"),
+                                "heat": character["resources"].get("heat"),
+                                "balance": character["resources"].get("balance"),
+                                "momentum": character["resources"].get("momentum"),
+                            },
+                            environment_change="quiet",
+                        )
+                        if aftermath_text:
+                            state.setdefault("log", []).append({"aftermath_narration": aftermath_text})
+                            print(f"\n[NARRATOR]\n{aftermath_text}\n")
+                            append_log(f"NARRATION_AFTER: {aftermath_text}")
+                    except Exception as e:
+                        print(f"\n[NARRATOR ERROR]\n{e}\n")
+                        append_log(f"NARRATION_ERROR: {e}")
                 loot = select_loot(game_data, enemies[0])
                 if loot:
                     state.setdefault("loot", []).append(loot)
@@ -826,6 +916,31 @@ def main():
             if state.get("enemies"):
                 enemy = state["enemies"][0]
                 print(format_enemy_preview(enemy))
+                # Scene intro narration
+                if state.get("flags", {}).get("narration_enabled") and NARRATION:
+                    log_flags("SCENE_INTRO", state)
+                    try:
+                        scene_text = NARRATION.scene_intro(
+                            location=enemy.get("location", "encounter"),
+                            environment_tags=enemy.get("tags", []),
+                            enemy_presence={
+                                "count": 1,
+                                "type": enemy.get("name", enemy.get("id", "Enemy")),
+                                "distance": "near",
+                            },
+                            player_state={
+                                "momentum": state["party"]["members"][0]["resources"].get("momentum", 0),
+                                "heat": state["party"]["members"][0]["resources"].get("heat", 0),
+                                "balance": state["party"]["members"][0]["resources"].get("balance", 0),
+                            },
+                            threat_level="immediate",
+                        )
+                        if scene_text:
+                            print(f"\n[NARRATOR]\n{scene_text}\n")
+                            append_log(f"NARRATION_SCENE: {scene_text}")
+                    except Exception as e:
+                        print(f"\n[NARRATOR ERROR]\n{e}\n")
+                        append_log(f"NARRATION_ERROR: {e}")
         advance_phase(state, phase_machine, prev_phase)
 
 

@@ -3,6 +3,11 @@ from engine.stats import stat_mod
 from engine.status import apply_status_effects
 from engine.utilities import compare
 
+try:
+    from game_context import NARRATOR
+except Exception:
+    NARRATOR = None
+
 def roll(dice: str) -> int:
     """
     Roll a dice expression like '1d6' or '2d4'.
@@ -186,6 +191,7 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     to_hit = pending.get("to_hit", 0)
     tags = pending.get("tags", [])
     log = pending.get("log", {})
+    log["ability_name"] = pending.get("ability")
     effects = ability.get("effects") or {}
 
     # Defense roll: use static DV from data (no contested d20 for enemies)
@@ -194,6 +200,7 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     enemy_idf = 0
     enemy_momentum = 0
     enemy_tb = {}
+    enemy_hp_before = enemy.get("hp") if enemy else None
     if enemy:
         dv_base = enemy.get("dv_base")
         if dv_base is None:
@@ -268,6 +275,8 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     if "balance_plus_2" in tags:
         character["resources"]["balance"] = character["resources"].get("balance", 0) + 2
 
+    enemy_hp_after = enemy.get("hp") if enemy else enemy_hp_before
+
     log.update({
         "damage_applied": damage_applied,
         "to_hit": to_hit,
@@ -276,11 +285,66 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         "balance": character["resources"].get("balance", 0),
         "resolve": character["resources"].get("resolve", 0),
         "momentum": character["resources"].get("momentum", 0),
+        "enemy_hp_before": enemy_hp_before,
+        "enemy_hp_after": enemy_hp_after,
     })
-    state.setdefault("log", []).append({"action_effects": log})
+
+    log_entry = {"type": "action_resolution", "action_effects": log}
+
+    if state.get("flags", {}).get("narration_enabled") and NARRATOR:
+        try:
+            narration_input = build_narration_payload(state=state, effects=log)
+            narration = NARRATOR.narrate(narration_input, scene_tag="combat")
+            log_entry["narration"] = narration
+        except Exception as e:
+            log_entry["narration"] = None
+            log_entry["narration_error"] = str(e)
+
+    state.setdefault("log", []).append(log_entry)
     state["pending_action"] = None
     return "action_applied"
 
+
+def resolve_defense_reaction(state, defender, attacker, ability, incoming_damage, block_roll=None):
+    """
+    Resolve a defensive reaction (e.g., Feedback Shield) against incoming damage.
+    - Roll (or force) a block amount using ability dice.
+    - Apply any remaining damage to defender.
+    - If fully blocked, reflect INT (or ability stat) modifier damage to attacker.
+    - Grant momentum if tagged.
+    Returns a summary dict and logs to state["log"] under "defense_reaction".
+    """
+    ability = ability or {}
+    block = block_roll if block_roll is not None else roll(ability.get("dice", "1d4"))
+
+    remaining = max(0, incoming_damage - block)
+    reflected = 0
+
+    stats = defender.get("stats") or defender.get("attributes", {}) if defender else {}
+    reflect_stat = ability.get("stat") or "INT"
+    if remaining == 0:
+        reflected = max(0, stat_mod(stats.get(reflect_stat, 0))) if reflect_stat in stats else 0
+        if attacker is not None:
+            attacker["hp"] = attacker.get("hp", 0) - reflected
+
+    if defender is not None:
+        res = defender.setdefault("resources", {})
+        if remaining > 0:
+            res["hp"] = max(0, res.get("hp", 0) - remaining)
+        if "momentum" in ability.get("tags", []):
+            res["momentum"] = res.get("momentum", 0) + 1
+
+    summary = {
+        "incoming": incoming_damage,
+        "block_roll": block,
+        "damage_after_block": remaining,
+        "reflected_damage": reflected,
+        "defender_hp": defender.get("resources", {}).get("hp") if defender else None,
+        "attacker_hp": attacker.get("hp") if attacker is not None else None,
+        "momentum_gained": 1 if defender and "momentum" in ability.get("tags", []) else 0,
+    }
+    state.setdefault("log", []).append({"defense_reaction": summary})
+    return summary
 
 def check_exposure(character):
     if character["resources"].get("heat", 0) >= 5:
@@ -288,6 +352,30 @@ def check_exposure(character):
     if character["resources"].get("balance", 0) <= -3:
         return "off_balance"
     return None
+
+
+def build_narration_payload(*, state, effects):
+    """
+    Convert engine truth into narration-safe data. Do not infer or invent.
+    """
+    return {
+        "action": effects.get("ability_name"),
+        "hit": effects.get("hit"),
+        "to_hit": effects.get("to_hit"),
+        "defense": effects.get("defense_roll"),
+        "damage": effects.get("damage_applied"),
+        "enemy_hp_before": effects.get("enemy_hp_before"),
+        "enemy_hp_after": effects.get("enemy_hp_after"),
+        "statuses_applied": effects.get("statuses_applied", []),
+        "player_resources": {
+            "resolve": effects.get("resolve"),
+            "momentum": effects.get("momentum"),
+            "heat": effects.get("heat"),
+            "balance": effects.get("balance"),
+        },
+        "chain_index": effects.get("chain_index"),
+        "chain_broken": effects.get("chain_broken", False),
+    }
 
 
 def conditions_met(cond, context):
