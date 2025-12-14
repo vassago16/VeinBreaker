@@ -276,6 +276,93 @@ def select_loot(game_data, enemy):
     candidates = tier_matches or loot_table
     return random.choice(candidates) if candidates else None
 
+
+def enemy_move_damage(enemy, move):
+    """Roll damage for an enemy move using its damage_profile."""
+    stat_block = enemy.get("stat_block", {}) if enemy else {}
+    dmg_profile = stat_block.get("damage_profile", {}) if isinstance(stat_block, dict) else {}
+    on_hit = move.get("on_hit", {}) if move else {}
+    dmg_ref = on_hit.get("damage")
+    dmg_obj = {}
+    if isinstance(dmg_ref, str):
+        dmg_obj = dmg_profile.get(dmg_ref, {})
+    elif isinstance(dmg_ref, dict):
+        dmg_obj = dmg_ref
+    dice = dmg_obj.get("dice", "1d6")
+    flat = dmg_obj.get("flat", 0)
+    dmg_roll = roll(dice)
+    return dmg_roll + (flat if isinstance(flat, (int, float)) else 0)
+
+
+def select_enemy_move(enemy, state):
+    """Select an enemy move; fall back to first move."""
+    moves = enemy.get("moves", []) if enemy else []
+    if not moves:
+        return None
+    move_lookup = {m.get("id"): m for m in moves if m.get("id")}
+    behavior = (enemy.get("resolved_archetype") or {}).get("ai", {}).get("behavior_script", {})
+
+    def last_player_missed():
+        for entry in reversed(state.get("log", [])):
+            if isinstance(entry, dict) and "action_effects" in entry:
+                hit = entry["action_effects"].get("hit")
+                if hit is False:
+                    return True
+                if hit is True:
+                    return False
+        return False
+
+    def check_cond(cond):
+        if not cond:
+            return True
+        for k, v in cond.items():
+            if k == "player_missed_last_action":
+                if last_player_missed() != bool(v):
+                    return False
+            elif k == "player_moved":
+                return False  # movement not tracked yet
+            elif k == "blood_mark_gte":
+                blood = state.get("party", {}).get("members", [{}])[0].get("marks", {}).get("blood", 0)
+                if blood < v:
+                    return False
+            else:
+                return False
+        return True
+
+    for step in behavior.get("default_loop", []):
+        stype = step.get("type")
+        if stype == "move":
+            ref = step.get("ref")
+            if ref and ref in move_lookup:
+                return move_lookup[ref]
+        elif stype == "conditional":
+            if check_cond(step.get("if", {})):
+                for inner in step.get("then", []):
+                    if inner.get("type") == "move":
+                        ref = inner.get("ref")
+                        if ref and ref in move_lookup:
+                            return move_lookup[ref]
+    return moves[0]
+
+
+def build_enemy_chain(enemy):
+    """Build a simple move chain based on available RP."""
+    moves = enemy.get("moves", []) if enemy else []
+    if not moves:
+        return []
+    rp_available = enemy.get("rp", enemy.get("rp_pool", 2))
+    chain = []
+    # naive: iterate moves in order and take those we can afford until rp spent
+    for mv in moves:
+        cost = mv.get("cost", {}).get("rp", 0)
+        if cost <= rp_available:
+            chain.append(mv)
+            rp_available -= cost
+    # if nothing fit, take the first move once
+    if not chain:
+        chain.append(moves[0])
+    return chain
+
 def initial_state():
     return {
         'phase': {
@@ -412,6 +499,7 @@ def main():
             # reset enemy interrupt budgets each round
             for en in state.get("enemies", []):
                 en["interrupts_used"] = 0
+                en["rp"] = en.get("rp_pool", 2)
                 tick_statuses(en)
             tick_statuses(ch)
 
@@ -534,21 +622,65 @@ def main():
             if enemies:
                 enemy_hp = enemies[0].get("hp", 0)
                 if enemy_hp > 0:
-                    enemy_to_hit = roll("1d20") + enemies[0].get("attack_mod", 0)
-                    player_def = roll("1d20") + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
-                    if enemy_to_hit > player_def:
-                        counter_dmg = roll("1d6")
-                        character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - counter_dmg)
-                        # Apply on-hit effects from the enemy's first move, if any
-                        moves = enemies[0].get("moves", [])
-                        on_hit_effects = []
-                        if moves:
-                            on_hit_effects = moves[0].get("on_hit", {}).get("effects", [])
-                        applied = apply_status_effects(character, on_hit_effects)
-                        applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
-                        print(f"Enemy counterattacks: to_hit={enemy_to_hit}, def={player_def}, dmg={counter_dmg}. PC HP now {character['resources']['hp']}.{applied_note}")
-                    else:
-                        print(f"Enemy counterattack misses: to_hit={enemy_to_hit}, def={player_def}.")
+                    enemy = enemies[0]
+                    chain_moves = build_enemy_chain(enemy)
+                    for midx, move in enumerate(chain_moves):
+                        move = move or {}
+                        move_name = move.get("name", move.get("id", "Enemy move"))
+                        # Offer player interrupt before second+ attack
+                        if midx > 0:
+                            resp = input("Attempt interrupt? (y/n): ").strip().lower()
+                            if resp.startswith("y"):
+                                defenses = [a for a in character.get("abilities", []) if a.get("type") == "defense"]
+                                if defenses:
+                                    print("Choose defense ability:")
+                                    for i, d in enumerate(defenses):
+                                        print(f"{i+1}. {d.get('name')}")
+                                    choice = input("> ").strip()
+                                    try:
+                                        idx_choice = int(choice) - 1
+                                        defense_ability = defenses[idx_choice] if 0 <= idx_choice < len(defenses) else defenses[0]
+                                    except Exception:
+                                        defense_ability = defenses[0]
+                                    # pay costs: base 1 RP plus ability cost/pool
+                                    character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - 1)
+                                    cost = defense_ability.get("cost", 0)
+                                    pool = defense_ability.get("pool")
+                                    if cost and pool and pool in character.get("pools", {}):
+                                        character["pools"][pool] = max(0, character["pools"][pool] - cost)
+                                    elif cost:
+                                        character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - cost)
+                                    int_d20 = roll("1d20")
+                                    int_total = int_d20 + character["resources"].get("momentum", 0)
+                                    print(f"Player interrupt attempt: d20={int_d20}+momentum={character['resources'].get('momentum',0)} => {int_total}")
+                                    # simple resolution: compare to enemy attack roll; roll enemy attack now
+                                    enemy_to_hit_d20 = roll("1d20")
+                                    to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
+                                    atk_mod = enemy.get("attack_mod", 0)
+                                    enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
+                                    if int_total >= enemy_to_hit:
+                                        print("Interrupt succeeds! Enemy chain ends.")
+                                        break
+                                    else:
+                                        print(f"Interrupt fails (enemy atk {enemy_to_hit}).")
+                                else:
+                                    print("No defense abilities available.")
+                        # proceed with move
+                        to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
+                        atk_mod = enemy.get("attack_mod", 0)
+                        enemy_to_hit_d20 = roll("1d20")
+                        enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
+                        player_def_d20 = roll("1d20")
+                        player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
+                        if enemy_to_hit > player_def:
+                            counter_dmg = enemy_move_damage(enemy, move)
+                            character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - counter_dmg)
+                            on_hit_effects = move.get("on_hit", {}).get("effects", [])
+                            applied = apply_status_effects(character, on_hit_effects)
+                            applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
+                            print(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> HIT for {counter_dmg}. PC HP {character['resources']['hp']}.{applied_note}")
+                        else:
+                            print(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> MISS.")
             # check end conditions and loop combat
             if enemies and enemies[0].get("hp", 0) <= 0:
                 print("Enemy defeated.")

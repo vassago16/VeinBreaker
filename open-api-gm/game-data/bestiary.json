@@ -52,7 +52,7 @@
       "moves": [
         {
           "id": "move.basic_attack",
-          "name": "Skitter Slash",
+          "name": "Skitter Slash1",
           "type": "attack",
           "cost": {
             "rp": 1
@@ -69,6 +69,46 @@
             "notes": "Opens interrupt windows."
           },
           "card_text": "A quick slash that punishes sloppy chains."
+        },
+        {
+          "id": "move.brumklin_needleling.driving_blow",
+          "name": "Driving Blow",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 1,
+          "to_hit": {
+            "av_mod": 1
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "Overextends slightly."
+          },
+          "card_text": "Commits forward; harder to evade."
+        },
+        {
+          "id": "move.brumklin_needleling.spike_commit",
+          "name": "Spike Commit",
+          "type": "attack",
+          "cost": {
+            "rp": 2
+          },
+          "cooldown": 2,
+          "to_hit": {
+            "av_mod": -1
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "Leaves it open to counters."
+          },
+          "card_text": "A heavy commitment for spike damage."
         }
       ],
       "resolved_archetype": {
@@ -186,7 +226,8 @@
             ]
           }
         }
-      }
+      },
+      "rp_pool": 2
     },
     {
       "id": "enemy.brumklin.lurker",
@@ -350,7 +391,8 @@
             ]
           }
         }
-      }
+      },
+      "rp_pool": 2
     },
     {
       "id": "enemy.goblin.shieldbearer",
@@ -514,7 +556,8 @@
             ]
           }
         }
-      }
+      },
+      "rp_pool": 2
     },
     {
       "id": "enemy.shambler.bone",
@@ -680,7 +723,8 @@
             ]
           }
         }
-      }
+      },
+      "rp_pool": 2
     },
     {
       "id": "enemy.cultist.blood_eye",
@@ -855,7 +899,8 @@
             ]
           }
         }
-      }
+      },
+      "rp_pool": 2
     },
     {
       "id": "enemy.ashen.censor",
@@ -936,7 +981,8 @@
             ]
           }
         }
-      }
+      },
+      "rp_pool": 4
     },
     {
       "id": "enemy.ironbound.judge",
@@ -1105,7 +1151,8 @@
             ]
           }
         }
-      }
+      },
+      "rp_pool": 5
     },
     {
       "id": "enemy.heartbound.adjudicator",
@@ -1312,7 +1359,8 @@
             "max_new_traits_per_encounter": 1
           }
         }
-      }
+      },
+      "rp_pool": 6
     },
     {
       "id": "enemy.stonebound.mauler",
@@ -1385,7 +1433,8 @@
             }
           }
         }
-      }
+      },
+      "rp_pool": 3
     }
   ]
 }
