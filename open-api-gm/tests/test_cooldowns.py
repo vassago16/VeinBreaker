@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from engine.phases import tick_cooldowns  # noqa: E402
+from engine.phases import tick_cooldowns, list_usable_abilities  # noqa: E402
 
 
 class TestCooldowns(unittest.TestCase):
@@ -48,6 +48,22 @@ class TestCooldowns(unittest.TestCase):
         self.assertEqual(alpha["cooldown"], 2)
         self.assertEqual(alpha["cooldown_round"], 5)
         self.assertEqual(beta.get("cooldown_round"), None)
+
+    def test_usable_list_respects_cooldown(self):
+        state = {
+            "party": {
+                "members": [
+                    {
+                        "abilities": [
+                            {"name": "Up", "cooldown": 1},
+                            {"name": "Ready", "cooldown": 0},
+                        ]
+                    }
+                ]
+            }
+        }
+        usable = list_usable_abilities(state)
+        self.assertEqual(usable, ["Ready"])
 
 
 if __name__ == "__main__":

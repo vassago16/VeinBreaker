@@ -1,0 +1,203 @@
+{
+  "schema": "veinbreaker.encounter.v1",
+  "title": "Example Encounter: Alley Skitter",
+  "enemy": {
+    "id": "enemy.brumklin.skitter",
+    "instance": {
+      "id": "enemy.brumklin.skitter",
+      "name": "Brumklin Skitter",
+      "tier": 1,
+      "hp": 10,
+      "stat_block": {
+        "hp": {
+          "max": 10
+        },
+        "defense": {
+          "dv_base": 10,
+          "idf": 0
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d4",
+            "flat": -1
+          },
+          "spike": {
+            "dice": "1d4",
+            "flat": 0
+          }
+        }
+      },
+      "resolved_archetype": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "early",
+            "windows": [
+              {
+                "after_action_index": [
+                  2
+                ],
+                "trigger_if": {
+                  "player_missed_last_action": true
+                },
+                "weight": 0.85,
+                "notes": "Skitter is extra mean about misses."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 5,
+              "bias": 0.25
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "If players perfect-defend a lot, Aggressor starts feinting / swapping targets."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                {
+                  "type": "off_balance",
+                  "chance": 0.2,
+                  "on": "hit",
+                  "notes": "Keeps the player from stabilizing."
+                }
+              ],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": [
+                {
+                  "type": "heat_bait",
+                  "notes": "Encourages players to spike Heat for risky damage."
+                }
+              ]
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.2,
+                  "on": "player_miss",
+                  "notes": "Aggressor gains advantage positioning when you whiff."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "hp_le_25",
+              "vulnerable_3"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "aggressor",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.opening_burst"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "player_missed_last_action": true
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.punish_miss"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.pressure_strike"
+              }
+            ]
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.basic_attack",
+          "name": "Skitter Slash",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": 0
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "Opens interrupt windows."
+          },
+          "card_text": "A quick slash that punishes sloppy chains."
+        }
+      ],
+      "momentum": 0,
+      "temp_bonuses": {},
+      "statuses": []
+    }
+  },
+  "player": {
+    "name": "Test PC",
+    "stats": {
+      "STR": 14,
+      "DEX": 12,
+      "INT": 10,
+      "WIL": 10
+    },
+    "resources": {
+      "resolve": 6,
+      "momentum": 0,
+      "heat": 0,
+      "balance": 0
+    },
+    "temp_bonuses": {},
+    "pools": {},
+    "statuses": []
+  },
+  "scripted_chain": {
+    "abilities": [
+      "Basic Strike",
+      "Pulse Strike",
+      "Stonepulse Step"
+    ],
+    "fixed_attack_d20": [
+      14,
+      9,
+      17
+    ]
+  }
+}

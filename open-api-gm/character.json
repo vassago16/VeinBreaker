@@ -104,7 +104,7 @@
       "name": "Pulse Strike",
       "path": "stonepulse",
       "tier": 1,
-      "cooldown": 1,
+      "cooldown": 9,
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
