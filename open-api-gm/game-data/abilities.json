@@ -80,7 +80,7 @@
       "effects": {
         "on_use": [
           { "type": "resource_delta", "resource": "momentum", "delta": 1 },
-          { "type": "buff", "target": "self", "stat": "attack", "delta": 1, "duration": 1 }
+          { "type": "attack_bonus", "amount": 1, "target": "self" }
         ]
       },
       "resourceDelta": {

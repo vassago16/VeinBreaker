@@ -536,7 +536,7 @@ def main():
     for ability in state["party"]["members"][0].get("abilities", []):
         src = lookup.get(ability.get("name"), {})
         if src:
-            for key in ["effect", "cost", "dice", "stat", "tags", "path", "type"]:
+            for key in ["effect", "cost", "dice", "stat", "tags", "path", "type", "effects", "to_hit"]:
                 if key not in ability and key in src:
                     ability[key] = src[key]
             if not ability.get("pool"):
@@ -736,7 +736,8 @@ def main():
                                     # store any on_success effects for when damage is fully prevented
                                     if defense_ability.get("effects", {}).get("on_success"):
                                         character.setdefault("damage_reduction_success", []).extend(defense_ability["effects"]["on_success"])
-                                    int_d20 = roll("1d20")
+                                    # use the player's original chain attack d20 for the interrupt attempt
+                                    int_d20 = chain_attack_d20
                                     int_total = int_d20 + character["resources"].get("momentum", 0)
                                     print(f"Player interrupt attempt: d20={int_d20}+momentum={character['resources'].get('momentum',0)} => {int_total}")
                                     # simple resolution: compare to the enemy's planned attack total

@@ -36,7 +36,7 @@ def apply_status_effects(target, effects, default_duration=2):
     Stackable: adds stacks and refreshes duration.
     Non-stackable: reapplication extends duration by default_duration.
     """
-    if not target or not effects:
+    if target is None or not effects:
         return []
     target.setdefault("statuses", {})
     applied = []
@@ -44,6 +44,8 @@ def apply_status_effects(target, effects, default_duration=2):
         etype, stacks, duration = normalize_effect(eff, default_duration=default_duration)
         if not etype:
             continue
+        if duration is None:
+            duration = default_duration
         status = target["statuses"].get(etype, {"stacks": 0, "duration": 0})
         if etype in NON_STACKING:
             # Non-stacking: keep stacks at max(1, existing) and extend duration

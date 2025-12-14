@@ -161,26 +161,6 @@
       "addStatToDamage": true
     },
     {
-      "name": "Stoneguard Step",
-      "path": "stonepulse",
-      "tier": 1,
-      "cooldown": 1,
-      "base_cooldown": 1,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "martial",
-      "dice": "1d4",
-      "tags": [
-        "stonepulse",
-        "defense",
-        "momentum"
-      ],
-      "effect": "Reduce dmg by 1d4; if reduced to 0, ignore \u20131 chain penalty on your next attack; gain +1 Momentum.",
-      "stat": null,
-      "addStatToAttackRoll": true,
-      "addStatToDamage": true
-    },
-    {
       "name": "Cutpoint Slice",
       "path": "hemocratic",
       "tier": 1,
@@ -199,13 +179,33 @@
       "stat": "DEX",
       "addStatToAttackRoll": true,
       "addStatToDamage": true
+    },
+    {
+      "name": "Wound Mark",
+      "path": "hemocratic",
+      "tier": 1,
+      "cooldown": 1,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "shadow",
+      "dice": "1d4",
+      "tags": [
+        "hemocratic",
+        "utility",
+        "momentum"
+      ],
+      "effect": "Your next Bleed application gains +1 Bleed; gain +1 Momentum when that enhanced Bleed is applied.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
     }
   ],
   "stats": {
     "POW": 14,
     "AGI": 14,
-    "MND": 12,
-    "SPR": 10
+    "MND": 14,
+    "SPR": 8
   },
   "resources": {
     "hp": 24,
@@ -219,14 +219,14 @@
   "attributes": {
     "POW": 14,
     "AGI": 14,
-    "MND": 12,
-    "SPR": 10
+    "MND": 14,
+    "SPR": 8
   },
   "pools": {
     "martial": 7,
     "shadow": 7,
-    "magic": 6,
-    "faith": 5
+    "magic": 7,
+    "faith": 4
   },
   "marks": {
     "blood": 0,
