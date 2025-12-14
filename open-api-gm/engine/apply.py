@@ -9,8 +9,14 @@ def pick_enemy(state):
     pc = state.get("party", {}).get("members", [None])[0]
     tier = pc.get("tier", 1) if pc else 1
     candidates = [e for e in bestiary if e.get("tier") == tier]
+    multi_move = [e for e in candidates if len(e.get("moves", [])) > 1]
+    if multi_move:
+        candidates = multi_move
     if not candidates:
         candidates = bestiary
+        multi_move = [e for e in candidates if len(e.get("moves", [])) > 1]
+        if multi_move:
+            candidates = multi_move
     enemy_def = random.choice(candidates)
     # flatten to runtime enemy
     stat_block = enemy_def.get("stat_block", {}) or {}

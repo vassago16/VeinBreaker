@@ -222,6 +222,18 @@ def load_game_data():
             data["loot"] = json.loads(loot_path.read_text(encoding="utf-8")).get("loot", [])
         except Exception:
             data["loot"] = []
+    veinscore_loot_path = root / "veinscore_loot.json"
+    if veinscore_loot_path.exists():
+        try:
+            data["veinscore_loot"] = json.loads(veinscore_loot_path.read_text(encoding="utf-8")).get("items", [])
+        except Exception:
+            data["veinscore_loot"] = []
+    level_table_path = root / "level_table.json"
+    if level_table_path.exists():
+        try:
+            data["level_table"] = json.loads(level_table_path.read_text(encoding="utf-8")).get("levels", [])
+        except Exception:
+            data["level_table"] = []
     bestiary = []
     bestiary_path = root / "bestiary.json"
     if bestiary_path.exists():
@@ -275,6 +287,20 @@ def select_loot(game_data, enemy):
         tier_matches = [l for l in loot_table if l.get("tier", 0) <= tier]
     candidates = tier_matches or loot_table
     return random.choice(candidates) if candidates else None
+
+
+def veinscore_value(name, game_data):
+    table = game_data.get("veinscore_loot", [])
+    for item in table:
+        if item.get("name") == name:
+            return item.get("veinscore", 0)
+    return 0
+
+
+def award_veinscore(character, amount):
+    res = character.setdefault("resources", {})
+    res["veinscore"] = res.get("veinscore", 0) + amount
+    return res["veinscore"]
 
 
 def enemy_move_damage(enemy, move):
@@ -380,7 +406,8 @@ def initial_state():
                     'momentum': 0,
                     'heat': 0,
                     'balance': 0,
-                    'idf': 0
+                    'idf': 0,
+                    'veinscore': 0
                 },
                     'chain': {
                         'active': False,
@@ -632,6 +659,12 @@ def main():
                             resp = input("Attempt interrupt? (y/n): ").strip().lower()
                             if resp.startswith("y"):
                                 defenses = [a for a in character.get("abilities", []) if a.get("type") == "defense"]
+                                if not defenses:
+                                    # fallback to global abilities list
+                                    defenses = [
+                                        a for a in game_data.get("abilities", {}).get("abilities", [])
+                                        if a.get("type") == "defense"
+                                    ]
                                 if defenses:
                                     print("Choose defense ability:")
                                     for i, d in enumerate(defenses):
@@ -691,6 +724,17 @@ def main():
                     lrar = loot.get("rarity", "?")
                     ltier = loot.get("tier", "?")
                     print(f"Loot gained: {lname} (Tier {ltier}, {lrar})")
+                    vs = veinscore_value(lname, game_data)
+                    if vs:
+                        total_vs = award_veinscore(character, vs)
+                        print(f"Gained +{vs} Veinscore from {lname}. Total Veinscore: {total_vs}.")
+                # Always drop 1-2 Faint Vein Sigils
+                faint_count = random.randint(1, 2)
+                faint_value = veinscore_value("Faint Vein Sigil", game_data) or 1
+                total_faint_vs = faint_count * faint_value
+                award_veinscore(character, total_faint_vs)
+                state.setdefault("loot", []).extend([{"name": "Faint Vein Sigil", "tier": 1, "veinscore": faint_value}] * faint_count)
+                print(f"Loot gained: {faint_count}x Faint Vein Sigil (+{total_faint_vs} Veinscore). Total Veinscore: {character['resources'].get('veinscore', 0)}.")
                 enemies.clear()
                 state["phase"]["current"] = "out_of_combat"
             elif character["resources"].get("hp", 0) <= 0:
