@@ -58,6 +58,37 @@ Narration rules:
 """
 
 
+LOOT_CANON = """
+You are narrating VEINBREAKER.
+
+Tone:
+- Reverent, dangerous, restrained.
+- Loot feels earned, not generous.
+- Power is implied, not explained.
+
+Style:
+- Present tense.
+- Physical description first.
+- Symbolism second.
+- Short sentences.
+
+Prohibited:
+- No UI language.
+- No stats.
+- No numbers unless unavoidable.
+- No excitement words (epic, amazing, legendary).
+"""
+
+
+LOOT_RULES = """
+Loot rules:
+- Describe what the item looks like.
+- Describe what it represents or signifies.
+- Do not describe future abilities.
+- Do not invent origins beyond what is implied by the name.
+"""
+
+
 def narrator_stub(text: str) -> None:
     """
     Legacy stub that prints narration to stdout. Kept for quick CLI smoke tests.
@@ -136,6 +167,30 @@ Narrate the resolution.
     def narrate_aftermath(self, payload: Dict[str, Any]) -> str:
         """Aftermath narration."""
         return self.narrate(payload, scene_tag="aftermath")
+
+    def narrate_loot(self, loot_payload: Dict[str, Any]) -> str:
+        """Loot narration."""
+        system_prompt = LOOT_CANON.strip()
+        user_prompt = f"""
+{LOOT_RULES.strip()}
+
+Loot data:
+{json.dumps(loot_payload, indent=2)}
+
+Write a loot description.
+Limit: 40 words.
+""".strip()
+
+        response = self.client.responses.create(
+            model=self.model,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_output_tokens=120,
+        )
+
+        return self._extract_text(response)
 
     # =========================
     # INTERNALS

@@ -102,6 +102,26 @@ class NarrationManager:
         return self.narrator.narrate_aftermath(payload)
 
     # =========================
+    # LOOT DROP
+    # =========================
+
+    def loot_drop(
+        self,
+        *,
+        loot_items: list[dict],
+        veinscore_total: int
+    ) -> Optional[str]:
+        if not self.enabled:
+            return None
+
+        payload = {
+            "loot": loot_items,
+            "veinscore_total": veinscore_total,
+        }
+
+        return self.narrator.narrate_loot(payload)
+
+    # =========================
     # CONTROL
     # =========================
 

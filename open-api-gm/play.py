@@ -839,6 +839,7 @@ def main():
             # check end conditions and loop combat
             if enemies and enemies[0].get("hp", 0) <= 0:
                 print("Enemy defeated.")
+                loot_items_payload = []
                 # Aftermath narration hook
                 if state.get("flags", {}).get("narration_enabled") and NARRATION:
                     log_flags("AFTERMATH", state)
@@ -865,6 +866,12 @@ def main():
                 loot = select_loot(game_data, enemies[0])
                 if loot:
                     state.setdefault("loot", []).append(loot)
+                    loot_items_payload.append({
+                        "name": loot.get("name"),
+                        "tier": loot.get("tier"),
+                        "rarity": loot.get("rarity"),
+                        "type": loot.get("type"),
+                    })
                     lname = loot.get("name", "Loot")
                     lrar = loot.get("rarity", "?")
                     ltier = loot.get("tier", "?")
@@ -879,7 +886,23 @@ def main():
                 total_faint_vs = faint_count * faint_value
                 award_veinscore(character, total_faint_vs)
                 state.setdefault("loot", []).extend([{"name": "Faint Vein Sigil", "tier": 1, "veinscore": faint_value}] * faint_count)
+                loot_items_payload.extend(
+                    [{"name": "Faint Vein Sigil", "tier": 1, "type": "veinscore_token", "veinscore": faint_value}]
+                    * faint_count
+                )
                 print(f"Loot gained: {faint_count}x Faint Vein Sigil (+{total_faint_vs} Veinscore). Total Veinscore: {character['resources'].get('veinscore', 0)}.")
+                # Loot narration after loot resolution
+                if state.get("flags", {}).get("narration_enabled") and NARRATION:
+                    try:
+                        loot_text = NARRATION.loot_drop(
+                            loot_items=loot_items_payload,
+                            veinscore_total=character["resources"].get("veinscore", 0),
+                        )
+                        if loot_text:
+                            append_log(f"NARRATION_LOOT: {loot_text}")
+                            print(f"\n[NARRATOR]\n{loot_text}\n")
+                    except Exception as e:
+                        append_log(f"NARRATION_ERROR: {e}")
                 enemies.clear()
                 state["phase"]["current"] = "out_of_combat"
             elif character["resources"].get("hp", 0) <= 0:

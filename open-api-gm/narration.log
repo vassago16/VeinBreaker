@@ -25,3 +25,18 @@ SCENE_INTRO flags={'narration_enabled': True}
 NARRATION_SCENE: The Brumklin Skitter is near. It moves quickly, its limbs scuttling over the ground. The threat level is immediate. The environment provides no cover. The scout remains vigilant.
 NARRATION_COMBAT: The attack connects. Damage of 4 applies. The enemy's health drops from 10 to 6. No statuses are applied. The chain remains intact.
 NARRATION_COMBAT: The target is struck by the Arcane Step. Damage of 3 is applied. The target's health drops from 6 to 3. The action does not disrupt the ongoing combat.
+NARRATION_COMBAT: The attack connects. The impact transfers through the target. The enemy’s hit points decrease from three to one. No additional effects occur. The chain remains intact.
+NARRATION_COMBAT: The caster performs an Arcane Step. The attack connects. Two points of damage applied. The enemy’s health drops from 1 to -1. The combat continues.
+NARRATION_COMBAT: The attack connects. A pulse strikes, transferring 3 damage. The enemy's health drops from -1 to -4. No statuses are applied. The chain remains intact.
+AFTERMATH flags={'narration_enabled': True}
+NARRATION_AFTER: Brumklin Skitter lies defeated on the ground. The area is quiet. The player remains at 22 HP, with 3 heat and 3 momentum. No further threats are present.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. It shifts, calculating. The threat level is immediate. The environment is tight. No attack is made. Tension remains.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter moves quickly. It is near. The air is tense. The player stands ready. Momentum sits at three. Immediate threat looms. No action is taken. No hit is registered. Silence fills the encounter.
+NARRATION_COMBAT: The strike lands. The force drives into the enemy. HP decreases from 10 to 9. The action concludes without chain interruption. No statuses are applied.
+NARRATION_COMBAT: The attack focuses. It connects. The weapon impacts flesh, inflicting five damage. The enemy's health decreases from nine to four. The chain continues unbroken.
+NARRATION_COMBAT: The Pulse Strike connects. The target sustains 4 damage. The enemy's health decreases from 4 to 0. The target collapses, incapacitated. The chain remains intact.
+NARRATION_COMBAT: The Arcane Step connects. Energy surges through the target. Damage quantified at 6. The enemy's hit points drop from 0 to -6. The chain remains unbroken.
+AFTERMATH flags={'narration_enabled': True}
+NARRATION_AFTER: Brumklin Skitter lies defeated on the ground. The area is quiet. The player has 16 health points, 4 heat, and 5 momentum. There is no further conflict.
