@@ -1,5 +1,5 @@
 {
-  "path": "stonepulse",
+  "path": "hemocratic",
   "tier": 1,
   "abilities": [
     {
@@ -161,7 +161,7 @@
       "addStatToDamage": true
     },
     {
-      "name": "Pulse Strike",
+      "name": "Stoneguard Step",
       "path": "stonepulse",
       "tier": 1,
       "cooldown": 1,
@@ -172,39 +172,39 @@
       "dice": "1d4",
       "tags": [
         "stonepulse",
-        "attack",
+        "defense",
         "momentum"
       ],
-      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
-      "stat": "STR",
+      "effect": "Reduce dmg by 1d4; if reduced to 0, ignore \u20131 chain penalty on your next attack; gain +1 Momentum.",
+      "stat": null,
       "addStatToAttackRoll": true,
       "addStatToDamage": true
     },
     {
-      "name": "Charge Bolt",
-      "path": "spellforged",
+      "name": "Cutpoint Slice",
+      "path": "hemocratic",
       "tier": 1,
       "cooldown": 1,
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
-      "pool": "magic",
+      "pool": "shadow",
       "dice": "1d4",
       "tags": [
-        "spellforged",
+        "hemocratic",
         "attack",
         "momentum"
       ],
-      "effect": "1d4 + INT lightning; +1 dmg if you spent RP last action; if you spent RP last action, also gain +1 Momentum.",
-      "stat": "INT",
+      "effect": "1d4 + DEX; apply Bleed 1; if target was already Bleeding, gain +1 Momentum.",
+      "stat": "DEX",
       "addStatToAttackRoll": true,
       "addStatToDamage": true
     }
   ],
   "stats": {
     "POW": 14,
-    "AGI": 10,
-    "MND": 14,
+    "AGI": 14,
+    "MND": 12,
     "SPR": 10
   },
   "resources": {
@@ -218,14 +218,14 @@
   },
   "attributes": {
     "POW": 14,
-    "AGI": 10,
-    "MND": 14,
+    "AGI": 14,
+    "MND": 12,
     "SPR": 10
   },
   "pools": {
     "martial": 7,
-    "shadow": 5,
-    "magic": 7,
+    "shadow": 7,
+    "magic": 6,
     "faith": 5
   },
   "marks": {
@@ -239,5 +239,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 2
+  "veinscore": 0
 }

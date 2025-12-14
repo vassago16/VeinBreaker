@@ -49,9 +49,11 @@ def apply_effect_list(effects, actor, enemy=None, default_target="enemy"):
     """
     Apply a list of structured effects to targets.
     Supported types: resource_delta, resource_set, status, buff, reduce_damage placeholder, damage_bonus placeholder.
+    Returns a dict with any applied statuses.
     """
+    applied = {"statuses": []}
     if not effects:
-        return
+        return applied
     for eff in effects:
         if not isinstance(eff, dict):
             continue
@@ -74,7 +76,12 @@ def apply_effect_list(effects, actor, enemy=None, default_target="enemy"):
                 res = dest.setdefault("resources", {}) if target == "self" else dest.get("resources", dest)
                 res[res_name] = val
         elif etype in {"status", "buff"}:
-            apply_status_effects(dest, [eff])
+            # Normalize into a status effect for apply_status_effects
+            status_name = eff.get("status") or etype
+            stacks = eff.get("stacks", 1)
+            duration = eff.get("duration")
+            apply_status_effects(dest, [{"type": status_name, "stacks": stacks, "duration": duration}])
+            applied["statuses"].append(status_name)
         elif etype == "reduce_damage":
             dest.setdefault("damage_reduction", []).append(eff)
         elif etype in {"attack_bonus", "defense_bonus", "idf_bonus"}:
@@ -82,6 +89,7 @@ def apply_effect_list(effects, actor, enemy=None, default_target="enemy"):
             key = "attack" if etype == "attack_bonus" else "defense" if etype == "defense_bonus" else "idf"
             tb[key] = tb.get(key, 0) + (eff.get("amount", eff.get("delta", 0)) or 0)
         # damage_bonus could be handled in attack contexts later
+    return applied
 
 
 def resolve_action_step(state, character, ability, attack_roll=None, balance_bonus=0):
@@ -215,7 +223,9 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
             log["enemy_momentum_gained"] = momentum_gained
             log["enemy_momentum"] = enemy.get("momentum", 0)
         # apply structured on_miss effects
-        apply_effect_list(effects.get("on_miss", []), actor=character, enemy=enemy, default_target="self")
+        miss_applied = apply_effect_list(effects.get("on_miss", []), actor=character, enemy=enemy, default_target="self")
+        if miss_applied.get("statuses"):
+            log["statuses_applied"] = miss_applied["statuses"]
         state.setdefault("log", []).append({"action_effects": log})
         state["pending_action"] = None
         return "miss"
@@ -242,7 +252,9 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         # gain heat on successful hit
         character["resources"]["heat"] = projected_heat
         # apply structured on_hit effects (statuses, resource deltas)
-        apply_effect_list(effects.get("on_hit", []), actor=character, enemy=enemy, default_target="enemy")
+        hit_applied = apply_effect_list(effects.get("on_hit", []), actor=character, enemy=enemy, default_target="enemy")
+        if hit_applied.get("statuses"):
+            log["statuses_applied"] = hit_applied["statuses"]
 
     if "momentum" in tags:
         character["resources"]["momentum"] = character["resources"].get("momentum", 0) + 1

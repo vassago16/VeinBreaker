@@ -193,6 +193,34 @@ def format_status_summary(entity):
     return f"Status:{neutral_str} Buff:{buff_str} Debuff:{debuff_str}"
 
 
+def format_enemy_state(enemy):
+    if not enemy:
+        return ""
+    hp = enemy.get("hp", "?")
+    hp_max = enemy.get("hp_max") or enemy.get("stat_block", {}).get("hp", {}).get("max")
+    rp = enemy.get("rp", enemy.get("rp_pool"))
+    momentum = enemy.get("momentum", 0)
+    statuses = enemy.get("statuses", {}) or {}
+    if statuses:
+        status_parts = []
+        for name, data in statuses.items():
+            stacks = data.get("stacks")
+            dur = data.get("duration")
+            part = name
+            bits = []
+            if stacks is not None:
+                bits.append(str(stacks))
+            if dur is not None:
+                bits.append(f"{dur}r")
+            if bits:
+                part += f"({','.join(bits)})"
+            status_parts.append(part)
+        status_str = ", ".join(status_parts)
+    else:
+        status_str = "none"
+    return f"[Enemy] HP {hp}/{hp_max or '?'} | RP {rp} | Momentum {momentum} | Status {status_str}"
+
+
 def load_game_data():
     root = Path(__file__).parent / "game-data"
     data = {}
@@ -630,19 +658,23 @@ def main():
                 resolve_now = res_after.get("resolve", 0)
                 defense_d20 = None
                 defense_roll = None
+                statuses_applied = []
                 if isinstance(state.get("log"), list) and state["log"]:
                     last = state["log"][-1]
                     if isinstance(last, dict) and "action_effects" in last:
                         aelog = last["action_effects"]
                         defense_d20 = aelog.get("defense_d20")
                         defense_roll = aelog.get("defense_roll")
+                        statuses_applied = aelog.get("statuses_applied", [])
 
                 print(
-                    f"Resolved {ability_name}: to_hit={to_hit}, dmg_roll={damage_roll}, "
-                    f"result={result}, damage={dmg}, enemy_hp={post_enemy_hp}, "
-                    f"resolve_spent={resolve_spent}, resolve_now={resolve_now}, "
-                    f"heat={heat_now}, balance={balance_now}, momentum={momentum_now}, "
-                    f"attack_d20={attack_d20}, defense_d20={defense_d20}, defense_total={defense_roll}"
+                    f"Resolved {ability_name}:\n"
+                    f"  to_hit={to_hit} vs defense={defense_roll} (d20={defense_d20})\n"
+                    f"  dmg_roll={damage_roll}, damage={dmg}, enemy_hp={post_enemy_hp}\n"
+                    f"  resolve_spent={resolve_spent}, resolve_now={resolve_now}, "
+                    f"heat={heat_now}, balance={balance_now}, momentum={momentum_now}\n"
+                    f"  attack_d20={attack_d20}"
+                    + (f"\n  statuses_applied={statuses_applied}" if statuses_applied else "")
                 )
                 result = check_exposure(character)
                 if result:
@@ -661,6 +693,8 @@ def main():
                         break
                     else:
                         print("Enemy interrupt fails.")
+            if enemies:
+                print(format_enemy_state(enemies[0]))
             # simple enemy turn if alive
             if enemies:
                 enemy_hp = enemies[0].get("hp", 0)
