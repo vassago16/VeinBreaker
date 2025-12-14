@@ -202,13 +202,13 @@
     }
   ],
   "stats": {
-    "POW": 12,
+    "POW": 14,
     "AGI": 10,
-    "MND": 12,
-    "SPR": 8
+    "MND": 14,
+    "SPR": 10
   },
   "resources": {
-    "hp": 22,
+    "hp": 24,
     "resolve": 5,
     "resolve_cap": 5,
     "momentum": 0,
@@ -217,16 +217,16 @@
     "idf": 0
   },
   "attributes": {
-    "POW": 12,
+    "POW": 14,
     "AGI": 10,
-    "MND": 12,
-    "SPR": 8
+    "MND": 14,
+    "SPR": 10
   },
   "pools": {
-    "martial": 6,
+    "martial": 7,
     "shadow": 5,
-    "magic": 6,
-    "faith": 4
+    "magic": 7,
+    "faith": 5
   },
   "marks": {
     "blood": 0,
@@ -239,5 +239,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 8
+  "veinscore": 2
 }

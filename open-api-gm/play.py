@@ -492,7 +492,7 @@ def main():
     for ability in state["party"]["members"][0].get("abilities", []):
         src = lookup.get(ability.get("name"), {})
         if src:
-            for key in ["effect", "cost", "dice", "stat", "tags", "path"]:
+            for key in ["effect", "cost", "dice", "stat", "tags", "path", "type"]:
                 if key not in ability and key in src:
                     ability[key] = src[key]
             if not ability.get("pool"):
@@ -654,17 +654,15 @@ def main():
                     for midx, move in enumerate(chain_moves):
                         move = move or {}
                         move_name = move.get("name", move.get("id", "Enemy move"))
+                        to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
+                        atk_mod = enemy.get("attack_mod", 0)
+                        enemy_to_hit_d20 = roll("1d20")
+                        enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
                         # Offer player interrupt before second+ attack
                         if midx > 0:
                             resp = input("Attempt interrupt? (y/n): ").strip().lower()
                             if resp.startswith("y"):
                                 defenses = [a for a in character.get("abilities", []) if a.get("type") == "defense"]
-                                if not defenses:
-                                    # fallback to global abilities list
-                                    defenses = [
-                                        a for a in game_data.get("abilities", {}).get("abilities", [])
-                                        if a.get("type") == "defense"
-                                    ]
                                 if defenses:
                                     print("Choose defense ability:")
                                     for i, d in enumerate(defenses):
@@ -686,11 +684,7 @@ def main():
                                     int_d20 = roll("1d20")
                                     int_total = int_d20 + character["resources"].get("momentum", 0)
                                     print(f"Player interrupt attempt: d20={int_d20}+momentum={character['resources'].get('momentum',0)} => {int_total}")
-                                    # simple resolution: compare to enemy attack roll; roll enemy attack now
-                                    enemy_to_hit_d20 = roll("1d20")
-                                    to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
-                                    atk_mod = enemy.get("attack_mod", 0)
-                                    enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
+                                    # simple resolution: compare to the enemy's planned attack total
                                     if int_total >= enemy_to_hit:
                                         print("Interrupt succeeds! Enemy chain ends.")
                                         break
@@ -699,10 +693,6 @@ def main():
                                 else:
                                     print("No defense abilities available.")
                         # proceed with move
-                        to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
-                        atk_mod = enemy.get("attack_mod", 0)
-                        enemy_to_hit_d20 = roll("1d20")
-                        enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
                         player_def_d20 = roll("1d20")
                         player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
                         if enemy_to_hit > player_def:
