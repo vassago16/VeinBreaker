@@ -1,12 +1,19 @@
 from engine.validator import validate
 
 
+def _safe_validate(condition, message):
+    try:
+        validate(condition, message)
+        return True, ""
+    except Exception as e:
+        return False, str(e)
+
+
 def can_declare_chain(state, character):
-    ok, msg = validate(
+    return _safe_validate(
         state["phase"]["current"] == "chain_declaration",
         "Chains may only be declared during chain_declaration phase"
     )
-    return ok, msg
 
 
 def validate_chain_abilities(character, ability_names):
@@ -14,10 +21,10 @@ def validate_chain_abilities(character, ability_names):
     seen = set()
 
     for name in ability_names:
-        ok, msg = validate(name in owned, f"Ability not owned: {name}")
+        ok, msg = _safe_validate(name in owned, f"Ability not owned: {name}")
         if not ok:
             return ok, msg
-        ok, msg = validate(name not in seen, f"Duplicate ability in chain: {name}")
+        ok, msg = _safe_validate(name not in seen, f"Duplicate ability in chain: {name}")
         if not ok:
             return ok, msg
         seen.add(name)
@@ -27,7 +34,7 @@ def validate_chain_abilities(character, ability_names):
 def validate_chain_cooldowns(character, ability_names):
     cooldowns = {a.get("name"): a.get("cooldown", 0) for a in character.get("abilities", [])}
     for name in ability_names:
-        ok, msg = validate(
+        ok, msg = _safe_validate(
             cooldowns.get(name, 0) == 0,
             f"Ability on cooldown: {name}"
         )
@@ -37,7 +44,7 @@ def validate_chain_cooldowns(character, ability_names):
 
 
 def validate_chain_resolve(character, resolve_spent):
-    ok, msg = validate(
+    ok, msg = _safe_validate(
         resolve_spent <= character["resources"]["resolve"],
         "Not enough Resolve to declare chain"
     )

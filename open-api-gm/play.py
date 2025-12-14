@@ -607,7 +607,10 @@ def main():
                 # set cooldowns for declared abilities
                 for ability in character.get("abilities", []):
                     if ability.get("name") in abilities:
-                        ability["cooldown"] = ability.get("base_cooldown", 0)
+                        cd = ability.get("base_cooldown", ability.get("cooldown", 0) or 0)
+                        ability["base_cooldown"] = cd
+                        ability["cooldown"] = cd
+                        ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
                 state["phase"]["current"] = "chain_resolution"
             continue
 

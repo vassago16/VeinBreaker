@@ -1,7 +1,7 @@
 import random
 from engine.stats import stat_mod
 from engine.status import apply_status_effects
-
+from engine.utilities import compare
 
 def roll(dice: str) -> int:
     """
@@ -288,3 +288,32 @@ def check_exposure(character):
     if character["resources"].get("balance", 0) <= -3:
         return "off_balance"
     return None
+
+
+def conditions_met(cond, context):
+    if "all" in cond:
+        return all(conditions_met(c, context) for c in cond["all"])
+    if "any" in cond:
+        return any(conditions_met(c, context) for c in cond["any"])
+    if "not" in cond:
+        return not conditions_met(cond["not"], context)
+
+    # atomic
+    t = cond["type"]
+
+    if t == "resource":
+        val = context.resources[cond["resource"]]
+        return compare(val, cond["op"], cond["value"])
+
+    if t == "status":
+        target = context.enemy if cond["target"] == "enemy" else context.self
+        return (cond["status"] in target.statuses) == cond["present"]
+
+    if t == "chain_length":
+        return compare(context.chain_length, cond["op"], cond["value"])
+
+    if t == "last_action":
+        return getattr(context.last_action, cond["field"]) == cond["equals"]
+
+    if t == "hit_result":
+        return context.hit_result == cond["value"]

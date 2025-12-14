@@ -1,5 +1,5 @@
 {
-  "path": "hemocratic",
+  "path": "canticle",
   "tier": 1,
   "abilities": [
     {
@@ -101,114 +101,54 @@
       "addStatToDamage": true
     },
     {
-      "name": "Rhythm Break",
-      "path": "resolve_basic",
-      "tier": 0,
-      "cooldown": 2,
-      "base_cooldown": 2,
-      "cost": 2,
-      "resource": "resolve",
-      "pool": null,
-      "dice": "1d4",
-      "tags": [
-        "resolve",
-        "interrupt",
-        "defense_window"
-      ],
-      "effect": "Cancel an Interrupt attempt before the contest is rolled.",
-      "stat": null,
-      "addStatToAttackRoll": true,
-      "addStatToDamage": true
-    },
-    {
-      "name": "Momentum Anchor",
-      "path": "resolve_basic",
-      "tier": 0,
-      "cooldown": 1,
-      "base_cooldown": 1,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": null,
-      "dice": "1d4",
-      "tags": [
-        "resolve",
-        "momentum",
-        "any_window"
-      ],
-      "effect": "Gain +1 Momentum. May not be used after damage is dealt.",
-      "stat": null,
-      "addStatToAttackRoll": true,
-      "addStatToDamage": true
-    },
-    {
-      "name": "Balance Surge",
-      "path": "resolve_basic",
-      "tier": 0,
-      "cooldown": 1,
-      "base_cooldown": 1,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": null,
-      "dice": "1d4",
-      "tags": [
-        "resolve",
-        "balance",
-        "any_window"
-      ],
-      "effect": "Set your Balance to 0. Cannot be used while at Positive Balance.",
-      "stat": null,
-      "addStatToAttackRoll": true,
-      "addStatToDamage": true
-    },
-    {
-      "name": "Cutpoint Slice",
-      "path": "hemocratic",
+      "name": "Pulse Strike",
+      "path": "stonepulse",
       "tier": 1,
       "cooldown": 1,
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
-      "pool": "shadow",
+      "pool": "martial",
       "dice": "1d4",
       "tags": [
-        "hemocratic",
+        "stonepulse",
         "attack",
         "momentum"
       ],
-      "effect": "1d4 + DEX; apply Bleed 1; if target was already Bleeding, gain +1 Momentum.",
-      "stat": "DEX",
+      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
+      "stat": "STR",
       "addStatToAttackRoll": true,
       "addStatToDamage": true
     },
     {
-      "name": "Wound Mark",
-      "path": "hemocratic",
+      "name": "Arcane Step",
+      "path": "spellforged",
       "tier": 1,
       "cooldown": 1,
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
-      "pool": "shadow",
+      "pool": "magic",
       "dice": "1d4",
       "tags": [
-        "hemocratic",
-        "utility",
+        "spellforged",
+        "movement",
         "momentum"
       ],
-      "effect": "Your next Bleed application gains +1 Bleed; gain +1 Momentum when that enhanced Bleed is applied.",
+      "effect": "Gain Arcane Ward 1 (reduce next incoming dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
       "stat": null,
       "addStatToAttackRoll": true,
       "addStatToDamage": true
     }
   ],
   "stats": {
-    "POW": 14,
-    "AGI": 14,
-    "MND": 14,
-    "SPR": 8
+    "POW": 9,
+    "AGI": 10,
+    "MND": 11,
+    "SPR": 12
   },
   "resources": {
-    "hp": 24,
+    "hp": 19,
     "resolve": 5,
     "resolve_cap": 5,
     "momentum": 0,
@@ -217,16 +157,16 @@
     "idf": 0
   },
   "attributes": {
-    "POW": 14,
-    "AGI": 14,
-    "MND": 14,
-    "SPR": 8
+    "POW": 9,
+    "AGI": 10,
+    "MND": 11,
+    "SPR": 12
   },
   "pools": {
-    "martial": 7,
-    "shadow": 7,
-    "magic": 7,
-    "faith": 4
+    "martial": 4,
+    "shadow": 5,
+    "magic": 5,
+    "faith": 6
   },
   "marks": {
     "blood": 0,
@@ -239,5 +179,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 0
+  "veinscore": 8
 }

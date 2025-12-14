@@ -40,7 +40,7 @@ class TestCharacterCreation(unittest.TestCase):
             veinscore=5,
         )
         self.assertEqual(char["path"], tier1[0]["path"])
-        self.assertEqual(len(char["abilities"]), len({a["name"] for a in abilities if a.get("path") == "core" and a.get("tier") == 0}) + len({a["name"] for a in canon["resolve_abilities.json"]["abilities"] if a.get("core")}) + 2)
+        self.assertEqual(len(char["abilities"]), len({a["name"] for a in abilities if a.get("path") == "core" and a.get("tier") == 0}) + 2)
         self.assertEqual(char["resources"]["hp"], 20)  # 10 + POW(10)
         self.assertEqual(char["veinscore"], 5)
 
@@ -52,6 +52,64 @@ class TestCharacterCreation(unittest.TestCase):
                 path="invalid",
                 tier_one_choices=["Basic Strike", "Pulse Strike"],
             )
+
+    def test_single_resolve_choice_included_once(self):
+        canon = load_canon()
+        resolve_list = canon["resolve_abilities.json"]["abilities"]
+        # pick the first non-core resolve if present, else first core
+        non_core = [a for a in resolve_list if not a.get("core")]
+        choice = (non_core[0]["name"] if non_core else resolve_list[0]["name"])
+        abilities = canon["abilities.json"]["abilities"]
+        tier1 = [a for a in abilities if a.get("tier") == 1 and a.get("path") not in {"core", "resolve_basic"}]
+        picks = [tier1[0]["name"], tier1[1]["name"]] if len(tier1) > 1 else [tier1[0]["name"], tier1[0]["name"]]
+        char = create_character(
+            canon,
+            path=tier1[0]["path"],
+            tier_one_choices=picks,
+            tier=1,
+            resolve_basic_choice=choice,
+            attributes={"POW": 10, "AGI": 10, "MND": 10, "SPR": 10},
+            veinscore=0,
+        )
+        names = [a["name"] for a in char["abilities"]]
+        self.assertEqual(names.count(choice), 1)
+
+    def test_abilities_include_cooldown_fields(self):
+        canon = load_canon()
+        abilities = canon["abilities.json"]["abilities"]
+        tier1 = [a for a in abilities if a.get("tier") == 1 and a.get("path") not in {"core", "resolve_basic"}]
+        picks = [tier1[0]["name"], tier1[1]["name"]] if len(tier1) > 1 else [tier1[0]["name"], tier1[0]["name"]]
+        char = create_character(
+            canon,
+            path=tier1[0]["path"],
+            tier_one_choices=picks,
+            tier=1,
+            resolve_basic_choice=None,
+            attributes={"POW": 10, "AGI": 10, "MND": 10, "SPR": 10},
+            veinscore=0,
+        )
+        for ability in char["abilities"]:
+            self.assertIn("cooldown", ability)
+            self.assertIn("base_cooldown", ability)
+
+    def test_only_chosen_and_core_abilities_present(self):
+        canon = load_canon()
+        abilities = canon["abilities.json"]["abilities"]
+        tier1 = [a for a in abilities if a.get("tier") == 1 and a.get("path") not in {"core", "resolve_basic"}]
+        picks = [tier1[0]["name"], tier1[1]["name"]] if len(tier1) > 1 else [tier1[0]["name"], tier1[0]["name"]]
+        core_names = {a["name"] for a in abilities if a.get("path") == "core" and a.get("tier") == 0}
+        expected = core_names | set(picks)
+        char = create_character(
+            canon,
+            path=tier1[0]["path"],
+            tier_one_choices=picks,
+            tier=1,
+            resolve_basic_choice=None,
+            attributes={"POW": 10, "AGI": 10, "MND": 10, "SPR": 10},
+            veinscore=0,
+        )
+        ability_names = {a["name"] for a in char["abilities"]}
+        self.assertEqual(ability_names, expected)
 
 
 if __name__ == "__main__":

@@ -234,6 +234,14 @@
       ],
       "dice": "1d6",
       "stat": "STR",
+      "effects": {
+        "on_hit": [
+          { "type": "damage", "dice": "1d6", "stat": "STR" },
+          { "type": "status", "status": "stagger", "stacks": 1, "target": "enemy" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1, "target": "self" },
+          { "type": "resource_delta", "resource": "rp", "delta": 1, "target": "self" }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "rp": 1
@@ -260,6 +268,15 @@
         "momentum"
       ],
       "dice": "1d6",
+      "effects": {
+        "on_use": [
+          { "type": "reduce_damage", "dice": "1d6" }
+        ],
+        "on_success": [
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "status", "status": "retaliate", "stacks": 1, "target": "self" }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -279,6 +296,14 @@
         "momentum"
       ],
       "range": "near",
+      "effects": {
+        "on_use": [
+          { "type": "defense_bonus", "amount": 1, "target": "self" },
+          { "type": "attack_bonus", "amount": 1, "target": "self" },
+          { "type": "idf_bonus", "amount": 1, "target": "self" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -297,6 +322,14 @@
         "stance",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          { "type": "defense_bonus", "amount": 1, "target": "self" },
+          { "type": "idf_bonus", "amount": 1, "target": "self" },
+          { "type": "resource_delta", "resource": "momentum", "delta": 1 },
+          { "type": "status", "status": "stonepulse_stance", "stacks": 1, "target": "self" }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
