@@ -36,3 +36,9 @@ class WebProvider(UIProvider):
             "prompt": prompt
         })
         return None
+
+    def clear(self, target="narration"):
+        self.session.emit({
+            "type": "clear",
+            "target": target
+        })

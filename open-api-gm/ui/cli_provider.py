@@ -44,3 +44,7 @@ class CLIProvider(UIProvider):
     def text_input(self, prompt: str, data: Optional[Dict[str, Any]] = None) -> str:
         print()
         return input(f"{prompt}\n> ").strip()
+
+    def clear(self, target: str = "narration") -> None:
+        # Simple CLI clear: push content off screen
+        print("\n" * 40)

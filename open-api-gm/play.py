@@ -330,6 +330,7 @@ def select_loot(game_data, enemy):
     """
     Pick a loot item for the given enemy tier.
     """
+    
     loot_table = game_data.get("loot", [])
     if not loot_table:
         return None
@@ -339,6 +340,7 @@ def select_loot(game_data, enemy):
         tier_matches = [l for l in loot_table if l.get("tier", 0) <= tier]
     candidates = tier_matches or loot_table
     return random.choice(candidates) if candidates else None
+    
 
 
 def veinscore_value(name, game_data):
@@ -504,6 +506,7 @@ def get_player_choice(options, ui, state):
         idx = ui.choice("--- YOUR OPTIONS ---", options + ["exit"])
         return (options + ["exit"])[idx]
 
+    ui.clear("narration")
     ui.choice(
         "Choose an option:",
         options
@@ -527,16 +530,187 @@ def advance_phase(state, phase_machine, previous_phase):
 
 def create_default_character():
     fallback = {
-        "name": "The Blooded",
-        "attributes": {
-            "str": 12,
-            "dex": 12,
-            "int": 12,
-            "wil": 12,
-        },
-        "veinscore": 1,
-        "rp": 3,
-        "abilities": [],
+         "path": "canticle",
+  "tier": 11,
+  "abilities": [
+    {
+      "name": "Basic Strike",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "attack"
+      ],
+      "effect": "Make a basic attack for 1d4 + stat. On hit gain +1 Heat. Applies -1 Balance penalty.",
+      "stat": "weapon",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    },
+    {
+      "name": "Basic Guard",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "defense",
+        "momentum"
+      ],
+      "effect": "Reduce incoming damage by 1d4. STR modifier applies to the Defense roll. If damage is reduced to 0, gain +1 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    },
+    {
+      "name": "Focus Action",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "utility",
+        "momentum"
+      ],
+      "effect": "Gain +1 Attack to your next attack this turn and +1 Momentum.",
+      "stat": "null",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    },
+    {
+      "name": "Shift",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "movement"
+      ],
+      "effect": "Move 1 zone. Improve Balance by +1 if negative. DEX modifier applies to the Defense roll during this movement.",
+      "stat": "DEX",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    },
+    {
+      "name": "Disengage",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 1,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "",
+      "dice": "1d4",
+      "tags": [
+        "resolve",
+        "movement",
+        "defense_window"
+      ],
+      "effect": "End your current chain immediately. No further actions may be taken this chain.",
+      "stat": "",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    },
+    {
+      "name": "Pulse Strike",
+      "path": "stonepulse",
+      "tier": 1,
+      "cooldown": 1,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "martial",
+      "dice": "1d4",
+      "tags": [
+        "stonepulse",
+        "attack",
+        "momentum"
+      ],
+      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    },
+    {
+      "name": "Arcane Step",
+      "path": "spellforged",
+      "tier": 1,
+      "cooldown": 1,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "magic",
+      "dice": "1d4",
+      "tags": [
+        "spellforged",
+        "movement",
+        "momentum"
+      ],
+      "effect": "Gain Arcane Ward 1 (reduce next incoming dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
+      "stat": "",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    }
+  ],
+  "stats": {
+    "POW": 24,
+    "AGI": 14,
+    "MND": 14,
+    "SPR": 8
+  },
+  "resources": {
+    "hp": 24,
+    "resolve": 5,
+    "resolve_cap": 5,
+    "momentum": 0,
+    "heat": 0,
+    "balance": 0,
+    "idf": 0
+  },
+  "attributes": {
+    "POW": 14,
+    "AGI": 14,
+    "MND": 14,
+    "SPR": 8
+  },
+  "pools": {
+    "martial": 7,
+    "shadow": 7,
+    "magic": 7,
+    "faith": 4
+  },
+  "marks": {
+    "blood": 0,
+    "duns": 0
+  },
+  "chain": {
+    "declared": "false",
+    "abilities": [],
+    "resolve_spent": 0,
+    "stable": "false",
+    "invalidated": "false"
+  },
+  "veinscore": 0
     }
     try:
         return json.loads(DEFAULT_CHARACTER_PATH.read_text(encoding="utf-8"))

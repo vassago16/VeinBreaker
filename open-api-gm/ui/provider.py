@@ -53,3 +53,10 @@ class UIProvider(ABC):
         Returns raw string input (used rarely; prefer choice()).
         """
         pass
+
+    @abstractmethod
+    def clear(self, target: str = "narration") -> None:
+        """
+        Clear a UI surface (e.g., narration, choices, all).
+        """
+        pass

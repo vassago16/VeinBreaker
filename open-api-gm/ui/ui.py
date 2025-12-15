@@ -32,3 +32,6 @@ class UI:
 
     def text_input(self, prompt: str, data: Optional[Dict[str, Any]] = None) -> str:
         return self.provider.text_input(prompt, data)
+
+    def clear(self, target: str = "narration") -> None:
+        self.provider.clear(target)
