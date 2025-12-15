@@ -230,3 +230,122 @@ SCENE_INTRO flags={'narration_enabled': True}
 NARRATION_SCENE: You stand in the encounter. A Brumklin Skitter is near. It moves quickly. Your momentum is zero. You are unbalanced. The threat level is immediate. No action occurs. The Skitter remains hostile.
 SESSION_START flags={'narration_enabled': True}
 SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. It moves quickly, small legs skittering across the ground. The threat level is immediate. The environment is tense. You remain still, momentum at zero. No attack occurs. The danger persists.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. It moves quickly. Its limbs skitter across the ground. Your position is stable; no momentum is generated. The threat level is immediate. No damage is inflicted, but the danger persists.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near. Its small body twitches, anticipating movement. The air is still, tension fills the space. It is aware. You remain motionless. No strike is made. The threat level remains immediate.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: The Brumklin Skitter is near. It moves quickly. Its claws click against the ground. You are stationary. There is no momentum. The threat is immediate. The Skitter lunges but misses, its claws slicing through empty air.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. Its movements are rapid and erratic. You have no momentum. Your stance is unsteady. The threat is immediate. You cannot act. The Skitter lunges forward, but no contact occurs. It misses.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: You face one Brumklin Skitter. It is small, creeping closer. You have no momentum, heat, or balance. The threat looms immediate. No attack occurs; there is no contact made. The Skitter remains near.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. Its small form darts with unsettling speed. The player stands still, no momentum to react. The threat level is immediate. The Skitter moves closer, poised to strike. There is no hit or miss. Only an impending clash.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near. It is small, quick. The threat level is immediate. No movement is initiated. Heat is absent. Balance is stable. The Skitter watches, waiting for action.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near, small but aggressive. It pauses, observing. You are motionless. The threat level is immediate. No attack occurs. The moment hangs, charged but unbroken.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. It shifts, small and erratic. Threat level immediate. No momentum. No heat. No balance. The space fills with tension. The Skitter remains poised for an action. Nothing else happens.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: You stand in the encounter. A Brumklin Skitter is near. It shifts rapidly. Momentum is absent. There is no heat, no balance. The threat is immediate. No action taken. The Skitter closes distance. The encounter remains unresolved.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: xxxsk-pr***********************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'param': None, 'code': 'invalid_api_key'}}

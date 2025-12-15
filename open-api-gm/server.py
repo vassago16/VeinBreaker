@@ -29,6 +29,7 @@ class StepRequest(BaseModel):
     session_id: str
     action: str | None = None
     choice: int | None = None
+    chain: list[str] | None = None
 
 
 @app.get("/character")
@@ -69,6 +70,7 @@ def get_character():
             "rp": rp,
             "veinscore": veinscore,
             "attributes": norm_attrs,
+            "abilities": char.get("abilities", []),
         }
 
     try:
@@ -92,6 +94,7 @@ def step(req: StepRequest):
     session = sessions[req.session_id]
     events = session.step({
         "action": req.action,
-        "choice": req.choice
+        "choice": req.choice,
+        "chain": req.chain,
     })
     return events

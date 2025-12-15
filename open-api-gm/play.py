@@ -36,7 +36,7 @@ def emit_event(ui, payload: dict) -> None:
     Falls back silently for CLI.
     """
     try:
-        provider = getattr(ui, "provider", None)
+        provider = getattr(ui, "provider", None) or ui
         session = getattr(provider, "session", None)
         if session and hasattr(session, "emit"):
             session.emit(payload)
@@ -75,6 +75,38 @@ def emit_character_update(ui, character: dict) -> None:
             "attributes": norm_attrs,
         }
     })
+
+
+def emit_declare_chain(ui, abilities: list, max_len: int = 3) -> None:
+    payload = []
+    for ab in abilities:
+        if not isinstance(ab, dict):
+            continue
+        payload.append({
+            "id": ab.get("id") or ab.get("name"),
+            "name": ab.get("name"),
+            "type": ab.get("type"),
+            "cost": ab.get("cost"),
+            "cooldown": ab.get("cooldown") or ab.get("base_cooldown"),
+            "effect": ab.get("effect") or (ab.get("effects") or {}).get("on_use"),
+        })
+    emit_event(ui, {
+        "type": "declare_chain",
+        "maxLength": max_len,
+        "chainRules": {
+            "min": 0,
+            "max": max_len,
+            "source": "Momentum + Tier Bonus",
+        },
+        "abilities": payload
+    })
+
+
+def usable_ability_objects(state):
+    member = state.get("party", {}).get("members", [None])[0]
+    if not member:
+        return []
+    return [ab for ab in member.get("abilities", []) if ab.get("cooldown", 0) == 0]
 
 
 def append_log(entry: str) -> None:
@@ -584,7 +616,28 @@ def create_default_character():
             "int": 14,
             "wil": 8,
         },
-        "abilities": [],
+        "abilities": [
+            {
+      "name": "Basic Strike",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 1,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "attack"
+      ],
+      "effect": "Make a basic attack for 1d4 + stat. On hit gain +1 Heat. Applies -1 Balance penalty.",
+      "stat": "weapon",
+      "addStatToAttackRoll": "true",
+      "addStatToDamage": "true"
+    },
+
+        ],
     }
     try:
         return json.loads(DEFAULT_CHARACTER_PATH.read_text(encoding="utf-8"))
@@ -735,6 +788,9 @@ def game_step(ctx, player_input):
             else:
                 ui.error("Invalid chain selection.")
                 return True
+        elif awaiting["type"] == "chain_builder":
+            # handled via action "declare_chain"
+            state["awaiting"] = awaiting  # restore; action handler will pop
 
     nonarrate = args.nonarrate if args else False
     interactive_defaults = args.interactive_defaults if args else False
@@ -779,32 +835,34 @@ def game_step(ctx, player_input):
         hp_cur = res.get("hp", "?")
         hp_max = res.get("hp_max") or res.get("max_hp") or res.get("maxHp") or hp_cur
         ui.system(f"PC HP: {hp_cur}/{hp_max} | {format_status_summary(character)}")
-        usable = list_usable_abilities(state)
-        if not usable:
-            ui.system("No usable abilities available (all on cooldown).")
+        usable_objs = usable_ability_objects(state)
+        if getattr(ui, "is_blocking", True):
+            usable = [ab.get("name") for ab in usable_objs if ab.get("name")]
+            abilities = prompt_chain_declaration(state, character, usable, ui)
+            if abilities is None:
+                return True
+            ok, resp = declare_chain(
+                state,
+                character,
+                abilities,
+                resolve_spent=0,
+                stabilize=False
+            )
+            if not ok:
+                ui.error(f"Invalid chain: {resp}")
+                return True
+            # set cooldowns for declared abilities
+            for ability in character.get("abilities", []):
+                if ability.get("name") in abilities:
+                    cd = ability.get("base_cooldown", ability.get("cooldown", 0) or 0)
+                    ability["base_cooldown"] = cd
+                    ability["cooldown"] = cd
+                    ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
             state["phase"]["current"] = "chain_resolution"
             return True
-        abilities = prompt_chain_declaration(state, character, usable, ui)
-        if abilities is None:
-            return True
-        ok, resp = declare_chain(
-            state,
-            character,
-            abilities,
-            resolve_spent=0,
-            stabilize=False
-        )
-        if not ok:
-            ui.error(f"Invalid chain: {resp}")
-            return True
-        # set cooldowns for declared abilities
-        for ability in character.get("abilities", []):
-            if ability.get("name") in abilities:
-                cd = ability.get("base_cooldown", ability.get("cooldown", 0) or 0)
-                ability["base_cooldown"] = cd
-                ability["cooldown"] = cd
-                ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
-        state["phase"]["current"] = "chain_resolution"
+        # non-blocking: emit chain builder event
+        emit_declare_chain(ui, usable_objs, max_len=3)
+        state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
         return True
 
     if current_phase == "chain_resolution":
@@ -1117,6 +1175,40 @@ def game_step(ctx, player_input):
         ui.system("\n(Narration suppressed)")
 
     requested_action = player_input.get("action") if isinstance(player_input, dict) else None
+    # quick start hook for web: immediately prompt chain builder
+    if requested_action == "start" and not getattr(ui, "is_blocking", True):
+        usable_objs = usable_ability_objects(state)
+        emit_declare_chain(ui, usable_objs, max_len=3)
+        state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
+        return True
+    if isinstance(player_input, dict) and player_input.get("action") == "declare_chain":
+        chain_ids = player_input.get("chain") or []
+        awaiting = state.pop("awaiting", None) if state.get("awaiting", {}).get("type") == "chain_builder" else None
+        usable = awaiting.get("options") if awaiting else usable_ability_objects(state)
+        names = []
+        for cid in chain_ids:
+            ab = next((a for a in usable if a.get("id") == cid or a.get("name") == cid), None)
+            if ab and ab.get("name"):
+                names.append(ab["name"])
+        character = state["party"]["members"][0]
+        ok, resp = declare_chain(
+            state,
+            character,
+            names,
+            resolve_spent=0,
+            stabilize=False
+        )
+        if not ok:
+            ui.error(f"Invalid chain: {resp}")
+            return True
+        for ability in character.get("abilities", []):
+            if ability.get("name") in names:
+                cd = ability.get("base_cooldown", ability.get("cooldown", 0) or 0)
+                ability["base_cooldown"] = cd
+                ability["cooldown"] = cd
+                ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
+        state["phase"]["current"] = "chain_resolution"
+        return True
     if resolved_choice is not None:
         choice = resolved_choice
     elif requested_action in actions:

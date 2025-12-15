@@ -98,6 +98,318 @@
   #layout {
     display: flex;
   }
+/* ===== CHAIN OVERLAY ===== */
+#chain-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+#chain-overlay.hidden {
+  display: none;
+}
+
+.chain-active #narration-wrapper {
+  opacity: 0.28;
+  filter: blur(2px);
+}
+
+.chain-active #log,
+.chain-active footer {
+  opacity: 0.55;
+}
+
+.chain-modal {
+  width: min(1100px, 92vw);
+  max-height: 86vh;
+  overflow: auto;
+  background: #0d0d0d;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 0 1px rgba(158, 43, 37, 0.2);
+  padding: 14px 14px 16px;
+}
+
+.chain-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.chain-h {
+  letter-spacing: 3px;
+  color: var(--fg);
+  font-size: 12px;
+}
+
+.chain-sub {
+  margin-top: 6px;
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.chain-close {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  cursor: pointer;
+  font-family: inherit;
+  padding: 6px 10px;
+}
+
+.chain-close:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.chain-columns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.ability-column h3 {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  margin: 0 0 8px;
+}
+
+.ability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ability-card {
+  border: 1px solid var(--line);
+  background: #101113;
+  padding: 10px 10px 9px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+.ability-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.ability-card.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ability-card .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ability-card .name {
+  color: var(--fg);
+  font-size: 13px;
+}
+
+.ability-card .meta {
+  color: var(--dim);
+  font-size: 12px;
+}
+
+.ability-card .desc {
+  margin-top: 6px;
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.chain-preview {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+#chain-slots {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 12px;
+  flex-wrap: wrap;
+}
+
+.chain-slot {
+  width: 150px;
+  height: 54px;
+  border: 1px dashed var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.chain-slot.filled {
+  border-style: solid;
+  background: rgba(158, 43, 37, 0.12);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.chain-actions {
+  display: flex;
+  gap: 10px;
+}
+
+#chain-commit {
+  border: 1px solid var(--accent);
+  background: rgba(158, 43, 37, 0.15);
+  color: var(--fg);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#chain-commit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.secondary {
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--dim);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.secondary:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+  .chain-hint {
+    margin-top: 10px;
+    color: var(--dim);
+    font-size: 12px;
+  }
+
+  /* ===== ABILITIES PANEL ===== */
+
+  #abilities-panel {
+    margin-top: 16px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+  }
+
+  #abilities-panel .panel-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--dim);
+    margin-bottom: 8px;
+  }
+
+  #abilities-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ability-row {
+    border: 1px solid var(--line);
+    padding: 6px 8px;
+    background: #101113;
+    font-size: 12px;
+  }
+
+  .ability-row.cooldown {
+    opacity: 0.45;
+  }
+
+  .ability-row .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .ability-row .name {
+    color: var(--fg);
+  }
+
+  .ability-row .meta {
+    color: var(--dim);
+    font-size: 11px;
+  }
+
+  .ability-row .tags {
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+@keyframes chain-heartbeat {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(158, 43, 37, 0.0),
+      inset 0 0 0 0 rgba(158, 43, 37, 0.0);
+  }
+  35% {
+    box-shadow:
+      0 0 12px 2px rgba(158, 43, 37, 0.15),
+      inset 0 0 6px 1px rgba(158, 43, 37, 0.12);
+  }
+  70% {
+    box-shadow:
+      0 0 6px 1px rgba(158, 43, 37, 0.08),
+      inset 0 0 3px 1px rgba(158, 43, 37, 0.06);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(158, 43, 37, 0.0),
+      inset 0 0 0 0 rgba(158, 43, 37, 0.0);
+  }
+}
+
+  .chain-pulse .chain-modal {
+    animation: chain-heartbeat 2.4s ease-in-out infinite;
+  }
+
+@keyframes chain-reject-shake {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(-6px); }
+  30%  { transform: translateX(6px); }
+  45%  { transform: translateX(-4px); }
+  60%  { transform: translateX(4px); }
+  75%  { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes chain-reject-flash {
+  0%   { background-color: rgba(180, 0, 0, 0.35); }
+  100% { background-color: transparent; }
+}
+
+.chain-reject .chain-modal {
+  animation: chain-reject-shake 0.35s ease;
+}
+
+.chain-reject::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(180, 0, 0, 0.25);
+  animation: chain-reject-flash 0.25s ease-out;
+  pointer-events: none;
+  z-index: 1001;
+}
 
   #character-panel {
     width: 180px;
@@ -279,6 +591,11 @@
       <div>INT <span id="stat-int">–</span></div>
       <div>WIL <span id="stat-wil">–</span></div>
     </div>
+
+    <section id="abilities-panel">
+      <div class="panel-title">ABILITIES</div>
+      <div id="abilities-list"></div>
+    </section>
   </aside>
 
   <main id="main">
@@ -294,6 +611,53 @@
     <div class="log-header">COMBAT LOG</div>
     <div id="combat-log"></div>
   </aside>
+</div>
+
+<!-- CHAIN OVERLAY (hidden until declare_chain event) -->
+<div id="chain-overlay" class="hidden" aria-hidden="true">
+  <div class="chain-modal">
+    <div class="chain-title">
+      <div class="chain-title-left">
+        <div class="chain-h">DECLARE CHAIN</div>
+        <div class="chain-sub" id="chain-sub">Select up to <span id="chain-max">3</span> links.</div>
+      </div>
+      <button class="chain-close" onclick="closeChainBuilder()">X</button>
+    </div>
+
+    <div class="chain-columns">
+      <div class="ability-column">
+        <h3>ATTACK</h3>
+        <div id="attack-abilities" class="ability-list"></div>
+      </div>
+
+      <div class="ability-column">
+        <h3>DEFENSE</h3>
+        <div id="defense-abilities" class="ability-list"></div>
+      </div>
+
+      <div class="ability-column">
+        <h3>UTILITY</h3>
+        <div id="utility-abilities" class="ability-list"></div>
+      </div>
+
+      <div class="ability-column">
+        <h3>MOVEMENT</h3>
+        <div id="movement-abilities" class="ability-list"></div>
+      </div>
+    </div>
+
+    <div class="chain-preview">
+      <h3>CHAIN</h3>
+      <div id="chain-slots"></div>
+
+      <div class="chain-actions">
+        <button id="chain-commit" onclick="submitChain()">COMMIT CHAIN</button>
+        <button class="secondary" onclick="clearChain()">CLEAR</button>
+      </div>
+
+      <div class="chain-hint" id="chain-hint">Tip: click a filled slot to remove it.</div>
+    </div>
+  </div>
 </div>
 
   <script>
@@ -314,30 +678,46 @@ const statDex = document.getElementById("stat-dex");
 const statInt = document.getElementById("stat-int");
 const statWil = document.getElementById("stat-wil");
 
-    function addEntry(text, cls) {
-      const div = document.createElement("div");
-      div.className = `entry ${cls}`;
-      div.textContent = text;
-      log.appendChild(div);
-      window.scrollTo(0, document.body.scrollHeight);
-    }
+function addEntry(text, cls) {
+  const div = document.createElement("div");
+  div.className = `entry ${cls}`;
+  div.textContent = text;
+  log.appendChild(div);
+  window.scrollTo(0, document.body.scrollHeight);
+}
 
-    function clearChoices() {
-      choicesEl.innerHTML = "";
-    }
+function clearChoices() {
+  choicesEl.innerHTML = "";
+}
 
-    function clearNarration() {
-      narrationEl.classList.add("fade-out");
-      narrationWrapper.classList.add("smear-active");
+async function sendStep(payload) {
+  const res = await fetch(API, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ session_id: sessionId, ...payload })
+  });
 
-      setTimeout(() => {
-        narrationEl.innerHTML = "";
-        narrationEl.classList.remove("fade-out");
-        narrationEl.classList.add("fade-in");
-        narrationWrapper.classList.remove("smear-active");
-        setTimeout(() => narrationEl.classList.remove("fade-in"), 400);
-      }, 400);
-    }
+  const events = await res.json();
+  handleEvents(events);
+}
+
+async function sendChoice(index) {
+  clearChoices();
+  await sendStep({ choice: index });
+}
+
+function clearNarration() {
+  narrationEl.classList.add("fade-out");
+  narrationWrapper.classList.add("smear-active");
+
+  setTimeout(() => {
+    narrationEl.innerHTML = "";
+    narrationEl.classList.remove("fade-out");
+    narrationEl.classList.add("fade-in");
+    narrationWrapper.classList.remove("smear-active");
+    setTimeout(() => narrationEl.classList.remove("fade-in"), 400);
+  }, 400);
+}
 
 function appendNarration(text) {
   const p = document.createElement("p");
@@ -383,54 +763,72 @@ function updateCharacterUI(char) {
   if (char.hp) {
     const cur = char.hp.current ?? char.hp;
     const max = char.hp.max ?? char.hp_max ?? cur;
-        charHp.textContent = `${cur}/${max}`;
-      }
-      if (char.rp !== undefined) {
-        charRp.textContent = char.rp;
-      }
-      if (char.veinscore !== undefined) {
-        charVeinscore.textContent = char.veinscore;
-      }
-      if (char.attributes) {
-        statStr.textContent = char.attributes.str ?? "–";
-        statDex.textContent = char.attributes.dex ?? "–";
-        statInt.textContent = char.attributes.int ?? "–";
-        statWil.textContent = char.attributes.wil ?? "–";
-      }
+    charHp.textContent = `${cur}/${max}`;
+  }
+  if (char.rp !== undefined) {
+    charRp.textContent = char.rp;
+  }
+  if (char.veinscore !== undefined) {
+    charVeinscore.textContent = char.veinscore;
+  }
+  if (char.attributes) {
+    statStr.textContent = char.attributes.str ?? "–";
+    statDex.textContent = char.attributes.dex ?? "–";
+    statInt.textContent = char.attributes.int ?? "–";
+    statWil.textContent = char.attributes.wil ?? "–";
+  }
+  renderAbilitiesPanel(char);
+}
+
+function renderAbilitiesPanel(character) {
+  const host = document.getElementById("abilities-list");
+  host.innerHTML = "";
+
+  if (!character?.abilities) return;
+
+  character.abilities.forEach(ab => {
+    const row = document.createElement("div");
+    row.className = "ability-row";
+
+    if (ab.cooldown && ab.cooldown > 0) {
+      row.classList.add("cooldown");
     }
 
-    function renderChoices(prompt, options) {
-      clearChoices();
+    const tags = (ab.tags || []).join(" · ");
 
-      const p = document.createElement("div");
-      p.className = "prompt";
-      p.textContent = prompt;
-      choicesEl.appendChild(p);
+    row.innerHTML = `
+      <div class="top">
+        <div class="name">${ab.name}</div>
+        <div class="meta">
+          ${ab.cost ? `${ab.cost} RP` : ""}
+          ${ab.cooldown ? ` · CD ${ab.cooldown}` : ""}
+        </div>
+      </div>
+      <div class="tags">
+        ${ab.tier ? `T${ab.tier} · ` : ""}${tags}
+      </div>
+    `;
 
-      options.forEach((opt, i) => {
-        const btn = document.createElement("button");
-        btn.className = "choice";
-        btn.textContent = `${i + 1}. ${opt}`;
-        btn.onclick = () => sendChoice(i);
-        choicesEl.appendChild(btn);
-      });
-    }
+    host.appendChild(row);
+  });
+}
 
-    async function sendChoice(index) {
-      clearChoices();
+function renderChoices(prompt, options) {
+  clearChoices();
 
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: sessionId,
-          choice: index
-        })
-      });
+  const p = document.createElement("div");
+  p.className = "prompt";
+  p.textContent = prompt;
+  choicesEl.appendChild(p);
 
-      const events = await res.json();
-      handleEvents(events);
-    }
+  options.forEach((opt, i) => {
+    const btn = document.createElement("button");
+    btn.className = "choice";
+    btn.textContent = `${i + 1}. ${opt}`;
+    btn.onclick = () => sendChoice(i);
+    choicesEl.appendChild(btn);
+  });
+}
 
     function handleEvents(events) {
       events.forEach(ev => {
@@ -476,6 +874,19 @@ function updateCharacterUI(char) {
           logCombat(ev.text, "interrupt");
         }
         break;
+      case "declare_chain":
+        chainAbilities = ev.abilities || [];
+        maxChainLength = ev.maxLength ?? 3;
+        chain = [];
+        renderAbilities(chainAbilities);
+        renderChain();
+        renderChainRules(ev.chainRules);
+        renderChainHint(ev.chainRules);
+        openChainBuilder();
+        break;
+      case "chain_rejected":
+        rejectChain(ev.reason);
+        break;
       case "choice":
         renderChoices(ev.prompt, ev.options);
         break;
@@ -492,12 +903,193 @@ function updateCharacterUI(char) {
         action: "start"
       })
     })
-      .then(res => res.json())
-      .then(handleEvents);
+.then(res => res.json())
+.then(handleEvents);
 
-    fetch(CHARACTER_API)
-      .then(res => res.json())
-      .then(updateCharacterUI);
+fetch(CHARACTER_API)
+  .then(res => res.json())
+  .then(updateCharacterUI);
+
+// CHAIN BUILDER STATE AND HELPERS
+let chainAbilities = []; // from backend event
+let chain = [];
+let maxChainLength = 3;
+
+function openChainBuilder() {
+  clearChoices();
+  document.body.classList.add("chain-active");
+  document.body.classList.add("chain-pulse");
+  const ov = document.getElementById("chain-overlay");
+  ov.classList.remove("hidden");
+  ov.setAttribute("aria-hidden", "false");
+}
+
+function closeChainBuilder() {
+  const ov = document.getElementById("chain-overlay");
+
+  // 1. MOVE FOCUS FIRST
+  const narration = document.getElementById("narration");
+  if (narration) {
+    narration.setAttribute("tabindex", "-1");
+    narration.focus();
+  } else {
+    document.body.focus();
+  }
+
+  // 2. THEN hide visually + semantically
+  document.body.classList.remove("chain-active");
+  document.body.classList.remove("chain-pulse");
+
+  ov.classList.add("hidden");
+  ov.setAttribute("aria-hidden", "true");
+}
+
+
+function clearChain() {
+  chain = [];
+  renderChain();
+}
+
+function removeFromChain(i) {
+  chain.splice(i, 1);
+  renderChain();
+}
+
+function addToChain(ability) {
+  if (chain.length >= maxChainLength) return;
+  chain.push(ability);
+  renderChain();
+}
+
+function abilityIsUsable(ab) {
+  const cd = ab.cooldown ?? 0;
+  return cd === 0 && !ab.disabled;
+}
+
+function renderAbilities(abilities) {
+  const buckets = {
+    attack: document.getElementById("attack-abilities"),
+    defense: document.getElementById("defense-abilities"),
+    utility: document.getElementById("utility-abilities"),
+    movement: document.getElementById("movement-abilities"),
+  };
+
+  Object.values(buckets).forEach(el => el.innerHTML = "");
+
+  abilities.forEach(ab => {
+    const type = (ab.type || "").toLowerCase();
+    const host = buckets[type];
+    if (!host) return;
+
+    const card = document.createElement("div");
+    card.className = "ability-card";
+
+    const usable = abilityIsUsable(ab);
+    if (!usable) card.classList.add("disabled");
+
+    const cost = (ab.cost ?? 0);
+    const cd = (ab.cooldown ?? 0);
+
+    card.innerHTML = `
+      <div class="row">
+        <div class="name">${ab.name}</div>
+        <div class="meta">COST ${cost}${cd ? ` · CD ${cd}` : ""}</div>
+      </div>
+      ${ab.effect ? `<div class="desc">${ab.effect}</div>` : ""}
+    `;
+
+    if (usable) {
+      card.onclick = () => addToChain(ab);
+    }
+
+    host.appendChild(card);
+  });
+}
+
+function renderChain() {
+ 
+
+  const slots = document.getElementById("chain-slots");
+  slots.innerHTML = "";
+
+  for (let i = 0; i < maxChainLength; i++) {
+    const slot = document.createElement("div");
+    slot.className = "chain-slot";
+
+    if (chain[i]) {
+      slot.classList.add("filled");
+      slot.textContent = chain[i].name;
+      slot.onclick = () => removeFromChain(i);
+    } else {
+      slot.textContent = "—";
+    }
+
+    slots.appendChild(slot);
+  }
+
+  const commit = document.getElementById("chain-commit");
+  commit.disabled = false;
+}
+
+async function submitChain() {
+  const ids = chain.map(a => a.id);
+
+  closeChainBuilder();
+  await sendStep({
+    action: "declare_chain",
+    chain: ids
+  });
+}
+
+function rejectChain(reasonText) {
+  const ov = document.getElementById("chain-overlay");
+
+  ov.classList.add("chain-reject");
+
+  if (reasonText) {
+    logCombat(reasonText, "system");
+  }
+
+  setTimeout(() => {
+    ov.classList.remove("chain-reject");
+  }, 400);
+}
+
+function renderChainRules(rules) {
+  const sub = document.getElementById("chain-sub");
+
+  if (!rules) {
+    sub.textContent = "Build your chain.";
+    return;
+  }
+
+  const min = rules.min ?? 0;
+  const max = rules.max;
+
+  if (min === 0 && max) {
+    sub.textContent = `Build a chain of up to ${max} links — or stand and endure.`;
+  } else if (max && max > min) {
+    sub.textContent = `Build a chain of ${min}–${max} links.`;
+  } else if (max) {
+    sub.textContent = `Build a chain of up to ${max} links.`;
+  } else {
+    sub.textContent = "Build your chain — or take the hit.";
+  }
+
+  if (rules.source) {
+    sub.textContent += ` (${rules.source})`;
+  }
+}
+
+function renderChainHint(rules) {
+  const hint = document.getElementById("chain-hint");
+
+  if (rules?.min === 0) {
+    hint.textContent = "Commit with an empty chain to brace and endure.";
+  } else {
+    hint.textContent = "Click a filled slot to remove it.";
+  }
+}
 
   </script>
 
