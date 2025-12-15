@@ -1,0 +1,12 @@
+{
+  "name": "The Blooded",
+  "attributes": {
+    "str": 12,
+    "dex": 12,
+    "int": 12,
+    "wil": 12
+  },
+  "veinscore": 1,
+  "rp": 3,
+  "abilities": []
+}

@@ -102,6 +102,7 @@
 
 <script>
 const API = "http://localhost:8000/step"; // adjust if needed
+const sessionId = crypto.randomUUID();
 
 const log = document.getElementById("log");
 const choicesEl = document.getElementById("choices");
@@ -141,7 +142,9 @@ async function sendChoice(index) {
   const res = await fetch(API, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ choice: index })
+    body: JSON.stringify({
+      session_id: sessionId,
+      choice: index })
   });
 
   const events = await res.json();
@@ -174,7 +177,10 @@ function handleEvents(events) {
 fetch(API, {
   method: "POST",
   headers: {"Content-Type": "application/json"},
-  body: JSON.stringify({ action: "start" })
+  body: JSON.stringify({
+    session_id: sessionId,
+    action: "start"
+  })
 })
 .then(res => res.json())
 .then(handleEvents);

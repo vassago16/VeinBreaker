@@ -2,6 +2,8 @@
 from ui.provider import UIProvider
 
 class WebProvider(UIProvider):
+    is_blocking = False
+
     def __init__(self, session):
         self.session = session
 

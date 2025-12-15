@@ -85,3 +85,53 @@ NARRATION_COMBAT: The strike misses. The target remains unharmed. No damage is d
 NARRATION_COMBAT: The Pulse Strike connects. The impact delivers 2 damage. The enemy's hit points drop from 10 to 8. The action does not break the chain. No statuses are applied. No further actions occur.
 COMBAT_STEP flags={'narration_enabled': True}
 NARRATION_COMBAT: The attack fails. The target evades with precision. No damage is inflicted. The effort is wasted. The chain continues.
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: The Brumklin Skitter is near. It moves quickly. The threat level is immediate. There is no momentum to respond. No damage is applied. The situation remains unchanged.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near. Its movements are erratic, small limbs twitch. The threat level is immediate. No attack occurs. The player remains still. No damage is dealt. The encounter continues, tension in the air.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter shifts nearby. Its posture is low. The encounter is immediate. No attack occurs. No damage is applied. The situation remains tense.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_ERROR: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-************************************************************************************************************************************************************2QUA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. It moves quickly, legs skittering across the ground. The threat is immediate. There is no momentum. No heat. The environment is small. The Skitter observes.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near you. Its small frame shifts, ready to attack. You remain motionless, momentum at zero. The threat level is immediate. The encounter intensifies.
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near. Its small body twitches. The threat level is immediate. You observe it closely, but nothing else occurs. The moment hangs without action. Tension remains.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near. Its presence is immediate. The small creature shifts. You remain stationary. There is no momentum to act. The threat remains.
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: You stand at the encounter. A Brumkin Skitter is near. Its small, quick movements indicate readiness to attack. Your momentum is zero. The threat level is immediate. No action is taken yet. The situation remains tense.
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}
+SESSION_START flags={'narration_enabled': True}

@@ -11,9 +11,13 @@ class Game:
         import play
 
         self.ui = ui
+        self.is_web = not ui.is_blocking
 
         # Call into play.py setup logic
-        self.context = play.create_game_context(ui)
+        self.context = play.create_game_context(
+            ui,
+            skip_character_creation=self.is_web
+        )
 
         self.started = False
 

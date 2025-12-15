@@ -9,6 +9,7 @@ class UIProvider(ABC):
     UI abstraction. The game emits structured events. The provider renders them.
     Providers may be CLI, Discord, Web, etc.
     """
+    is_blocking: bool = True
 
     @abstractmethod
     def scene(self, text: str, data: Optional[Dict[str, Any]] = None) -> None:

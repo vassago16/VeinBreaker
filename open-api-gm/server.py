@@ -1,4 +1,5 @@
 
+import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -28,6 +29,21 @@ class StepRequest(BaseModel):
     session_id: str
     action: str | None = None
     choice: int | None = None
+
+
+@app.get("/character")
+def get_character():
+    """
+    Return the default character payload (from disk if present).
+    """
+    import play
+
+    try:
+        path = play.DEFAULT_CHARACTER_PATH
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return play.create_default_character()
+
 
 @app.post("/step")
 def step(req: StepRequest):

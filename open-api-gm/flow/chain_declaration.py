@@ -32,13 +32,24 @@ def prompt_chain_declaration(state, character, usable_names, ui):
         path = ability.get("path", "")
         ui.system(f" {i}. {a} [{path}] cost:{cost} pool:{pool} :: {effect}")
 
-    raw = ui.text_input("> ").replace(",", " ").split()
-    picks = []
-    for token in raw:
-        if token.isdigit():
-            idx = int(token) - 1
-            if 0 <= idx < len(usable_names):
-                picks.append(usable_names[idx])
-    abilities = picks
+    # Blocking providers can read input immediately; non-blocking emit and wait.
+    if getattr(ui, "is_blocking", True):
+        raw = ui.text_input("> ").replace(",", " ").split()
+        picks = []
+        for token in raw:
+            if token.isdigit():
+                idx = int(token) - 1
+                if 0 <= idx < len(usable_names):
+                    picks.append(usable_names[idx])
+        abilities = picks
+        return abilities
 
-    return abilities
+    ui.choice(
+        "Choose an option:",
+        usable_names
+    )
+    state["awaiting"] = {
+        "type": "chain_declaration",
+        "options": usable_names
+    }
+    return None

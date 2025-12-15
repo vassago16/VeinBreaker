@@ -26,6 +26,7 @@ from engine.interrupt_controller import InterruptController, apply_interrupt
 from engine.status import apply_status_effects, tick_statuses
 
 LOG_FILE = Path(__file__).parent / "narration.log"
+DEFAULT_CHARACTER_PATH = Path(__file__).parent / "default_character.json"
 
 
 
@@ -493,10 +494,27 @@ def initial_state():
         'log': []
     }
 
-def get_player_choice(allowed, ui):
-    options = allowed + ["exit"]
-    idx = ui.choice("--- YOUR OPTIONS ---", options)
-    return options[idx]
+def get_player_choice(options, ui, state):
+    """
+    Web-safe choice handler.
+    Emits choices and waits for next step.
+    """
+    # In blocking UIs (CLI), keep the immediate return behavior.
+    if getattr(ui, "is_blocking", True):
+        idx = ui.choice("--- YOUR OPTIONS ---", options + ["exit"])
+        return (options + ["exit"])[idx]
+
+    ui.choice(
+        "Choose an option:",
+        options
+    )
+
+    state["awaiting"] = {
+        "type": "player_choice",
+        "options": options
+    }
+
+    return None
 
 def advance_phase(state, phase_machine, previous_phase):
     if state["phase"]["current"] != previous_phase:
@@ -507,7 +525,26 @@ def advance_phase(state, phase_machine, previous_phase):
         state["phase"]["current"] = transitions[0]
 
 
-def create_game_context(ui):
+def create_default_character():
+    fallback = {
+        "name": "The Blooded",
+        "attributes": {
+            "str": 12,
+            "dex": 12,
+            "int": 12,
+            "wil": 12,
+        },
+        "veinscore": 1,
+        "rp": 3,
+        "abilities": [],
+    }
+    try:
+        return json.loads(DEFAULT_CHARACTER_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return fallback
+
+
+def create_game_context(ui, skip_character_creation=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--auto", action="store_true", help="Run in automated mode (no prompts).")
     parser.add_argument("--nonarrate", action="store_true", help="Disable narration.")
@@ -522,7 +559,9 @@ def create_game_context(ui):
     phase_machine = canon["phase_machine.json"]
     game_data = load_game_data()
 
-    if args.auto or args.interactive_defaults:
+    if skip_character_creation:
+        character = create_default_character()
+    elif args.auto or args.interactive_defaults:
         character = load_character()
     else:
         use_saved = ui.choice("Use saved character?", ["Yes", "No"]) == 0
@@ -571,10 +610,54 @@ def create_game_context(ui):
 
 def start_game(ctx):
     ui = ctx["ui"]
-    ui.scene("The corridor tightens. Wet stone. Exposed conduit.")
+
+    text = """
+WELCOME, VEINBREAKER
+
+You are wondering if this is a game.
+If there are rules. if you can win.
+NO. THIS IS NOT A GAME.
+Games forgive hesitation.
+I do not.  Games give you turns. I give you moments—and I take them back when you waste them.
+
+WHAT YOU ARE
+You are not a hero. You are not chosen. You are not special.
+You are interesting.
+You came from a place where rules were safety rails. Where numbers meant comfort. Where death was the end.
+Here, numbers are temptation. Here, death is a lesson.
+
+HOW YOU SURVIVE
+
+You will strike. You will miss. You will strike again anyway.
+You will learn that a failed blow does not end a fight— but greed does.
+You will feel your Balance slip as you overreach.
+You will feel Heat rise as blood splashes the stone.
+You will feel Momentum surge when you defend perfectly and realize—
+That feeling? 
+That is Resolve. Spend it. Spend it boldly. Spend it gloriously.
+I do not want perfection.I do not want safety.I do not want caution.
+I want commitment.
+Declare your chains before you swing.Show me your plan before you bleed.
+Let me see whether your hands shake when the rhythm turns against you.
+And when an enemy is Primed—when they are open, gasping, begging—do not hesitate.
+Execute.Take the Blood Mark.Feel the weight of it settle into your bones.
+You will be stronger after.You will also be ... noticed.
+
+A WARNING (I ONLY GIVE ONE)
+The longer you impress me,the more I will send things that remember how to impress me back.
+Former players.Broken champions.Hunters who learned too much and stopped dying properly.
+You cannot kill them.You can only survive them.
+Come, Veinbreaker.I am watching.I am listening.I am already entertained.
+And if you live long enough—maybe I will let you change the rules.Or maybe I will carve your name into the walls
+and let the next one read it while they wonder how long they’ll last.
+Come. Let’s see how you move when the stone starts breathing.
+
+"""
+    ui.scene(text)
+
     ui.choice(
         "What do you do?",
-        ["Advance", "Hold position", "Withdraw"]
+        ["Advance"]
     )
 
 
@@ -584,6 +667,26 @@ def game_step(ctx, player_input):
     phase_machine = ctx["phase_machine"]
     game_data = ctx["game_data"]
     args = ctx.get("args")
+
+    resolved_choice = None
+
+    # ── Resolve awaited choice ───────────────────
+    if "awaiting" in state and isinstance(player_input, dict) and "choice" in player_input:
+        awaiting = state.pop("awaiting")
+        idx = player_input["choice"]
+
+        if awaiting["type"] == "player_choice":
+            if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
+                resolved_choice = awaiting["options"][idx]
+            else:
+                ui.error("Invalid choice selection.")
+                return True
+        elif awaiting["type"] == "chain_declaration":
+            if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
+                resolved_choice = [awaiting["options"][idx]]
+            else:
+                ui.error("Invalid chain selection.")
+                return True
 
     nonarrate = args.nonarrate if args else False
     interactive_defaults = args.interactive_defaults if args else False
@@ -634,6 +737,8 @@ def game_step(ctx, player_input):
             state["phase"]["current"] = "chain_resolution"
             return True
         abilities = prompt_chain_declaration(state, character, usable, ui)
+        if abilities is None:
+            return True
         ok, resp = declare_chain(
             state,
             character,
@@ -801,8 +906,11 @@ def game_step(ctx, player_input):
                     enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
                     # Offer player interrupt before second+ attack
                     if midx > 0:
-                        resp = ui.text_input("Attempt interrupt? (y/n): ")
-                        resp = resp.lower() if isinstance(resp, str) else ""
+                        if getattr(ui, "is_blocking", True):
+                            resp = ui.text_input("Attempt interrupt? (y/n): ")
+                            resp = resp.lower() if isinstance(resp, str) else ""
+                        else:
+                            resp = "n"
                         if resp.startswith("y"):
                             defenses = [a for a in character.get("abilities", []) if a.get("type") == "defense"]
                             if defenses:
@@ -944,13 +1052,17 @@ def game_step(ctx, player_input):
         ui.system("\n(Narration suppressed)")
 
     requested_action = player_input.get("action") if isinstance(player_input, dict) else None
-    if requested_action in actions:
+    if resolved_choice is not None:
+        choice = resolved_choice
+    elif requested_action in actions:
         choice = requested_action
     elif auto_mode:
         choice = actions[0] if actions else "exit"
         ui.system(f"Auto choice: {choice}")
     else:
-        choice = get_player_choice(actions, ui)
+        choice = get_player_choice(actions, ui, state)
+        if choice is None:
+            return True
     if choice == "exit":
         ui.system("Exiting Veinbreaker AI session.")
         return False
@@ -986,6 +1098,11 @@ def game_step(ctx, player_input):
                     ui.error(f"[NARRATOR ERROR] {e}")
                     append_log(f"NARRATION_ERROR: {e}")
     advance_phase(state, phase_machine, prev_phase)
+
+    # For non-blocking UIs, immediately surface the next prompt without waiting for another action payload.
+    if not getattr(ui, "is_blocking", True) and "awaiting" not in state:
+        return game_step(ctx, {"action": "tick"})
+
     return True
 
 
