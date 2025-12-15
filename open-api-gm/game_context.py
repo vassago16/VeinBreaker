@@ -1,6 +1,9 @@
 """
 Central place to host long-lived game-wide singletons (e.g., narrator, narration manager).
 """
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from openai import OpenAI  # type: ignore
@@ -14,11 +17,11 @@ try:
         NARRATOR = _narrator
         NARRATION = NarrationManager(_narrator)
     else:
-        print("[Narrator] No API key found in env or apiKey file; narration disabled.")
+        logger.warning("No API key found in env or apiKey file; narration disabled.")
         NARRATOR = None
         NARRATION = None
 except Exception as e:
-    print(f"[Narrator] Failed to initialize narrator: {e}")
+    logger.error("Failed to initialize narrator: %s", e)
     # In test/offline contexts, narration stays disabled.
     NARRATOR = None
     NARRATION = None

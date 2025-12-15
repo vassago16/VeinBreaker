@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 import unittest
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
@@ -13,6 +12,40 @@ from flow.character_creation import (
     prompt_attributes,
     prompt_ability_choice,
 )  # noqa: E402
+
+
+class DummyUI:
+    def __init__(self, inputs):
+        self.inputs = inputs
+        self.out = []
+
+    def _pop(self):
+        return self.inputs.pop(0) if self.inputs else ""
+
+    def system(self, text, data=None):
+        self.out.append(("system", text))
+
+    def narration(self, text, data=None):
+        self.out.append(("narration", text))
+
+    def loot(self, text, data=None):
+        self.out.append(("loot", text))
+
+    def error(self, text, data=None):
+        self.out.append(("error", text))
+
+    def choice(self, prompt, options, data=None):
+        self.out.append(("choice", prompt, options))
+        try:
+            raw = self._pop()
+            idx = int(raw) - 1
+            return max(0, min(len(options) - 1, idx))
+        except Exception:
+            return 0
+
+    def text_input(self, prompt, data=None):
+        self.out.append(("input", prompt))
+        return self._pop()
 
 
 class TestChainDeclaration(unittest.TestCase):
@@ -31,23 +64,23 @@ class TestChainDeclaration(unittest.TestCase):
             "resources": {"resolve": 3, "resolve_cap": 5},
         }
         usable = ["MoveA", "MoveB", "MoveC"]
-        with patch("builtins.input", return_value="1 3"):
-            picks = prompt_chain_declaration(state, character, usable)
+        ui = DummyUI(["1 3"])
+        picks = prompt_chain_declaration(state, character, usable, ui)
         self.assertEqual(picks, ["MoveA", "MoveC"])
 
 
 class TestCharacterCreationPrompts(unittest.TestCase):
     def test_prompt_choice_single(self):
         options = ["a", "b", "c"]
-        with patch("builtins.input", return_value="2"):
-            choice = prompt_choice(options, show_desc={"a": "A", "b": "B", "c": "C"})
+        ui = DummyUI(["2"])
+        choice = prompt_choice(ui, options, show_desc={"a": "A", "b": "B", "c": "C"})
         self.assertEqual(choice, "b")
 
     def test_prompt_attributes_distribution(self):
         # distribute 2,3,4,0 points; leaves remaining=9 -> noted in output
         inputs = ["2", "3", "4", "0"]
-        with patch("builtins.input", side_effect=inputs):
-            attrs, remaining = prompt_attributes(total_points=18, base=8, max_val=14)
+        ui = DummyUI(inputs)
+        attrs, remaining = prompt_attributes(ui, total_points=18, base=8, max_val=14)
         self.assertEqual(attrs["POW"], 10)
         self.assertEqual(attrs["AGI"], 11)
         self.assertEqual(attrs["MND"], 12)
@@ -59,8 +92,8 @@ class TestCharacterCreationPrompts(unittest.TestCase):
             {"name": "Alpha", "path": "p", "cost": 1, "pool": "resolve", "effect": "x"},
             {"name": "Beta", "path": "p", "cost": 1, "pool": "resolve", "effect": "y"},
         ]
-        with patch("builtins.input", return_value="2"):
-            pick = prompt_ability_choice(abilities, count=1)
+        ui = DummyUI(["2"])
+        pick = prompt_ability_choice(ui, abilities, count=1)
         self.assertEqual(pick, "Beta")
 
 

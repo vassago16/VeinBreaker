@@ -40,3 +40,48 @@ NARRATION_COMBAT: The Pulse Strike connects. The target sustains 4 damage. The e
 NARRATION_COMBAT: The Arcane Step connects. Energy surges through the target. Damage quantified at 6. The enemy's hit points drop from 0 to -6. The chain remains unbroken.
 AFTERMATH flags={'narration_enabled': True}
 NARRATION_AFTER: Brumklin Skitter lies defeated on the ground. The area is quiet. The player has 16 health points, 4 heat, and 5 momentum. There is no further conflict.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near. It shifts, observing. No movement from the player. The threat level remains immediate. No attack occurs. The moment holds in tension. The Skitter waits.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: The Brumklin Skitter lunges forward. Its sharp legs slice through the air. The attack lands, but there is no discernible damage. The encounter remains tense. The threat level is immediate.
+NARRATION_COMBAT: The strike connects. Impact causes a 2-point reduction in enemy health. The enemy goes from 10 to 8 hit points. No additional statuses are applied. No chain is broken.
+NARRATION_COMBAT: The Pulse Strike lands. Damage is measured at 3. The enemy's health decreases from 8 to 5. No statuses are applied. The chain remains intact.
+NARRATION_COMBAT: The Arcane Step lands. The target's defense is insufficient. A force impacts, applying 4 damage. The target's health reduces from 5 to 1. The chain continues.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The attack is launched. The strike misses entirely. The opponent's defense remains intact. The chain continues. No impact recorded.
+NARRATION_COMBAT: The strike connects. Four damage is applied. The enemy's health drops from one to negative three. Chain remains intact.
+NARRATION_COMBAT: The Pulse Strike connects. Impact drives energy into the target. The target’s life forces deplete from -3 to -8. No statuses are applied. The chain is intact.
+NARRATION_COMBAT: The player performs an Arcane Step. The action connects. Six damage is dealt. The enemy's hit points drop from -8 to -14. No statuses are applied. The chain continues.
+AFTERMATH flags={'narration_enabled': True}
+NARRATION_AFTER: Brumklin Skitter lies defeated. The area is quiet. The player has 19 health, 3 heat, and 3 momentum. No further events occur.
+NARRATION_LOOT: A small, worn sigil, inked in muted shades of gray. Its lines pulse faintly, whispering secrets of unseen paths. A reminder of sacrifice and the thin thread binding life to power. Each mark a testament, a silent call to the brave.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter stands near. Its body is small, agile. It scans the environment with quick movements. The threat level is immediate but no action occurs. Tension hangs in the air. No hits, no damage. Just presence.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. It darts forward, legs moving rapidly. No strike occurs. The air shifts but no impact is felt. The threat remains immediate.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The strike misses. The target remains unaffected. The chain continues. Everything else is unchanged.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The attacker attempts a Pulse Strike. The strike fails. The defense exceeds the attack's accuracy. No damage is applied. The chain continues.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The Pulse Strike misses. The intended target evades the attack. No damage is applied. The chain continues.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The attack fails. The Arcane Step does not connect. The enemy remains unharmed. The chain continues.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The strike misses. The attacker’s aim is off. No damage is dealt. The chain remains intact.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The Pulse Strike fails. The impact does not connect. The enemy remains unharmed. The chain continues.
+NARRATION_COMBAT: The attack connects. A fist impacts the target, delivering 3 damage. The enemy's health drops from 10 to 7. No statuses are applied. The chain continues without interruption.
+NARRATION_COMBAT: The Pulse Strike connects. The impact delivers 5 damage. The enemy’s health decreases from 7 to 2. The chain continues.
+SESSION_START flags={'narration_enabled': True}
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: A Brumklin Skitter is near. It skitters forward, twitching. The threat level is immediate. No attack occurs. No damage is applied. The tension remains.
+SCENE_INTRO flags={'narration_enabled': True}
+NARRATION_SCENE: The Brumklin Skitter moves near. Its legs click against the ground. The threat level is immediate. No action is taken. No hit is scored. The encounter remains tense.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The strike misses. The target remains unharmed. No damage is dealt. The chain continues. Balance remains at two.
+NARRATION_COMBAT: The Pulse Strike connects. The impact delivers 2 damage. The enemy's hit points drop from 10 to 8. The action does not break the chain. No statuses are applied. No further actions occur.
+COMBAT_STEP flags={'narration_enabled': True}
+NARRATION_COMBAT: The attack fails. The target evades with precision. No damage is inflicted. The effort is wasted. The chain continues.

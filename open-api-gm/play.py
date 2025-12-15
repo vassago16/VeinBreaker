@@ -6,6 +6,8 @@ import random
 from copy import deepcopy
 from ai.narrator import narrate
 from game_context import NARRATOR, NARRATION
+from ui.ui import UI
+from ui.cli_provider import CLIProvider
 from engine.phases import allowed_actions, tick_cooldowns, list_usable_abilities
 from engine.apply import apply_action
 from flow.character_creation import run_character_creation
@@ -24,6 +26,9 @@ from engine.interrupt_controller import InterruptController, apply_interrupt
 from engine.status import apply_status_effects, tick_statuses
 
 LOG_FILE = Path(__file__).parent / "narration.log"
+
+
+
 
 
 def append_log(entry: str) -> None:
@@ -488,21 +493,10 @@ def initial_state():
         'log': []
     }
 
-def get_player_choice(allowed):
+def get_player_choice(allowed, ui):
     options = allowed + ["exit"]
-    print('\n--- YOUR OPTIONS ---')
-    for i, a in enumerate(options):
-        print(f"{i+1}. {a}")
-
-    while True:
-        choice = input('> ').strip()
-        if choice.isdigit():
-            idx = int(choice) - 1
-            if 0 <= idx < len(options):
-                return options[idx]
-        if choice in options:
-            return choice
-        print('Invalid choice.')
+    idx = ui.choice("--- YOUR OPTIONS ---", options)
+    return options[idx]
 
 def advance_phase(state, phase_machine, previous_phase):
     if state["phase"]["current"] != previous_phase:
@@ -513,7 +507,7 @@ def advance_phase(state, phase_machine, previous_phase):
         state["phase"]["current"] = transitions[0]
 
 
-def main():
+def create_game_context(ui):
     parser = argparse.ArgumentParser()
     parser.add_argument("--auto", action="store_true", help="Run in automated mode (no prompts).")
     parser.add_argument("--nonarrate", action="store_true", help="Disable narration.")
@@ -525,20 +519,20 @@ def main():
     args, _ = parser.parse_known_args()
 
     canon = load_canon()
-    phase_machine = canon['phase_machine.json']
+    phase_machine = canon["phase_machine.json"]
     game_data = load_game_data()
 
     if args.auto or args.interactive_defaults:
         character = load_character()
     else:
-        print("Use saved character? (y/n)")
-        use_saved = input("> ").strip().lower().startswith("y")
+        use_saved = ui.choice("Use saved character?", ["Yes", "No"]) == 0
         if use_saved:
             character = load_character()
         else:
             character = run_character_creation(
                 canon,
-                narrator=None  # or narrator_stub if you want flavor text
+                narrator=None,  # or narrator_stub if you want flavor text
+                ui=ui,
             )
             save_character(character)
 
@@ -564,408 +558,448 @@ def main():
                 if path and path in pool_map:
                     ability["pool"] = pool_map[path]
 
-    print('Veinbreaker AI Session Started.\n')
+    ui.system("Veinbreaker AI Session Started.\n")
+
+    return {
+        "ui": ui,
+        "state": state,
+        "phase_machine": phase_machine,
+        "game_data": game_data,
+        "args": args,
+    }
+
+
+def start_game(ctx):
+    ui = ctx["ui"]
+    ui.scene("The corridor tightens. Wet stone. Exposed conduit.")
+    ui.choice(
+        "What do you do?",
+        ["Advance", "Hold position", "Withdraw"]
+    )
+
+
+def game_step(ctx, player_input):
+    state = ctx["state"]
+    ui = ctx["ui"]
+    phase_machine = ctx["phase_machine"]
+    game_data = ctx["game_data"]
+    args = ctx.get("args")
+
+    nonarrate = args.nonarrate if args else False
+    interactive_defaults = args.interactive_defaults if args else False
+    auto_mode = args.auto if args else False
+
+    def round_upkeep():
+        # decrement cooldowns once per round
+        tick_cooldowns(state)
+        ch = state["party"]["members"][0]
+        res = ch.get("resources", {})
+        # resolve regen +2 up to cap
+        cap = res.get("resolve_cap", res.get("resolve", 0))
+        before = res.get("resolve", 0)
+        regen = 2
+        res["resolve"] = min(cap, before + regen)
+        after = res["resolve"]
+        state["phase"]["resolve_regen"] = (before, regen, after)
+        # balance reset to 0
+        res["balance"] = 0
+        # momentum resets each turn
+        res["momentum"] = 0
+        # heat reset: if prior heat >=3 set to 2 else 0
+        prior_heat = res.get("heat", 0)
+        res["heat"] = 2 if prior_heat >= 3 else 0
+        # reset enemy interrupt budgets each round
+        for en in state.get("enemies", []):
+            en["interrupts_used"] = 0
+            en["rp"] = en.get("rp_pool", 2)
+            tick_statuses(en)
+        tick_statuses(ch)
+
+    # start-of-round upkeep triggered when entering chain_declaration and not yet started
+    if state["phase"]["current"] == "chain_declaration" and not state["phase"].get("round_started"):
+        state["phase"]["round"] += 1
+        round_upkeep()
+        state["phase"]["round_started"] = True
+
+    current_phase = state["phase"]["current"]
+    if current_phase == "chain_declaration":
+        character = state["party"]["members"][0]
+        res = character.get("resources", {})
+        hp_cur = res.get("hp", "?")
+        hp_max = res.get("hp_max") or res.get("max_hp") or res.get("maxHp") or hp_cur
+        ui.system(f"PC HP: {hp_cur}/{hp_max} | {format_status_summary(character)}")
+        usable = list_usable_abilities(state)
+        if not usable:
+            ui.system("No usable abilities available (all on cooldown).")
+            state["phase"]["current"] = "chain_resolution"
+            return True
+        abilities = prompt_chain_declaration(state, character, usable, ui)
+        ok, resp = declare_chain(
+            state,
+            character,
+            abilities,
+            resolve_spent=0,
+            stabilize=False
+        )
+        if not ok:
+            ui.error(f"Invalid chain: {resp}")
+            return True
+        # set cooldowns for declared abilities
+        for ability in character.get("abilities", []):
+            if ability.get("name") in abilities:
+                cd = ability.get("base_cooldown", ability.get("cooldown", 0) or 0)
+                ability["base_cooldown"] = cd
+                ability["cooldown"] = cd
+                ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
+        state["phase"]["current"] = "chain_resolution"
+        return True
+
+    if current_phase == "chain_resolution":
+        character = state["party"]["members"][0]
+        enemies = state.get("enemies", [])
+        chain = character.get("chain", {})
+        # single attack & defense roll per chain (player & enemy)
+        chain_attack_d20 = roll("1d20")
+        ic = InterruptController(enemies[0] if enemies else {})
+        enemy = enemies[0] if enemies else None
+        enemy_dv = 0
+        enemy_dv_breakdown = {}
+        if enemy:
+            dv_base = enemy.get("dv_base") or enemy.get("stat_block", {}).get("defense", {}).get("dv_base", 0)
+            enemy_dv = dv_base + enemy.get("idf", 0) + enemy.get("momentum", 0)
+            enemy_dv_breakdown = {
+                "dv_base": dv_base,
+                "idf": enemy.get("idf", 0),
+                "momentum": enemy.get("momentum", 0),
+            }
+        ui.system(f"Chain contest: player d20={chain_attack_d20} vs enemy DV={enemy_dv} (dv/idf/mom={enemy_dv_breakdown})")
+
+        for idx, ability_name in enumerate(chain.get("abilities", [])):
+            ability = next((a for a in character.get("abilities", []) if a.get("name") == ability_name), None)
+            if not ability:
+                continue
+            # snapshot resources before action
+            res_before = character.get("resources", {}).copy()
+            pre_enemy_hp = enemies[0].get("hp", 10) if enemies else None
+            balance_bonus = 0 if idx == 0 else character.get("resources", {}).get("balance", 0)
+            pending = resolve_action_step(state, character, ability, attack_roll=chain_attack_d20, balance_bonus=balance_bonus)
+            result = apply_action_effects(state, character, enemies, defense_d20=None)
+            to_hit = pending.get("to_hit") if isinstance(pending, dict) else None
+            attack_d20 = pending.get("attack_d20") if isinstance(pending, dict) else None
+            damage_roll = pending.get("damage_roll") if isinstance(pending, dict) else None
+            dmg = None
+            post_enemy_hp = pre_enemy_hp
+            if enemies:
+                post_enemy_hp = enemies[0].get("hp", pre_enemy_hp)
+                if pre_enemy_hp is not None and post_enemy_hp is not None:
+                    dmg = pre_enemy_hp - post_enemy_hp
+            res_after = character.get("resources", {})
+            resolve_spent = max(0, res_before.get("resolve", 0) - res_after.get("resolve", 0))
+            heat_now = res_after.get("heat", 0)
+            balance_now = res_after.get("balance", 0)
+            momentum_now = res_after.get("momentum", 0)
+            resolve_now = res_after.get("resolve", 0)
+            defense_d20 = None
+            defense_roll = None
+            statuses_applied = []
+            if isinstance(state.get("log"), list) and state["log"]:
+                last = state["log"][-1]
+                if isinstance(last, dict) and "action_effects" in last:
+                    aelog = last["action_effects"]
+                    defense_d20 = aelog.get("defense_d20")
+                    defense_roll = aelog.get("defense_roll")
+                    statuses_applied = aelog.get("statuses_applied", [])
+
+            ui.system(
+                f"Resolved {ability_name}:\n"
+                f"  to_hit={to_hit} vs defense={defense_roll} (d20={defense_d20})\n"
+                f"  dmg_roll={damage_roll}, damage={dmg}, enemy_hp={post_enemy_hp}\n"
+                f"  resolve_spent={resolve_spent}, resolve_now={resolve_now}, "
+                f"heat={heat_now}, balance={balance_now}, momentum={momentum_now}\n"
+                f"  attack_d20={attack_d20}"
+                + (f"\n  statuses_applied={statuses_applied}" if statuses_applied else "")
+            )
+            # Emit narration attached by action_resolution, if present; otherwise try now
+            if state.get("log"):
+                last = state["log"][-1]
+                if "action_effects" in last:
+                    last["action_effects"].setdefault("chain_index", idx + 1)
+                narration = last.get("narration")
+                if narration:
+                    ui.narration(narration, data=last)
+                    append_log(f"NARRATION_COMBAT: {narration}")
+                elif state.get("flags", {}).get("narration_enabled"):
+                    log_flags("COMBAT_STEP", state)
+                    effects = last.get("action_effects")
+                    if not effects:
+                        append_log("NARRATION_SKIP: no action_effects")
+                    elif not NARRATION and not NARRATOR:
+                        append_log("NARRATION_SKIP: no narrator available")
+                    elif effects and NARRATION:
+                        try:
+                            narration = NARRATION.combat_step(
+                                action_effects=effects,
+                                chain_index=effects.get("chain_index", idx + 1),
+                            )
+                            if narration:
+                                last["narration"] = narration
+                                ui.narration(narration, data=last)
+                                append_log(f"NARRATION_COMBAT: {narration}")
+                            else:
+                                append_log("NARRATION_EMPTY: combat_step returned None/empty")
+                        except Exception as e:
+                            last["narration_error"] = str(e)
+                            ui.error(f"[NARRATOR ERROR] {e}", data=last)
+                            append_log(f"NARRATION_ERROR: {e}")
+                    elif effects and NARRATOR:
+                        try:
+                            payload = build_narration_payload(state=state, effects=effects)
+                            narration = NARRATOR.narrate(payload, scene_tag="combat")
+                            last["narration"] = narration
+                            ui.narration(narration, data=last)
+                            append_log(f"NARRATION_COMBAT: {narration}")
+                            if not narration:
+                                append_log("NARRATION_EMPTY: direct narrate returned empty")
+                        except Exception as e:
+                            last["narration_error"] = str(e)
+                            ui.error(f"[NARRATOR ERROR] {e}", data=last)
+                            append_log(f"NARRATION_ERROR: {e}")
+                elif last.get("narration_error"):
+                    ui.error(f"[NARRATOR ERROR] {last.get('narration_error')}", data=last)
+                    append_log(f"NARRATION_ERROR: {last.get('narration_error')}")
+            result = check_exposure(character)
+            if result:
+                state["log"].append({"exposure": result})
+            # Interrupt window after first action in chain
+            if enemies and len(enemies) > 0 and ic.should_interrupt(state, idx):
+                hit, dmg, rolls = apply_interrupt(state, character, enemies[0])
+                atk_mod = enemies[0].get("attack_mod", 0)
+                def_mod = character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
+                ui.system(f"Interrupt contest: enemy ({rolls['atk_d20']}+{atk_mod}={rolls['atk_total']}) vs player ({rolls['def_d20']}+{def_mod}={rolls['def_total']})")
+                if hit and dmg > 0:
+                    ui.system(f"Enemy INTERRUPT hits for {dmg} dmg. Chain broken.")
+                    break
+                elif hit and rolls["atk_total"] - rolls["def_total"] >= 5:
+                    ui.system("Enemy INTERRUPT breaks the chain (MoD>=5).")
+                    break
+                else:
+                    ui.system("Enemy interrupt fails.")
+        if enemies:
+            ui.system(format_enemy_state(enemies[0]))
+        # simple enemy turn if alive
+        if enemies:
+            enemy_hp = enemies[0].get("hp", 0)
+            if enemy_hp > 0:
+                enemy = enemies[0]
+                chain_moves = build_enemy_chain(enemy)
+                for midx, move in enumerate(chain_moves):
+                    move = move or {}
+                    move_name = move.get("name", move.get("id", "Enemy move"))
+                    to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
+                    atk_mod = enemy.get("attack_mod", 0)
+                    enemy_to_hit_d20 = roll("1d20")
+                    enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
+                    # Offer player interrupt before second+ attack
+                    if midx > 0:
+                        resp = ui.text_input("Attempt interrupt? (y/n): ")
+                        resp = resp.lower() if isinstance(resp, str) else ""
+                        if resp.startswith("y"):
+                            defenses = [a for a in character.get("abilities", []) if a.get("type") == "defense"]
+                            if defenses:
+                                idx_choice = ui.choice("Choose defense ability:", [d.get("name") for d in defenses])
+                                defense_ability = defenses[idx_choice] if 0 <= idx_choice < len(defenses) else defenses[0]
+                                # pay costs: base 1 RP plus ability cost/pool
+                                character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - 1)
+                                cost = defense_ability.get("cost", 0)
+                                pool = defense_ability.get("pool")
+                                if cost and pool and pool in character.get("pools", {}):
+                                    character["pools"][pool] = max(0, character["pools"][pool] - cost)
+                                elif cost:
+                                    character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - cost)
+                                # apply defense ability on_use effects (e.g., reduce_damage)
+                                apply_effect_list(defense_ability.get("effects", {}).get("on_use", []), actor=character, enemy=enemy, default_target="self")
+                                # store any on_success effects for when damage is fully prevented
+                                if defense_ability.get("effects", {}).get("on_success"):
+                                    character.setdefault("damage_reduction_success", []).extend(defense_ability["effects"]["on_success"])
+                                # use the player's original chain attack d20 for the interrupt attempt
+                                int_d20 = chain_attack_d20
+                                int_total = int_d20 + character["resources"].get("momentum", 0)
+                                ui.system(f"Player interrupt attempt: d20={int_d20}+momentum={character['resources'].get('momentum',0)} => {int_total}")
+                                # simple resolution: compare to the enemy's planned attack total
+                                if int_total >= enemy_to_hit:
+                                    ui.system("Interrupt succeeds! Enemy chain ends.")
+                                    break
+                                else:
+                                    ui.system(f"Interrupt fails (enemy atk {enemy_to_hit}).")
+                            else:
+                                ui.system("No defense abilities available.")
+                    # proceed with move
+                    player_def_d20 = roll("1d20")
+                    tb = character.get("temp_bonuses", {}) or {}
+                    player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0) + tb.get("idf", 0) + tb.get("defense", 0)
+                    if enemy_to_hit > player_def:
+                        counter_dmg = enemy_move_damage(enemy, move)
+                        reduction = compute_damage_reduction(character)
+                        dmg_after = max(0, counter_dmg - reduction)
+                        character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg_after)
+                        # apply on_success effects if fully prevented
+                        if dmg_after == 0 and character.get("damage_reduction_success"):
+                            apply_effect_list(character.pop("damage_reduction_success", []), actor=character, enemy=enemy, default_target="self")
+                        on_hit_effects = move.get("on_hit", {}).get("effects", [])
+                        applied = apply_status_effects(character, on_hit_effects)
+                        applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
+                        ui.system(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> HIT for {counter_dmg - reduction} (raw {counter_dmg}, reduced {reduction}). PC HP {character['resources']['hp']}.{applied_note}")
+                    else:
+                        ui.system(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> MISS.")
+        # check end conditions and loop combat
+        if enemies and enemies[0].get("hp", 0) <= 0:
+            ui.system("Enemy defeated.")
+            loot_items_payload = []
+            # Aftermath narration hook
+            if state.get("flags", {}).get("narration_enabled") and NARRATION:
+                log_flags("AFTERMATH", state)
+                try:
+                    enemy_name = enemies[0].get("name", enemies[0].get("id", "Enemy"))
+                    aftermath_text = NARRATION.aftermath(
+                        location="encounter",
+                        enemies_defeated=[{"name": enemy_name, "condition": "defeated"}],
+                        player_state={
+                            "hp": character["resources"].get("hp"),
+                            "heat": character["resources"].get("heat"),
+                            "balance": character["resources"].get("balance"),
+                            "momentum": character["resources"].get("momentum"),
+                        },
+                        environment_change="quiet",
+                    )
+                    if aftermath_text:
+                        state.setdefault("log", []).append({"aftermath_narration": aftermath_text})
+                        ui.narration(aftermath_text)
+                        append_log(f"NARRATION_AFTER: {aftermath_text}")
+                except Exception as e:
+                    ui.error(f"[NARRATOR ERROR] {e}")
+                    append_log(f"NARRATION_ERROR: {e}")
+            loot = select_loot(game_data, enemies[0])
+            if loot:
+                state.setdefault("loot", []).append(loot)
+                loot_items_payload.append({
+                    "name": loot.get("name"),
+                    "tier": loot.get("tier"),
+                    "rarity": loot.get("rarity"),
+                    "type": loot.get("type"),
+                })
+                lname = loot.get("name", "Loot")
+                lrar = loot.get("rarity", "?")
+                ltier = loot.get("tier", "?")
+                ui.loot(f"Loot gained: {lname} (Tier {ltier}, {lrar})", data=loot)
+                vs = veinscore_value(lname, game_data)
+                if vs:
+                    total_vs = award_veinscore(character, vs)
+                    ui.system(f"Gained +{vs} Veinscore from {lname}. Total Veinscore: {total_vs}.")
+            # Always drop 1-2 Faint Vein Sigils
+            faint_count = random.randint(1, 2)
+            faint_value = veinscore_value("Faint Vein Sigil", game_data) or 1
+            total_faint_vs = faint_count * faint_value
+            award_veinscore(character, total_faint_vs)
+            state.setdefault("loot", []).extend([{"name": "Faint Vein Sigil", "tier": 1, "veinscore": faint_value}] * faint_count)
+            loot_items_payload.extend(
+                [{"name": "Faint Vein Sigil", "tier": 1, "type": "veinscore_token", "veinscore": faint_value}]
+                * faint_count
+            )
+            ui.loot(
+                f"Loot gained: {faint_count}x Faint Vein Sigil (+{total_faint_vs} Veinscore). Total Veinscore: {character['resources'].get('veinscore', 0)}.",
+                data={"faint_count": faint_count, "veinscore_value": faint_value},
+            )
+            # Loot narration after loot resolution
+            if state.get("flags", {}).get("narration_enabled") and NARRATION:
+                try:
+                    loot_text = NARRATION.loot_drop(
+                        loot_items=loot_items_payload,
+                        veinscore_total=character["resources"].get("veinscore", 0),
+                    )
+                    if loot_text:
+                        append_log(f"NARRATION_LOOT: {loot_text}")
+                        ui.loot(loot_text, data={"loot": loot_items_payload})
+                except Exception as e:
+                    append_log(f"NARRATION_ERROR: {e}")
+            enemies.clear()
+            state["phase"]["current"] = "out_of_combat"
+        elif character["resources"].get("hp", 0) <= 0:
+            ui.system("PC defeated.")
+            state["phase"]["current"] = "out_of_combat"
+        else:
+            state["phase"]["current"] = "chain_declaration"
+            state["phase"]["round_started"] = False
+        # heat resets when chain ends (unless carried via stabilize rule above; we already set on round start)
+        character["resources"]["heat"] = character["resources"].get("heat", 0) if character["resources"].get("heat", 0) <= 2 else 0
+        return True
+
+    actions = allowed_actions(state, phase_machine)
+
+    if not (nonarrate or interactive_defaults):
+        try:
+            narrate(state, actions)
+        except Exception as e:
+            ui.error(f"[Narrator error: {e}]")
+    else:
+        ui.system("\n(Narration suppressed)")
+
+    requested_action = player_input.get("action") if isinstance(player_input, dict) else None
+    if requested_action in actions:
+        choice = requested_action
+    elif auto_mode:
+        choice = actions[0] if actions else "exit"
+        ui.system(f"Auto choice: {choice}")
+    else:
+        choice = get_player_choice(actions, ui)
+    if choice == "exit":
+        ui.system("Exiting Veinbreaker AI session.")
+        return False
+    prev_phase = state["phase"]["current"]
+    apply_action(state, choice)
+    if choice in ("enter_encounter", "generate_encounter"):
+        if state.get("enemies"):
+            enemy = state["enemies"][0]
+            ui.system(format_enemy_preview(enemy))
+            # Scene intro narration
+            if state.get("flags", {}).get("narration_enabled") and NARRATION:
+                log_flags("SCENE_INTRO", state)
+                try:
+                    scene_text = NARRATION.scene_intro(
+                        location=enemy.get("location", "encounter"),
+                        environment_tags=enemy.get("tags", []),
+                        enemy_presence={
+                            "count": 1,
+                            "type": enemy.get("name", enemy.get("id", "Enemy")),
+                            "distance": "near",
+                        },
+                        player_state={
+                            "momentum": state["party"]["members"][0]["resources"].get("momentum", 0),
+                            "heat": state["party"]["members"][0]["resources"].get("heat", 0),
+                            "balance": state["party"]["members"][0]["resources"].get("balance", 0),
+                        },
+                        threat_level="immediate",
+                    )
+                    if scene_text:
+                        ui.narration(scene_text)
+                        append_log(f"NARRATION_SCENE: {scene_text}")
+                except Exception as e:
+                    ui.error(f"[NARRATOR ERROR] {e}")
+                    append_log(f"NARRATION_ERROR: {e}")
+    advance_phase(state, phase_machine, prev_phase)
+    return True
+
+
+def main():
+    ui = UI(CLIProvider())
+    ctx = create_game_context(ui)
+
+    start_game(ctx)
 
     while True:
-        def round_upkeep():
-            # decrement cooldowns once per round
-            tick_cooldowns(state)
-            ch = state["party"]["members"][0]
-            res = ch.get("resources", {})
-            # resolve regen +2 up to cap
-            cap = res.get("resolve_cap", res.get("resolve", 0))
-            before = res.get("resolve", 0)
-            regen = 2
-            res["resolve"] = min(cap, before + regen)
-            after = res["resolve"]
-            state["phase"]["resolve_regen"] = (before, regen, after)
-            # balance reset to 0
-            res["balance"] = 0
-            # momentum resets each turn
-            res["momentum"] = 0
-            # heat reset: if prior heat >=3 set to 2 else 0
-            prior_heat = res.get("heat", 0)
-            res["heat"] = 2 if prior_heat >= 3 else 0
-            # reset enemy interrupt budgets each round
-            for en in state.get("enemies", []):
-                en["interrupts_used"] = 0
-                en["rp"] = en.get("rp_pool", 2)
-                tick_statuses(en)
-            tick_statuses(ch)
-
-        # start-of-round upkeep triggered when entering chain_declaration and not yet started
-        if state["phase"]["current"] == "chain_declaration" and not state["phase"].get("round_started"):
-            state["phase"]["round"] += 1
-            round_upkeep()
-            state["phase"]["round_started"] = True
-
-        current_phase = state["phase"]["current"]
-        if current_phase == "chain_declaration":
-            character = state["party"]["members"][0]
-            res = character.get("resources", {})
-            hp_cur = res.get("hp", "?")
-            hp_max = res.get("hp_max") or res.get("max_hp") or res.get("maxHp") or hp_cur
-            print(f"PC HP: {hp_cur}/{hp_max} | {format_status_summary(character)}")
-            usable = list_usable_abilities(state)
-            if not usable:
-                print("No usable abilities available (all on cooldown).")
-                state["phase"]["current"] = "chain_resolution"
-                continue
-            abilities = prompt_chain_declaration(state, character, usable)
-            ok, resp = declare_chain(
-                state,
-                character,
-                abilities,
-                resolve_spent=0,
-                stabilize=False
-            )
-            if not ok:
-                print(f"Invalid chain: {resp}")
-                continue
-            else:
-                # set cooldowns for declared abilities
-                for ability in character.get("abilities", []):
-                    if ability.get("name") in abilities:
-                        cd = ability.get("base_cooldown", ability.get("cooldown", 0) or 0)
-                        ability["base_cooldown"] = cd
-                        ability["cooldown"] = cd
-                        ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
-                state["phase"]["current"] = "chain_resolution"
-            continue
-
-        if current_phase == "chain_resolution":
-            character = state["party"]["members"][0]
-            enemies = state.get("enemies", [])
-            chain = character.get("chain", {})
-            # single attack & defense roll per chain (player & enemy)
-            chain_attack_d20 = roll("1d20")
-            ic = InterruptController(enemies[0] if enemies else {})
-            enemy = enemies[0] if enemies else None
-            enemy_dv = 0
-            enemy_dv_breakdown = {}
-            if enemy:
-                dv_base = enemy.get("dv_base") or enemy.get("stat_block", {}).get("defense", {}).get("dv_base", 0)
-                enemy_dv = dv_base + enemy.get("idf", 0) + enemy.get("momentum", 0)
-                enemy_dv_breakdown = {
-                    "dv_base": dv_base,
-                    "idf": enemy.get("idf", 0),
-                    "momentum": enemy.get("momentum", 0),
-                }
-            print(f"Chain contest: player d20={chain_attack_d20} vs enemy DV={enemy_dv} (dv/idf/mom={enemy_dv_breakdown})")
-
-            for idx, ability_name in enumerate(chain.get("abilities", [])):
-                ability = next((a for a in character.get("abilities", []) if a.get("name") == ability_name), None)
-                if not ability:
-                    continue
-                # snapshot resources before action
-                res_before = character.get("resources", {}).copy()
-                pre_enemy_hp = enemies[0].get("hp", 10) if enemies else None
-                balance_bonus = 0 if idx == 0 else character.get("resources", {}).get("balance", 0)
-                pending = resolve_action_step(state, character, ability, attack_roll=chain_attack_d20, balance_bonus=balance_bonus)
-                result = apply_action_effects(state, character, enemies, defense_d20=None)
-                to_hit = pending.get("to_hit") if isinstance(pending, dict) else None
-                attack_d20 = pending.get("attack_d20") if isinstance(pending, dict) else None
-                damage_roll = pending.get("damage_roll") if isinstance(pending, dict) else None
-                dmg = None
-                post_enemy_hp = pre_enemy_hp
-                if enemies:
-                    post_enemy_hp = enemies[0].get("hp", pre_enemy_hp)
-                    if pre_enemy_hp is not None and post_enemy_hp is not None:
-                        dmg = pre_enemy_hp - post_enemy_hp
-                res_after = character.get("resources", {})
-                resolve_spent = max(0, res_before.get("resolve", 0) - res_after.get("resolve", 0))
-                heat_now = res_after.get("heat", 0)
-                balance_now = res_after.get("balance", 0)
-                momentum_now = res_after.get("momentum", 0)
-                resolve_now = res_after.get("resolve", 0)
-                defense_d20 = None
-                defense_roll = None
-                statuses_applied = []
-                if isinstance(state.get("log"), list) and state["log"]:
-                    last = state["log"][-1]
-                    if isinstance(last, dict) and "action_effects" in last:
-                        aelog = last["action_effects"]
-                        defense_d20 = aelog.get("defense_d20")
-                        defense_roll = aelog.get("defense_roll")
-                        statuses_applied = aelog.get("statuses_applied", [])
-
-                print(
-                    f"Resolved {ability_name}:\n"
-                    f"  to_hit={to_hit} vs defense={defense_roll} (d20={defense_d20})\n"
-                    f"  dmg_roll={damage_roll}, damage={dmg}, enemy_hp={post_enemy_hp}\n"
-                    f"  resolve_spent={resolve_spent}, resolve_now={resolve_now}, "
-                    f"heat={heat_now}, balance={balance_now}, momentum={momentum_now}\n"
-                    f"  attack_d20={attack_d20}"
-                    + (f"\n  statuses_applied={statuses_applied}" if statuses_applied else "")
-                )
-                # Emit narration attached by action_resolution, if present; otherwise try now
-                if state.get("log"):
-                    last = state["log"][-1]
-                    if "action_effects" in last:
-                        last["action_effects"].setdefault("chain_index", idx + 1)
-                    narration = last.get("narration")
-                    if narration:
-                        print(f"\n[NARRATOR]\n{narration}\n")
-                        append_log(f"NARRATION_COMBAT: {narration}")
-                    elif state.get("flags", {}).get("narration_enabled"):
-                        log_flags("COMBAT_STEP", state)
-                        effects = last.get("action_effects")
-                        if not effects:
-                            append_log("NARRATION_SKIP: no action_effects")
-                        elif not NARRATION and not NARRATOR:
-                            append_log("NARRATION_SKIP: no narrator available")
-                        elif effects and NARRATION:
-                            try:
-                                narration = NARRATION.combat_step(
-                                    action_effects=effects,
-                                    chain_index=effects.get("chain_index", idx + 1),
-                                )
-                                if narration:
-                                    last["narration"] = narration
-                                    print(f"\n[NARRATOR]\n{narration}\n")
-                                    append_log(f"NARRATION_COMBAT: {narration}")
-                                else:
-                                    append_log("NARRATION_EMPTY: combat_step returned None/empty")
-                            except Exception as e:
-                                last["narration_error"] = str(e)
-                                print(f"\n[NARRATOR ERROR]\n{e}\n")
-                                append_log(f"NARRATION_ERROR: {e}")
-                        elif effects and NARRATOR:
-                            try:
-                                payload = build_narration_payload(state=state, effects=effects)
-                                narration = NARRATOR.narrate(payload, scene_tag="combat")
-                                last["narration"] = narration
-                                print(f"\n[NARRATOR]\n{narration}\n")
-                                append_log(f"NARRATION_COMBAT: {narration}")
-                                if not narration:
-                                    append_log("NARRATION_EMPTY: direct narrate returned empty")
-                            except Exception as e:
-                                last["narration_error"] = str(e)
-                                print(f"\n[NARRATOR ERROR]\n{e}\n")
-                                append_log(f"NARRATION_ERROR: {e}")
-                    elif last.get("narration_error"):
-                        print(f"\n[NARRATOR ERROR]\n{last.get('narration_error')}\n")
-                        append_log(f"NARRATION_ERROR: {last.get('narration_error')}")
-                result = check_exposure(character)
-                if result:
-                    state["log"].append({"exposure": result})
-                # Interrupt window after first action in chain
-                if enemies and len(enemies) > 0 and ic.should_interrupt(state, idx):
-                    hit, dmg, rolls = apply_interrupt(state, character, enemies[0])
-                    atk_mod = enemies[0].get("attack_mod", 0)
-                    def_mod = character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
-                    print(f"Interrupt contest: enemy ({rolls['atk_d20']}+{atk_mod}={rolls['atk_total']}) vs player ({rolls['def_d20']}+{def_mod}={rolls['def_total']})")
-                    if hit and dmg > 0:
-                        print(f"Enemy INTERRUPT hits for {dmg} dmg. Chain broken.")
-                        break
-                    elif hit and rolls["atk_total"] - rolls["def_total"] >= 5:
-                        print("Enemy INTERRUPT breaks the chain (MoD>=5).")
-                        break
-                    else:
-                        print("Enemy interrupt fails.")
-            if enemies:
-                print(format_enemy_state(enemies[0]))
-            # simple enemy turn if alive
-            if enemies:
-                enemy_hp = enemies[0].get("hp", 0)
-                if enemy_hp > 0:
-                    enemy = enemies[0]
-                    chain_moves = build_enemy_chain(enemy)
-                    for midx, move in enumerate(chain_moves):
-                        move = move or {}
-                        move_name = move.get("name", move.get("id", "Enemy move"))
-                        to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
-                        atk_mod = enemy.get("attack_mod", 0)
-                        enemy_to_hit_d20 = roll("1d20")
-                        enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
-                        # Offer player interrupt before second+ attack
-                        if midx > 0:
-                            resp = input("Attempt interrupt? (y/n): ").strip().lower()
-                            if resp.startswith("y"):
-                                defenses = [a for a in character.get("abilities", []) if a.get("type") == "defense"]
-                                if defenses:
-                                    print("Choose defense ability:")
-                                    for i, d in enumerate(defenses):
-                                        print(f"{i+1}. {d.get('name')}")
-                                    choice = input("> ").strip()
-                                    try:
-                                        idx_choice = int(choice) - 1
-                                        defense_ability = defenses[idx_choice] if 0 <= idx_choice < len(defenses) else defenses[0]
-                                    except Exception:
-                                        defense_ability = defenses[0]
-                                    # pay costs: base 1 RP plus ability cost/pool
-                                    character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - 1)
-                                    cost = defense_ability.get("cost", 0)
-                                    pool = defense_ability.get("pool")
-                                    if cost and pool and pool in character.get("pools", {}):
-                                        character["pools"][pool] = max(0, character["pools"][pool] - cost)
-                                    elif cost:
-                                        character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - cost)
-                                    # apply defense ability on_use effects (e.g., reduce_damage)
-                                    apply_effect_list(defense_ability.get("effects", {}).get("on_use", []), actor=character, enemy=enemy, default_target="self")
-                                    # store any on_success effects for when damage is fully prevented
-                                    if defense_ability.get("effects", {}).get("on_success"):
-                                        character.setdefault("damage_reduction_success", []).extend(defense_ability["effects"]["on_success"])
-                                    # use the player's original chain attack d20 for the interrupt attempt
-                                    int_d20 = chain_attack_d20
-                                    int_total = int_d20 + character["resources"].get("momentum", 0)
-                                    print(f"Player interrupt attempt: d20={int_d20}+momentum={character['resources'].get('momentum',0)} => {int_total}")
-                                    # simple resolution: compare to the enemy's planned attack total
-                                    if int_total >= enemy_to_hit:
-                                        print("Interrupt succeeds! Enemy chain ends.")
-                                        break
-                                    else:
-                                        print(f"Interrupt fails (enemy atk {enemy_to_hit}).")
-                                else:
-                                    print("No defense abilities available.")
-                        # proceed with move
-                        player_def_d20 = roll("1d20")
-                        tb = character.get("temp_bonuses", {}) or {}
-                        player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0) + tb.get("idf", 0) + tb.get("defense", 0)
-                        if enemy_to_hit > player_def:
-                            counter_dmg = enemy_move_damage(enemy, move)
-                            reduction = compute_damage_reduction(character)
-                            dmg_after = max(0, counter_dmg - reduction)
-                            character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg_after)
-                            # apply on_success effects if fully prevented
-                            if dmg_after == 0 and character.get("damage_reduction_success"):
-                                apply_effect_list(character.pop("damage_reduction_success", []), actor=character, enemy=enemy, default_target="self")
-                            on_hit_effects = move.get("on_hit", {}).get("effects", [])
-                            applied = apply_status_effects(character, on_hit_effects)
-                            applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
-                            print(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> HIT for {counter_dmg - reduction} (raw {counter_dmg}, reduced {reduction}). PC HP {character['resources']['hp']}.{applied_note}")
-                        else:
-                            print(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> MISS.")
-            # check end conditions and loop combat
-            if enemies and enemies[0].get("hp", 0) <= 0:
-                print("Enemy defeated.")
-                loot_items_payload = []
-                # Aftermath narration hook
-                if state.get("flags", {}).get("narration_enabled") and NARRATION:
-                    log_flags("AFTERMATH", state)
-                    try:
-                        enemy_name = enemies[0].get("name", enemies[0].get("id", "Enemy"))
-                        aftermath_text = NARRATION.aftermath(
-                            location="encounter",
-                            enemies_defeated=[{"name": enemy_name, "condition": "defeated"}],
-                            player_state={
-                                "hp": character["resources"].get("hp"),
-                                "heat": character["resources"].get("heat"),
-                                "balance": character["resources"].get("balance"),
-                                "momentum": character["resources"].get("momentum"),
-                            },
-                            environment_change="quiet",
-                        )
-                        if aftermath_text:
-                            state.setdefault("log", []).append({"aftermath_narration": aftermath_text})
-                            print(f"\n[NARRATOR]\n{aftermath_text}\n")
-                            append_log(f"NARRATION_AFTER: {aftermath_text}")
-                    except Exception as e:
-                        print(f"\n[NARRATOR ERROR]\n{e}\n")
-                        append_log(f"NARRATION_ERROR: {e}")
-                loot = select_loot(game_data, enemies[0])
-                if loot:
-                    state.setdefault("loot", []).append(loot)
-                    loot_items_payload.append({
-                        "name": loot.get("name"),
-                        "tier": loot.get("tier"),
-                        "rarity": loot.get("rarity"),
-                        "type": loot.get("type"),
-                    })
-                    lname = loot.get("name", "Loot")
-                    lrar = loot.get("rarity", "?")
-                    ltier = loot.get("tier", "?")
-                    print(f"Loot gained: {lname} (Tier {ltier}, {lrar})")
-                    vs = veinscore_value(lname, game_data)
-                    if vs:
-                        total_vs = award_veinscore(character, vs)
-                        print(f"Gained +{vs} Veinscore from {lname}. Total Veinscore: {total_vs}.")
-                # Always drop 1-2 Faint Vein Sigils
-                faint_count = random.randint(1, 2)
-                faint_value = veinscore_value("Faint Vein Sigil", game_data) or 1
-                total_faint_vs = faint_count * faint_value
-                award_veinscore(character, total_faint_vs)
-                state.setdefault("loot", []).extend([{"name": "Faint Vein Sigil", "tier": 1, "veinscore": faint_value}] * faint_count)
-                loot_items_payload.extend(
-                    [{"name": "Faint Vein Sigil", "tier": 1, "type": "veinscore_token", "veinscore": faint_value}]
-                    * faint_count
-                )
-                print(f"Loot gained: {faint_count}x Faint Vein Sigil (+{total_faint_vs} Veinscore). Total Veinscore: {character['resources'].get('veinscore', 0)}.")
-                # Loot narration after loot resolution
-                if state.get("flags", {}).get("narration_enabled") and NARRATION:
-                    try:
-                        loot_text = NARRATION.loot_drop(
-                            loot_items=loot_items_payload,
-                            veinscore_total=character["resources"].get("veinscore", 0),
-                        )
-                        if loot_text:
-                            append_log(f"NARRATION_LOOT: {loot_text}")
-                            print(f"\n[NARRATOR]\n{loot_text}\n")
-                    except Exception as e:
-                        append_log(f"NARRATION_ERROR: {e}")
-                enemies.clear()
-                state["phase"]["current"] = "out_of_combat"
-            elif character["resources"].get("hp", 0) <= 0:
-                print("PC defeated.")
-                state["phase"]["current"] = "out_of_combat"
-            else:
-                state["phase"]["current"] = "chain_declaration"
-                state["phase"]["round_started"] = False
-            # heat resets when chain ends (unless carried via stabilize rule above; we already set on round start)
-            character["resources"]["heat"] = character["resources"].get("heat", 0) if character["resources"].get("heat", 0) <= 2 else 0
-            continue
-
-        actions = allowed_actions(state, phase_machine)
-
-        if not (args.nonarrate or args.interactive_defaults):
-            try:
-                narrate(state, actions)
-            except Exception as e:
-                print(f"[Narrator error: {e}]")
-        else:
-            print("\n(Narration suppressed)")
-
-        if args.auto:
-            choice = actions[0] if actions else "exit"
-            print(f"Auto choice: {choice}")
-        else:
-            choice = get_player_choice(actions)
-        if choice == "exit":
-            print("Exiting Veinbreaker AI session.")
+        keep_going = game_step(ctx, {"action": "tick"})
+        if keep_going is False:
             break
-        prev_phase = state["phase"]["current"]
-        apply_action(state, choice)
-        if choice in ("enter_encounter", "generate_encounter"):
-            if state.get("enemies"):
-                enemy = state["enemies"][0]
-                print(format_enemy_preview(enemy))
-                # Scene intro narration
-                if state.get("flags", {}).get("narration_enabled") and NARRATION:
-                    log_flags("SCENE_INTRO", state)
-                    try:
-                        scene_text = NARRATION.scene_intro(
-                            location=enemy.get("location", "encounter"),
-                            environment_tags=enemy.get("tags", []),
-                            enemy_presence={
-                                "count": 1,
-                                "type": enemy.get("name", enemy.get("id", "Enemy")),
-                                "distance": "near",
-                            },
-                            player_state={
-                                "momentum": state["party"]["members"][0]["resources"].get("momentum", 0),
-                                "heat": state["party"]["members"][0]["resources"].get("heat", 0),
-                                "balance": state["party"]["members"][0]["resources"].get("balance", 0),
-                            },
-                            threat_level="immediate",
-                        )
-                        if scene_text:
-                            print(f"\n[NARRATOR]\n{scene_text}\n")
-                            append_log(f"NARRATION_SCENE: {scene_text}")
-                    except Exception as e:
-                        print(f"\n[NARRATOR ERROR]\n{e}\n")
-                        append_log(f"NARRATION_ERROR: {e}")
-        advance_phase(state, phase_machine, prev_phase)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

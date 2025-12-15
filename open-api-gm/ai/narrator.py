@@ -7,6 +7,7 @@ Consumes structured resolution data and returns restrained prose.
 
 import json
 import os
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -15,6 +16,7 @@ try:
 except Exception:
     OpenAI = None
 
+logger = logging.getLogger(__name__)
 
 # =========================
 # VOICE CANON (LOCKED)
@@ -93,7 +95,7 @@ def narrator_stub(text: str) -> None:
     """
     Legacy stub that prints narration to stdout. Kept for quick CLI smoke tests.
     """
-    print("\n[NARRATOR]\n" + text + "\n")
+    logger.info("[NARRATOR] %s", text)
 
 
 def load_api_key() -> Optional[str]:
@@ -239,18 +241,18 @@ _api_key = load_api_key()
 DEFAULT_NARRATOR = None
 if OpenAI and _api_key:
     try:
-        print(f"[Narrator] Using OpenAI client with key source={'env' if os.environ.get('OPENAI_API_KEY') else 'file'}")
+        logger.info("Using OpenAI client with key source=%s", "env" if os.environ.get("OPENAI_API_KEY") else "file")
         _client = OpenAI(api_key=_api_key)
         DEFAULT_NARRATOR = VeinbreakerNarrator(_client, model="gpt-4o-mini")
-        print("[Narrator] Client initialized.")
+        logger.info("Narrator client initialized.")
     except Exception as e:
-        print(f"[Narrator] Failed to init client: {e}")
         DEFAULT_NARRATOR = None
+        logger.error("Failed to init narrator client: %s", e)
 else:
     if not OpenAI:
-        print("[Narrator] openai package not available.")
+        logger.warning("openai package not available.")
     elif not _api_key:
-        print("[Narrator] No API key found (env or apiKey file).")
+        logger.warning("No API key found (env or apiKey file).")
 
 
 def narrate(resolution: Dict[str, Any], scene_tag: Optional[str] = None, *_, **__) -> str:
