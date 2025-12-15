@@ -21,8 +21,12 @@ def emit_event(ui, payload: Dict[str, Any]) -> None:
         pass
 
 
+def build_combat_state(active: bool) -> Dict[str, Any]:
+    return {"type": "combat_state", "active": active}
+
+
 def emit_combat_state(ui, active: bool) -> None:
-    emit_event(ui, {"type": "combat_state", "active": active})
+    emit_event(ui, build_combat_state(active))
 
 
 def emit_combat_log(ui, text: str) -> None:
@@ -34,7 +38,7 @@ def emit_interrupt(ui) -> None:
     emit_event(ui, {"type": "interrupt"})
 
 
-def emit_character_update(ui, character: Dict[str, Any]) -> None:
+def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
     attrs = character.get("attributes", {}) if isinstance(character, dict) else {}
     norm_attrs = {
         "str": attrs.get("str") or attrs.get("STR") or attrs.get("POW"),
@@ -42,7 +46,7 @@ def emit_character_update(ui, character: Dict[str, Any]) -> None:
         "int": attrs.get("int") or attrs.get("INT") or attrs.get("MND"),
         "wil": attrs.get("wil") or attrs.get("WIL") or attrs.get("SPR"),
     }
-    emit_event(ui, {
+    return {
         "type": "character_update",
         "character": {
             "name": character.get("name"),
@@ -51,10 +55,18 @@ def emit_character_update(ui, character: Dict[str, Any]) -> None:
             "veinscore": character.get("veinscore"),
             "attributes": norm_attrs,
         }
-    })
+    }
+
+
+def emit_character_update(ui, character: Dict[str, Any]) -> None:
+    emit_event(ui, build_character_update(character))
 
 
 def emit_declare_chain(ui, abilities: List[Dict[str, Any]], max_len: int = 3) -> None:
+    emit_event(ui, build_declare_chain(abilities, max_len))
+
+
+def build_declare_chain(abilities: List[Dict[str, Any]], max_len: int = 3) -> Dict[str, Any]:
     payload = []
     for ab in abilities:
         if not isinstance(ab, dict):
@@ -67,7 +79,7 @@ def emit_declare_chain(ui, abilities: List[Dict[str, Any]], max_len: int = 3) ->
             "cooldown": ab.get("cooldown") or ab.get("base_cooldown"),
             "effect": ab.get("effect") or (ab.get("effects") or {}).get("on_use"),
         })
-    emit_event(ui, {
+    return {
         "type": "declare_chain",
         "maxLength": max_len,
         "chainRules": {
@@ -76,4 +88,4 @@ def emit_declare_chain(ui, abilities: List[Dict[str, Any]], max_len: int = 3) ->
             "source": "Momentum + Tier Bonus",
         },
         "abilities": payload
-    })
+    }
