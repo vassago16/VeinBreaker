@@ -1,193 +1,343 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<title>VEINBREAKER</title>
+  <meta charset="UTF-8" />
+  <title>VEINBREAKER</title>
 
-<style>
-  :root {
-    --bg: #0b0d0f;
-    --fg: #d6d6d6;
-    --dim: #8a8a8a;
-    --accent: #9e2b25;
-    --line: #1e2226;
+  <style>
+    :root {
+      --bg: #0b0d0f;
+      --fg: #d6d6d6;
+      --dim: #8a8a8a;
+      --accent: #9e2b25;
+      --line: #1e2226;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+    }
+
+    header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      color: var(--dim);
+      letter-spacing: 2px;
+    }
+
+    #log {
+      padding: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+      min-height: 60vh;
+    }
+
+    .entry {
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    .scene {
+      color: var(--dim);
+    }
+
+    .narration {
+      color: var(--fg);
+    }
+
+    .loot {
+      color: var(--accent);
+    }
+
+    .system {
+      color: var(--dim);
+      font-style: italic;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 12px 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .combat-mode #narration-wrapper::after {
+      background:
+        radial-gradient(circle at 40% 30%, rgba(180, 0, 0, 0.25), transparent 60%),
+        radial-gradient(circle at 60% 70%, rgba(120, 0, 0, 0.2), transparent 65%);
+    }
+
+    .choice {
+      display: block;
+      background: none;
+      border: none;
+      color: var(--fg);
+      text-align: left;
+      padding: 6px 0;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .choice:hover {
+      color: var(--accent);
+    }
+
+    .prompt {
+      color: var(--dim);
+      margin-bottom: 8px;
+    }
+
+  #layout {
+    display: flex;
   }
 
-  * {
-    box-sizing: border-box;
+  #character-panel {
+    width: 180px;
+    padding: 16px 12px;
+    border-right: 1px solid var(--line);
+      color: var(--dim);
+    }
+
+    .vein-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .vein-node {
+      width: 64px;
+      height: 64px;
+      border: 1px solid var(--accent);
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle, rgba(158, 43, 37, 0.15), transparent 70%);
+    }
+
+    .vein-node .label {
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: var(--dim);
+    }
+
+    .vein-node .value {
+      font-size: 18px;
+      color: var(--fg);
+    }
+
+    .stats {
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      font-size: 12px;
+    }
+
+  .stats div {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
   }
 
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 14px;
+  #main {
+    flex: 1;
   }
 
-  header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--line);
+  #combat-log-panel {
+    width: 260px;
+    border-left: 1px solid var(--line);
+    padding: 12px;
+    font-size: 12px;
     color: var(--dim);
+    background: #0b0b0b;
+  }
+
+  .log-header {
+    font-size: 11px;
     letter-spacing: 2px;
-  }
-
-  #log {
-    padding: 16px;
-    max-width: 900px;
-    margin: 0 auto;
-    min-height: 60vh;
-  }
-
-  .entry {
-    margin-bottom: 12px;
-    white-space: pre-wrap;
-  }
-
-  .scene {
-    color: var(--dim);
-  }
-
-  .narration {
     color: var(--fg);
-  }
-
-  .loot {
-    color: var(--accent);
-  }
-
-  .system {
-    color: var(--dim);
-    font-style: italic;
-  }
-
-  footer {
-    border-top: 1px solid var(--line);
-    padding: 12px 16px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  .choice {
-    display: block;
-    background: none;
-    border: none;
-    color: var(--fg);
-    text-align: left;
-    padding: 6px 0;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .choice:hover {
-    color: var(--accent);
-  }
-
-  .prompt {
-    color: var(--dim);
     margin-bottom: 8px;
+    opacity: 0.8;
+  }
+
+  #combat-log {
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  .log-entry {
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .log-entry.attack { color: #c9c9c9; }
+  .log-entry.damage { color: #e07070; }
+  .log-entry.block  { color: #7fa6ff; }
+  .log-entry.system { color: #888; }
+  .log-entry.interrupt { color: #ff8484; }
+
+  /* Interrupt flash */
+  @keyframes interrupt-flash {
+    0%   { background-color: rgba(180, 0, 0, 0.15); }
+    50%  { background-color: rgba(180, 0, 0, 0.35); }
+    100% { background-color: transparent; }
+  }
+
+  .interrupt-flash {
+    animation: interrupt-flash 0.18s ease-out;
   }
 
   /* ===== Narration Container ===== */
 
-  #narration-wrapper {
-    position: relative;
-    overflow: hidden;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 16px;
-  }
+    #narration-wrapper {
+      position: relative;
+      overflow: hidden;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+    }
 
-  #narration {
-    transition: opacity 0.4s ease, filter 0.4s ease;
-  }
+    #narration {
+      transition: opacity 0.4s ease, filter 0.4s ease;
+    }
 
-  /* ===== Fade / Smear States ===== */
+    /* ===== Fade / Smear States ===== */
 
-  .fade-out {
-    opacity: 0;
-    filter: blur(6px) contrast(120%) saturate(120%);
-  }
+    .fade-out {
+      opacity: 0;
+      filter: blur(6px) contrast(120%) saturate(120%);
+    }
 
-  .fade-in {
-    opacity: 1;
-    filter: blur(0);
-  }
+    .fade-in {
+      opacity: 1;
+      filter: blur(0);
+    }
 
-  /* ===== Vein Smear Overlay ===== */
+    /* ===== Vein Smear Overlay ===== */
 
-  #narration-wrapper::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(
-        circle at 30% 40%,
-        rgba(140, 0, 0, 0.15),
-        transparent 60%
-      ),
-      radial-gradient(
-        circle at 70% 60%,
-        rgba(90, 0, 0, 0.12),
-        transparent 65%
-      );
-    opacity: 0;
-    transition: opacity 0.4s ease;
-  }
+    #narration-wrapper::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 30% 40%,
+          rgba(140, 0, 0, 0.15),
+          transparent 60%),
+        radial-gradient(circle at 70% 60%,
+          rgba(90, 0, 0, 0.12),
+          transparent 65%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
 
-  .smear-active::after {
-    opacity: 1;
-  }
-</style>
+    .smear-active::after {
+      opacity: 1;
+    }
+  </style>
 </head>
 
 <body>
 
-<header>
-  VEINBREAKER
-</header>
+  <header>
+    VEINBREAKER
+  </header>
 
-<div id="narration-wrapper">
-  <div id="narration"></div>
+<div id="layout">
+  <aside id="character-panel">
+    <div class="vein-column">
+      <div class="vein-node" id="hp-node">
+        <span class="label">HP</span>
+        <span class="value" id="char-hp">–</span>
+      </div>
+
+      <div class="vein-node" id="rp-node">
+        <span class="label">RP</span>
+        <span class="value" id="char-rp">–</span>
+      </div>
+
+      <div class="vein-node" id="veinscore-node">
+        <span class="label">VEIN</span>
+        <span class="value" id="char-veinscore">–</span>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div>STR <span id="stat-str">–</span></div>
+      <div>DEX <span id="stat-dex">–</span></div>
+      <div>INT <span id="stat-int">–</span></div>
+      <div>WIL <span id="stat-wil">–</span></div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <div id="narration-wrapper">
+      <div id="narration"></div>
+    </div>
+    <div id="log"></div>
+
+    <footer id="choices"></footer>
+  </main>
+
+  <aside id="combat-log-panel">
+    <div class="log-header">COMBAT LOG</div>
+    <div id="combat-log"></div>
+  </aside>
 </div>
-<div id="log"></div>
 
-<footer id="choices"></footer>
-
-<script>
+  <script>
 const API = "http://localhost:8000/step"; // adjust if needed
+const CHARACTER_API = "http://localhost:8000/character";
 const sessionId = crypto.randomUUID();
 
 const log = document.getElementById("log");
+const combatLog = document.getElementById("combat-log");
 const narrationWrapper = document.getElementById("narration-wrapper");
 const narrationEl = document.getElementById("narration");
 const choicesEl = document.getElementById("choices");
+const charHp = document.getElementById("char-hp");
+const charRp = document.getElementById("char-rp");
+    const charVeinscore = document.getElementById("char-veinscore");
+    const statStr = document.getElementById("stat-str");
+const statDex = document.getElementById("stat-dex");
+const statInt = document.getElementById("stat-int");
+const statWil = document.getElementById("stat-wil");
 
-function addEntry(text, cls) {
-  const div = document.createElement("div");
-  div.className = `entry ${cls}`;
-  div.textContent = text;
-  log.appendChild(div);
-  window.scrollTo(0, document.body.scrollHeight);
-}
+    function addEntry(text, cls) {
+      const div = document.createElement("div");
+      div.className = `entry ${cls}`;
+      div.textContent = text;
+      log.appendChild(div);
+      window.scrollTo(0, document.body.scrollHeight);
+    }
 
-function clearChoices() {
-  choicesEl.innerHTML = "";
-}
+    function clearChoices() {
+      choicesEl.innerHTML = "";
+    }
 
-function clearNarration() {
-  narrationEl.classList.add("fade-out");
-  narrationWrapper.classList.add("smear-active");
+    function clearNarration() {
+      narrationEl.classList.add("fade-out");
+      narrationWrapper.classList.add("smear-active");
 
-  setTimeout(() => {
-    narrationEl.innerHTML = "";
-    narrationEl.classList.remove("fade-out");
-    narrationEl.classList.add("fade-in");
-    narrationWrapper.classList.remove("smear-active");
-    setTimeout(() => narrationEl.classList.remove("fade-in"), 400);
-  }, 400);
-}
+      setTimeout(() => {
+        narrationEl.innerHTML = "";
+        narrationEl.classList.remove("fade-out");
+        narrationEl.classList.add("fade-in");
+        narrationWrapper.classList.remove("smear-active");
+        setTimeout(() => narrationEl.classList.remove("fade-in"), 400);
+      }, 400);
+    }
 
 function appendNarration(text) {
   const p = document.createElement("p");
@@ -201,84 +351,156 @@ function appendNarration(text) {
   window.scrollTo(0, document.body.scrollHeight);
 }
 
-function renderChoices(prompt, options) {
-  clearChoices();
-
-  const p = document.createElement("div");
-  p.className = "prompt";
-  p.textContent = prompt;
-  choicesEl.appendChild(p);
-
-  options.forEach((opt, i) => {
-    const btn = document.createElement("button");
-    btn.className = "choice";
-    btn.textContent = `${i + 1}. ${opt}`;
-    btn.onclick = () => sendChoice(i);
-    choicesEl.appendChild(btn);
-  });
+function appendCombatLog(text) {
+  logCombat(text);
 }
 
-async function sendChoice(index) {
-  clearChoices();
-
-  const res = await fetch(API, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      session_id: sessionId,
-      choice: index })
-  });
-
-  const events = await res.json();
-  handleEvents(events);
+function logCombat(text, type = "system") {
+  const div = document.createElement("div");
+  div.className = `log-entry ${type}`;
+  div.textContent = text;
+  combatLog.appendChild(div);
+  combatLog.scrollTop = combatLog.scrollHeight;
 }
 
-function handleEvents(events) {
-  events.forEach(ev => {
-    switch (ev.type) {
-      case "clear":
-        if (ev.target === "narration" || ev.target === "all") {
-          clearNarration();
-        }
-        if (ev.target === "choices" || ev.target === "all") {
-          clearChoices();
-        }
-        if (ev.target === "log" || ev.target === "all") {
-          log.innerHTML = "";
-        }
-        break;
-      case "scene":
-        appendNarration(ev.text);
-        break;
-      case "narration":
-        appendNarration(ev.text);
-        break;
+function setCombatActive(active) {
+  // panel is always present; no-op placeholder for future state toggles
+}
+
+function flashInterrupt() {
+  triggerInterruptFlash();
+}
+
+function triggerInterruptFlash() {
+  document.body.classList.add("interrupt-flash");
+  setTimeout(() => {
+    document.body.classList.remove("interrupt-flash");
+  }, 180);
+}
+
+function updateCharacterUI(char) {
+  if (!char) return;
+  if (char.hp) {
+    const cur = char.hp.current ?? char.hp;
+    const max = char.hp.max ?? char.hp_max ?? cur;
+        charHp.textContent = `${cur}/${max}`;
+      }
+      if (char.rp !== undefined) {
+        charRp.textContent = char.rp;
+      }
+      if (char.veinscore !== undefined) {
+        charVeinscore.textContent = char.veinscore;
+      }
+      if (char.attributes) {
+        statStr.textContent = char.attributes.str ?? "–";
+        statDex.textContent = char.attributes.dex ?? "–";
+        statInt.textContent = char.attributes.int ?? "–";
+        statWil.textContent = char.attributes.wil ?? "–";
+      }
+    }
+
+    function renderChoices(prompt, options) {
+      clearChoices();
+
+      const p = document.createElement("div");
+      p.className = "prompt";
+      p.textContent = prompt;
+      choicesEl.appendChild(p);
+
+      options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.textContent = `${i + 1}. ${opt}`;
+        btn.onclick = () => sendChoice(i);
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    async function sendChoice(index) {
+      clearChoices();
+
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          choice: index
+        })
+      });
+
+      const events = await res.json();
+      handleEvents(events);
+    }
+
+    function handleEvents(events) {
+      events.forEach(ev => {
+        switch (ev.type) {
+          case "clear":
+            if (ev.target === "narration" || ev.target === "all") {
+              clearNarration();
+            }
+            if (ev.target === "choices" || ev.target === "all") {
+              clearChoices();
+            }
+            if (ev.target === "log" || ev.target === "all") {
+              log.innerHTML = "";
+            }
+            break;
+          case "scene":
+            appendNarration(ev.text);
+            break;
+          case "narration":
+            appendNarration(ev.text);
+            break;
+          case "character_update":
+            updateCharacterUI(ev.character);
+            break;
       case "loot":
         addEntry(ev.text, "loot");
         break;
       case "system":
         addEntry(ev.text, "system");
         break;
+      case "log":
+        logCombat(ev.text, ev.logType || "system");
+        break;
+      case "combat_log":
+        logCombat(ev.text, ev.logType || "system");
+        break;
+      case "combat_state":
+        setCombatActive(!!ev.active);
+        break;
+      case "interrupt":
+        flashInterrupt();
+        if (ev.text) {
+          logCombat(ev.text, "interrupt");
+        }
+        break;
       case "choice":
         renderChoices(ev.prompt, ev.options);
         break;
     }
   });
-}
+    }
 
-// initial kick
-fetch(API, {
-  method: "POST",
-  headers: {"Content-Type": "application/json"},
-  body: JSON.stringify({
-    session_id: sessionId,
-    action: "start"
-  })
-})
-.then(res => res.json())
-.then(handleEvents);
+    // initial kick
+    fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        action: "start"
+      })
+    })
+      .then(res => res.json())
+      .then(handleEvents);
 
-</script>
+    fetch(CHARACTER_API)
+      .then(res => res.json())
+      .then(updateCharacterUI);
+
+  </script>
 
 </body>
+
 </html>

@@ -30,6 +30,51 @@ DEFAULT_CHARACTER_PATH = Path(__file__).parent / "default_character.json"
 
 
 
+def emit_event(ui, payload: dict) -> None:
+    """
+    Best-effort emit of structured events for non-blocking UIs.
+    Falls back silently for CLI.
+    """
+    try:
+        provider = getattr(ui, "provider", None)
+        session = getattr(provider, "session", None)
+        if session and hasattr(session, "emit"):
+            session.emit(payload)
+    except Exception:
+        pass
+
+
+def emit_combat_state(ui, active: bool) -> None:
+    emit_event(ui, {"type": "combat_state", "active": active})
+
+
+def emit_combat_log(ui, text: str) -> None:
+    emit_event(ui, {"type": "combat_log", "text": text})
+    ui.system(text)
+
+
+def emit_interrupt(ui) -> None:
+    emit_event(ui, {"type": "interrupt"})
+
+
+def emit_character_update(ui, character: dict) -> None:
+    attrs = character.get("attributes", {}) if isinstance(character, dict) else {}
+    norm_attrs = {
+        "str": attrs.get("str") or attrs.get("STR") or attrs.get("POW"),
+        "dex": attrs.get("dex") or attrs.get("DEX") or attrs.get("AGI"),
+        "int": attrs.get("int") or attrs.get("INT") or attrs.get("MND"),
+        "wil": attrs.get("wil") or attrs.get("WIL") or attrs.get("SPR"),
+    }
+    emit_event(ui, {
+        "type": "character_update",
+        "character": {
+            "name": character.get("name"),
+            "hp": character.get("hp"),
+            "rp": character.get("rp"),
+            "veinscore": character.get("veinscore"),
+            "attributes": norm_attrs,
+        }
+    })
 
 
 def append_log(entry: str) -> None:
@@ -527,190 +572,19 @@ def advance_phase(state, phase_machine, previous_phase):
     if transitions:
         state["phase"]["current"] = transitions[0]
 
-
 def create_default_character():
     fallback = {
-         "path": "canticle",
-  "tier": 11,
-  "abilities": [
-    {
-      "name": "Basic Strike",
-      "path": "core",
-      "tier": 0,
-      "cooldown": 0,
-      "base_cooldown": 0,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "free",
-      "dice": "1d4",
-      "tags": [
-        "core",
-        "attack"
-      ],
-      "effect": "Make a basic attack for 1d4 + stat. On hit gain +1 Heat. Applies -1 Balance penalty.",
-      "stat": "weapon",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    },
-    {
-      "name": "Basic Guard",
-      "path": "core",
-      "tier": 0,
-      "cooldown": 0,
-      "base_cooldown": 0,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "free",
-      "dice": "1d4",
-      "tags": [
-        "core",
-        "defense",
-        "momentum"
-      ],
-      "effect": "Reduce incoming damage by 1d4. STR modifier applies to the Defense roll. If damage is reduced to 0, gain +1 Momentum.",
-      "stat": "STR",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    },
-    {
-      "name": "Focus Action",
-      "path": "core",
-      "tier": 0,
-      "cooldown": 0,
-      "base_cooldown": 0,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "free",
-      "dice": "1d4",
-      "tags": [
-        "core",
-        "utility",
-        "momentum"
-      ],
-      "effect": "Gain +1 Attack to your next attack this turn and +1 Momentum.",
-      "stat": "null",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    },
-    {
-      "name": "Shift",
-      "path": "core",
-      "tier": 0,
-      "cooldown": 0,
-      "base_cooldown": 0,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "free",
-      "dice": "1d4",
-      "tags": [
-        "core",
-        "movement"
-      ],
-      "effect": "Move 1 zone. Improve Balance by +1 if negative. DEX modifier applies to the Defense roll during this movement.",
-      "stat": "DEX",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    },
-    {
-      "name": "Disengage",
-      "path": "resolve_basic",
-      "tier": 0,
-      "cooldown": 1,
-      "base_cooldown": 1,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "",
-      "dice": "1d4",
-      "tags": [
-        "resolve",
-        "movement",
-        "defense_window"
-      ],
-      "effect": "End your current chain immediately. No further actions may be taken this chain.",
-      "stat": "",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    },
-    {
-      "name": "Pulse Strike",
-      "path": "stonepulse",
-      "tier": 1,
-      "cooldown": 1,
-      "base_cooldown": 1,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "martial",
-      "dice": "1d4",
-      "tags": [
-        "stonepulse",
-        "attack",
-        "momentum"
-      ],
-      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
-      "stat": "STR",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    },
-    {
-      "name": "Arcane Step",
-      "path": "spellforged",
-      "tier": 1,
-      "cooldown": 1,
-      "base_cooldown": 1,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "magic",
-      "dice": "1d4",
-      "tags": [
-        "spellforged",
-        "movement",
-        "momentum"
-      ],
-      "effect": "Gain Arcane Ward 1 (reduce next incoming dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
-      "stat": "",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    }
-  ],
-  "stats": {
-    "POW": 24,
-    "AGI": 14,
-    "MND": 14,
-    "SPR": 8
-  },
-  "resources": {
-    "hp": 24,
-    "resolve": 5,
-    "resolve_cap": 5,
-    "momentum": 0,
-    "heat": 0,
-    "balance": 0,
-    "idf": 0
-  },
-  "attributes": {
-    "POW": 14,
-    "AGI": 14,
-    "MND": 14,
-    "SPR": 8
-  },
-  "pools": {
-    "martial": 7,
-    "shadow": 7,
-    "magic": 7,
-    "faith": 4
-  },
-  "marks": {
-    "blood": 0,
-    "duns": 0
-  },
-  "chain": {
-    "declared": "false",
-    "abilities": [],
-    "resolve_spent": 0,
-    "stable": "false",
-    "invalidated": "false"
-  },
-  "veinscore": 0
+        "name": "The Blooded",
+        "hp": {"current": 24, "max": 24},
+        "rp": 5,
+        "veinscore": 0,
+        "attributes": {
+            "str": 14,
+            "dex": 14,
+            "int": 14,
+            "wil": 8,
+        },
+        "abilities": [],
     }
     try:
         return json.loads(DEFAULT_CHARACTER_PATH.read_text(encoding="utf-8"))
@@ -978,6 +852,13 @@ def game_step(ctx, player_input):
             balance_now = res_after.get("balance", 0)
             momentum_now = res_after.get("momentum", 0)
             resolve_now = res_after.get("resolve", 0)
+            emit_character_update(ui, {
+                "hp": {"current": res_after.get("hp"), "max": res_after.get("hp_max", res_after.get("max_hp", res_after.get("maxHp", res_after.get("hp"))))},
+                "rp": res_after.get("resolve", 0),
+                "veinscore": res_after.get("veinscore", 0),
+                "attributes": character.get("attributes", {}),
+                "name": character.get("name")
+            })
             defense_d20 = None
             defense_roll = None
             statuses_applied = []
@@ -1054,6 +935,7 @@ def game_step(ctx, player_input):
                 hit, dmg, rolls = apply_interrupt(state, character, enemies[0])
                 atk_mod = enemies[0].get("attack_mod", 0)
                 def_mod = character["resources"].get("idf", 0) + character["resources"].get("momentum", 0)
+                emit_interrupt(ui)
                 ui.system(f"Interrupt contest: enemy ({rolls['atk_d20']}+{atk_mod}={rolls['atk_total']}) vs player ({rolls['def_d20']}+{def_mod}={rolls['def_total']})")
                 if hit and dmg > 0:
                     ui.system(f"Enemy INTERRUPT hits for {dmg} dmg. Chain broken.")
@@ -1136,6 +1018,7 @@ def game_step(ctx, player_input):
         # check end conditions and loop combat
         if enemies and enemies[0].get("hp", 0) <= 0:
             ui.system("Enemy defeated.")
+            emit_combat_state(ui, False)
             loot_items_payload = []
             # Aftermath narration hook
             if state.get("flags", {}).get("narration_enabled") and NARRATION:
@@ -1207,6 +1090,14 @@ def game_step(ctx, player_input):
             state["phase"]["current"] = "out_of_combat"
         elif character["resources"].get("hp", 0) <= 0:
             ui.system("PC defeated.")
+            emit_combat_state(ui, False)
+            emit_character_update(ui, {
+                "hp": {"current": character["resources"].get("hp"), "max": character["resources"].get("hp_max", character["resources"].get("max_hp", character["resources"].get("maxHp", character["resources"].get("hp"))))},
+                "rp": character["resources"].get("resolve", 0),
+                "veinscore": character["resources"].get("veinscore", 0),
+                "attributes": character.get("attributes", {}),
+                "name": character.get("name")
+            })
             state["phase"]["current"] = "out_of_combat"
         else:
             state["phase"]["current"] = "chain_declaration"
@@ -1245,7 +1136,8 @@ def game_step(ctx, player_input):
     if choice in ("enter_encounter", "generate_encounter"):
         if state.get("enemies"):
             enemy = state["enemies"][0]
-            ui.system(format_enemy_preview(enemy))
+            emit_combat_state(ui, True)
+            emit_combat_log(ui, format_enemy_preview(enemy))
             # Scene intro narration
             if state.get("flags", {}).get("narration_enabled") and NARRATION:
                 log_flags("SCENE_INTRO", state)
@@ -1271,7 +1163,7 @@ def game_step(ctx, player_input):
                 except Exception as e:
                     ui.error(f"[NARRATOR ERROR] {e}")
                     append_log(f"NARRATION_ERROR: {e}")
-    advance_phase(state, phase_machine, prev_phase)
+        advance_phase(state, phase_machine, prev_phase)
 
     # For non-blocking UIs, immediately surface the next prompt without waiting for another action payload.
     if not getattr(ui, "is_blocking", True) and "awaiting" not in state:
