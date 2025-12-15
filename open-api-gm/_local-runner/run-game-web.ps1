@@ -14,7 +14,7 @@ Set-Location $PROJECT_PATH
 Write-Host "Starting FastAPI server on http://localhost:8000"
 Start-Process powershell -ArgumentList `
     "-NoExit", `
-    "-Command python -m uvicorn server:app --reload"
+    "-Command python -m uvicorn server:app --reload --host 0.0.0.0 --port 8000"
 
 # Start static HTML server (port 5173)
 Write-Host "Starting static UI server on http://localhost:5173"

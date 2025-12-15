@@ -3,6 +3,7 @@ import json
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Any, Dict, Optional
 from game_runner import Game
 from game_session import GameSession
 from ui.web_provider import WebProvider
@@ -30,6 +31,17 @@ class StepRequest(BaseModel):
     action: str | None = None
     choice: int | None = None
     chain: list[str] | None = None
+
+
+class EmitRequest(BaseModel):
+    session_id: str
+    type: str
+    text: Optional[str] = None
+    payload: Optional[Dict[str, Any]] = None
+
+
+class EventsRequest(BaseModel):
+    session_id: str
 
 
 @app.get("/character")
@@ -98,3 +110,28 @@ def step(req: StepRequest):
         "chain": req.chain,
     })
     return events
+
+
+@app.post("/emit")
+def emit(req: EmitRequest):
+    if req.session_id not in sessions:
+        session = GameSession(None)
+        ui = WebProvider(session)
+        game = Game(ui)
+        session.game = game
+        sessions[req.session_id] = session
+
+    session = sessions[req.session_id]
+    payload = req.payload or {"type": req.type, "text": req.text}
+    session.emit(payload)
+    return session.events
+
+
+@app.post("/events")
+def events(req: EventsRequest):
+    if req.session_id not in sessions:
+        return []
+    session = sessions[req.session_id]
+    evs = session.events[:]
+    session.events = []
+    return evs

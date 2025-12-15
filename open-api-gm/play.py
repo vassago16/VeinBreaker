@@ -8,6 +8,14 @@ from ai.narrator import narrate
 from game_context import NARRATOR, NARRATION
 from ui.ui import UI
 from ui.cli_provider import CLIProvider
+from ui.events import (
+    emit_event,
+    emit_combat_state,
+    emit_combat_log,
+    emit_interrupt,
+    emit_character_update,
+    emit_declare_chain,
+)
 from engine.phases import allowed_actions, tick_cooldowns, list_usable_abilities
 from engine.apply import apply_action
 from flow.character_creation import run_character_creation
@@ -836,6 +844,7 @@ def game_step(ctx, player_input):
         hp_max = res.get("hp_max") or res.get("max_hp") or res.get("maxHp") or hp_cur
         ui.system(f"PC HP: {hp_cur}/{hp_max} | {format_status_summary(character)}")
         usable_objs = usable_ability_objects(state)
+        awaiting_chain_builder = state.get("awaiting", {}).get("type") == "chain_builder"
         if getattr(ui, "is_blocking", True):
             usable = [ab.get("name") for ab in usable_objs if ab.get("name")]
             abilities = prompt_chain_declaration(state, character, usable, ui)
@@ -860,10 +869,11 @@ def game_step(ctx, player_input):
                     ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
             state["phase"]["current"] = "chain_resolution"
             return True
-        # non-blocking: emit chain builder event
-        emit_declare_chain(ui, usable_objs, max_len=3)
-        state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
-        return True
+        # non-blocking: emit chain builder event unless we're already awaiting a submission
+        if not (awaiting_chain_builder and isinstance(player_input, dict) and player_input.get("action") == "declare_chain"):
+            emit_declare_chain(ui, usable_objs, max_len=3)
+            state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
+            return True
 
     if current_phase == "chain_resolution":
         character = state["party"]["members"][0]
@@ -1208,6 +1218,9 @@ def game_step(ctx, player_input):
                 ability["cooldown"] = cd
                 ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
         state["phase"]["current"] = "chain_resolution"
+        # For web/non-blocking, immediately proceed into resolution so we don't get stuck waiting.
+        if not getattr(ui, "is_blocking", True):
+            return game_step(ctx, {"action": "tick"})
         return True
     if resolved_choice is not None:
         choice = resolved_choice
