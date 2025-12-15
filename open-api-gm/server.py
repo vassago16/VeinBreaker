@@ -72,8 +72,14 @@ def get_character():
             "int": attrs.get("int") or attrs.get("INT") or attrs.get("MND"),
             "wil": attrs.get("wil") or attrs.get("WIL") or attrs.get("SPR"),
         }
-        hp_cur = resources.get("hp") or char.get("hp")
-        hp_max = resources.get("hp_max") or resources.get("max_hp") or resources.get("maxHp") or hp_cur
+        hp_val = resources.get("hp") or char.get("hp")
+        if isinstance(hp_val, dict):
+            hp_cur = hp_val.get("current") or hp_val.get("hp")
+            hp_max = hp_val.get("max")
+        else:
+            hp_cur = hp_val
+            hp_max = None
+        hp_max = hp_max or resources.get("hp_max") or resources.get("max_hp") or resources.get("maxHp") or hp_cur
         rp = resources.get("resolve") or char.get("rp")
         veinscore = resources.get("veinscore") or char.get("veinscore", 0)
         return {
