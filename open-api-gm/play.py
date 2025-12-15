@@ -1082,7 +1082,7 @@ def game_step(ctx, player_input):
     # start-of-round upkeep triggered when entering chain_declaration and not yet started
     if state["phase"]["current"] == "chain_declaration" and not state["phase"].get("round_started"):
         state["phase"]["round"] += 1
-        round_upkeep()
+        round_upkeep(state)
         state["phase"]["round_started"] = True
 
     current_phase = state["phase"]["current"]
