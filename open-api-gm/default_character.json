@@ -6,7 +6,7 @@
       "name": "Basic Strike",
       "path": "core",
       "tier": 0,
-      "cooldown": 1,
+      "cooldown": 0,
       "base_cooldown": 0,
       "cost": 1,
       "resource": "resolve",
@@ -84,7 +84,7 @@
       "name": "Disengage",
       "path": "resolve_basic",
       "tier": 0,
-      "cooldown": 1,
+      "cooldown": 0,
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
@@ -104,8 +104,8 @@
       "name": "Pulse Strike",
       "path": "stonepulse",
       "tier": 1,
-      "cooldown": 1,
-      "base_cooldown": 1,
+      "cooldown": 0,
+      "base_cooldown": 0,
       "cost": 1,
       "resource": "resolve",
       "pool": "martial",
@@ -115,7 +115,7 @@
         "attack",
         "momentum"
       ],
-      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
+      "effect": "1d4 + POW; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
       "stat": "STR",
       "addStatToAttackRoll": true,
       "addStatToDamage": true
@@ -124,7 +124,7 @@
       "name": "Arcane Step",
       "path": "spellforged",
       "tier": 1,
-      "cooldown": 1,
+      "cooldown": 0,
       "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
@@ -145,10 +145,10 @@
     "POW": 14,
     "AGI": 14,
     "MND": 14,
-    "SPR": 8
+    "SPR": 13
   },
   "resources": {
-    "hp": 24,
+    "hp": 30,
     "resolve": 5,
     "resolve_cap": 5,
     "momentum": 0,
@@ -169,7 +169,7 @@
     "faith": 4
   },
   "marks": {
-    "blood": 0,
+    "blood": 1,
     "duns": 0
   },
   "chain": {
@@ -179,5 +179,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 0
+  "veinscore": 100
 }

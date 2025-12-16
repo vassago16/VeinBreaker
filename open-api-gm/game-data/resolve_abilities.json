@@ -23,7 +23,8 @@
         "cannotBeDeclared": true
       },
       "resolution": "resolve",
-      "core": true
+      "core": true,
+      "id": "resolve_basic.disengage"
     },
     {
       "path": "resolve_basic",
@@ -48,7 +49,8 @@
         "cannotBeDeclared": true
       },
       "resolution": "resolve",
-      "core": true
+      "core": true,
+      "id": "resolve_basic.rhythm_break"
     },
     {
       "path": "resolve_basic",
@@ -76,7 +78,8 @@
         "momentum": 1
       },
       "resolution": "resolve",
-      "core": true
+      "core": true,
+      "id": "resolve_basic.momentum_anchor"
     },
     {
       "path": "resolve_basic",
@@ -101,7 +104,8 @@
         "cannotBeDeclared": true
       },
       "resolution": "resolve",
-      "core": true
+      "core": true,
+      "id": "resolve_basic.balance_surge"
     },
     {
       "path": "resolve_basic",
@@ -126,7 +130,8 @@
         "cannotBeDeclared": true
       },
       "resolution": "resolve",
-      "core": false
+      "core": false,
+      "id": "resolve_basic.last_guard"
     }
   ]
 }

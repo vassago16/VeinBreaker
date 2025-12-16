@@ -1203,12 +1203,20 @@ def game_step(ctx, player_input):
         choice = get_player_choice(actions, ui, state)
         if choice is None:
             return True
+    # Web helper: explicit build_chain choice should reopen chain builder instead of falling through to phase actions.
+    if choice == "build_chain":
+        usable_objs = usable_ability_objects(state)
+        state["phase"]["current"] = "chain_declaration"
+        state["phase"]["round_started"] = False
+        emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+        state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
+        return True
     if choice == "exit":
         ui.system("Exiting Veinbreaker AI session.")
         return False
     prev_phase = state["phase"]["current"]
     apply_action(state, choice)
-    if choice in ("enter_encounter", "generate_encounter"):
+    if choice in ("enter_encounter", "generate_encounter" ):
         if state.get("enemies"):
             enemy = state["enemies"][0]
             emit_combat_state(ui, True)

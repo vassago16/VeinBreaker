@@ -38,7 +38,7 @@ Character update:
 }
 Declare chain (test abilities):
 {
-  "session_id": "SESSION",
+  "session_id": "c0d0381c-e481-4f13-9191-0af4ec9e1e6f",
   "type": "declare_chain",
   "maxLength": 3,
   "chainRules": { "min": 0, "max": 3, "source": "Momentum + Tier Bonus" },
