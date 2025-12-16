@@ -35,14 +35,185 @@ from engine.status import apply_status_effects, tick_statuses
 
 LOG_FILE = Path(__file__).parent / "narration.log"
 DEFAULT_CHARACTER_PATH = Path(__file__).parent / "default_character.json"
+BUFF_TYPES = {
+    "radiance",
+    "quickened",
+    "invisibility",
+    "intangible",
+    "defense up",
+    "attack up",
+    "idf up",
+    "retaliate",
+}
 
+DEBUFF_TYPES = {
+    "bleed",
+    "radiant burn",
+    "vulnerable",
+    "primed",
+    "telegraph",
+    "stagger",
+    "slowed",
+    "distracted",
+    "exhausted",
+}
 
+def create_default_character():
+    """Load the default character from character.json; fallback to built-in template."""
+    fallback = {
+        "name": "New Blood",
+        "hp": {"current": 24, "max": 24},
+        "rp": 5,
+        "veinscore": 0,
+        "attributes": {
+            "pow": 1,
+            "agi": 1,
+            "mnd": 1,
+            "spr": 1,
+        },
+        "abilities": [],
+    }
+    candidate_paths = [
+        Path(__file__).parent / "character.json",
+        DEFAULT_CHARACTER_PATH,
+    ]
+    for path in candidate_paths:
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+    return fallback
+
+def create_game_context(ui, skip_character_creation=False):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--auto", action="store_true", help="Run in automated mode (no prompts).")
+    parser.add_argument("--nonarrate", action="store_true", help="Disable narration.")
+    parser.add_argument(
+        "--interactive-defaults",
+        action="store_true",
+        help="Interactive mode but default to saved character and narration off without prompting."
+    )
+    args, _ = parser.parse_known_args()
+
+    canon = load_canon()
+    phase_machine = canon["phase_machine.json"]
+    game_data = load_game_data()
+
+    if skip_character_creation:
+        character = create_default_character()
+    elif args.auto or args.interactive_defaults:
+        character = load_character()
+    else:
+        use_saved = ui.choice("Use saved character?", ["Yes", "No"]) == 0
+        if use_saved:
+            character = load_character()
+        else:
+            character = run_character_creation(
+                canon,
+                narrator=None,  # or narrator_stub if you want flavor text
+                ui=ui,
+            )
+            save_character(character)
+
+    # Normalize player resources so hp_max is always available and hp is numeric.
+    res = character.setdefault("resources", {})
+    if isinstance(res.get("hp"), dict):
+        hp_obj = res.get("hp") or {}
+        res["hp"] = hp_obj.get("current", hp_obj.get("hp"))
+        res["hp_max"] = hp_obj.get("max") or res.get("hp_max") or res.get("max_hp") or res.get("maxHp")
+    if "hp_max" not in res and "max_hp" not in res and "maxHp" not in res and isinstance(res.get("hp"), (int, float)):
+        res["hp_max"] = res["hp"]
+
+    state = initial_state()
+    state["flags"] = {"narration_enabled": not args.nonarrate}
+    append_log(f"SESSION_START flags={state.get('flags')}")
+    state["party"]["members"][0].update(character)
+    state["game_data"] = game_data
+    # hydrate abilities from game data (fills effect/pool/etc. for older saves)
+    pool_map = game_data.get("abilities", {}).get("poolByPath", {})
+    gd_abilities = game_data.get("abilities", {}).get("abilities", [])
+    gd_resolve = game_data.get("resolve_abilities", {}).get("abilities", [])
+    lookup = {a.get("name"): a for a in gd_abilities + gd_resolve}
+    for ability in state["party"]["members"][0].get("abilities", []):
+        src = lookup.get(ability.get("name"), {})
+        if src:
+            for key in ["effect", "cost", "dice", "stat", "tags", "path", "type", "effects", "to_hit"]:
+                if key not in ability and key in src:
+                    ability[key] = src[key]
+            if not ability.get("pool"):
+                path = ability.get("path") or src.get("path")
+                ability["path"] = path
+                if path and path in pool_map:
+                    ability["pool"] = pool_map[path]
+
+    ui.system("Veinbreaker AI Session Started.\n")
+
+    return {
+        "ui": ui,
+        "state": state,
+        "phase_machine": phase_machine,
+        "game_data": game_data,
+        "args": args,
+    }
+
+def start_game(ctx):
+    
+    ui = ctx["ui"]
+
+    text = """
+WELCOME, VEINBREAKER
+
+You are wondering if this is a game.
+If there are rules. if you can win.
+NO. THIS IS NOT A GAME.
+Games forgive hesitation.
+I do not.  Games give you turns. I give you moments—and I take them back when you waste them.
+
+WHAT YOU ARE
+You are not a hero. You are not chosen. You are not special.
+You are interesting.
+You came from a place where rules were safety rails. Where numbers meant comfort. Where death was the end.
+Here, numbers are temptation. Here, death is a lesson.
+
+HOW YOU SURVIVE
+
+You will strike. You will miss. You will strike again anyway.
+You will learn that a failed blow does not end a fight— but greed does.
+You will feel your Balance slip as you overreach.
+You will feel Heat rise as blood splashes the stone.
+You will feel Momentum surge when you defend perfectly and realize—
+That feeling? 
+That is Resolve. Spend it. Spend it boldly. Spend it gloriously.
+I do not want perfection.I do not want safety.I do not want caution.
+I want commitment.
+Declare your chains before you swing.Show me your plan before you bleed.
+Let me see whether your hands shake when the rhythm turns against you.
+And when an enemy is Primed—when they are open, gasping, begging—do not hesitate.
+Execute.Take the Blood Mark.Feel the weight of it settle into your bones.
+You will be stronger after.You will also be ... noticed.
+
+A WARNING (I ONLY GIVE ONE)
+The longer you impress me,the more I will send things that remember how to impress me back.
+Former players.Broken champions.Hunters who learned too much and stopped dying properly.
+You cannot kill them.You can only survive them.
+Come, Veinbreaker.I am watching.I am listening.I am already entertained.
+And if you live long enough—maybe I will let you change the rules.Or maybe I will carve your name into the walls
+and let the next one read it while they wonder how long they’ll last.
+Come. Let’s see how you move when the stone starts breathing.
+
+"""
+    ui.scene(text)
+
+    ui.choice(
+        "What do you do?",
+        ["Advance"]
+    )
+    
 def usable_ability_objects(state):
     member = state.get("party", {}).get("members", [None])[0]
     if not member:
         return []
     return [ab for ab in member.get("abilities", []) if ab.get("cooldown", 0) == 0]
-
 
 def append_log(entry: str) -> None:
     try:
@@ -51,11 +222,9 @@ def append_log(entry: str) -> None:
     except Exception:
         pass
 
-
 def log_flags(prefix: str, state: dict) -> None:
     flags = state.get("flags", {})
     append_log(f"{prefix} flags={flags}")
-
 
 def round_upkeep(state: dict) -> None:
     """Per-round refresh: cooldowns, resolve regen, balance/momentum/heat resets, enemy budgets."""
@@ -76,7 +245,6 @@ def round_upkeep(state: dict) -> None:
         en["rp"] = en.get("rp_pool", 2)
         tick_statuses(en)
     tick_statuses(ch)
-
 
 def emit_action_narration(state: dict, ui, idx: int) -> None:
     """Emit narration for a resolved action if available."""
@@ -128,7 +296,6 @@ def emit_action_narration(state: dict, ui, idx: int) -> None:
             ui.error(f"[NARRATOR ERROR] {last.get('narration_error')}", data=last)
             append_log(f"NARRATION_ERROR: {last.get('narration_error')}")
 
-
 def handle_chain_declaration(ctx: dict, player_input: dict) -> bool | None:
     state = ctx["state"]
     ui = ctx["ui"]
@@ -139,6 +306,13 @@ def handle_chain_declaration(ctx: dict, player_input: dict) -> bool | None:
     ui.system(f"PC HP: {hp_cur}/{hp_max} | {format_status_summary(character)}")
     usable_objs = usable_ability_objects(state)
     awaiting_chain_builder = state.get("awaiting", {}).get("type") == "chain_builder"
+
+    if not getattr(ui, "is_blocking", True) and awaiting_chain_builder:
+        append_log("DEBUG: handle_chain_declaration short-circuit (awaiting chain_builder)")
+        # Always re-emit the chain prompt while awaiting so the UI sees it.
+        emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+        ui.choice("Build your next chain?", ["Build chain"])
+        return True
     if getattr(ui, "is_blocking", True):
         usable = [ab.get("name") for ab in usable_objs if ab.get("name")]
         abilities = prompt_chain_declaration(state, character, usable, ui)
@@ -155,7 +329,7 @@ def handle_chain_declaration(ctx: dict, player_input: dict) -> bool | None:
             ui.error(f"Invalid chain: {resp}")
             emit_event(ui, {"type": "chain_rejected", "reason": resp})
             # Re-open chain builder with current usable abilities
-            emit_declare_chain(ui, usable_objs, max_len=3)
+            emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
             state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
             return True
         for ability in character.get("abilities", []):
@@ -166,12 +340,15 @@ def handle_chain_declaration(ctx: dict, player_input: dict) -> bool | None:
                 ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
         state["phase"]["current"] = "chain_resolution"
         return True
+    # Non-blocking: emit builder prompt unless we're already processing a declare_chain action
     if not (awaiting_chain_builder and isinstance(player_input, dict) and player_input.get("action") == "declare_chain"):
-        emit_declare_chain(ui, usable_objs, max_len=3)
+        append_log("DEBUG: emit_declare_chain from handle_chain_declaration (non-blocking)")
+        emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+        ui.choice("Build your next chain?", ["Build chain"])
         state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
         return True
+    append_log("DEBUG: skipping emit_declare_chain because awaiting declare_chain action")
     return None
-
 
 def handle_chain_resolution(ctx: dict) -> bool | None:
     state = ctx["state"]
@@ -222,9 +399,10 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         emit_character_update(ui, {
             "hp": {"current": res_after.get("hp"), "max": res_after.get("hp_max", res_after.get("max_hp", res_after.get("maxHp", res_after.get("hp"))))},
             "rp": res_after.get("resolve", 0),
-            "veinscore": res_after.get("veinscore", 0),
+            "veinscore": res_after.get("veinscore", 520),
             "attributes": character.get("attributes", {}),
-            "name": character.get("name")
+            "name": character.get("name"),
+            "abilities": character.get("abilities", []),
         })
         defense_d20 = None
         defense_roll = None
@@ -406,13 +584,14 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
             "rp": character["resources"].get("resolve", 0),
             "veinscore": character["resources"].get("veinscore", 0),
             "attributes": character.get("attributes", {}),
-            "name": character.get("name")
+            "name": character.get("name"),
+            "abilities": character.get("abilities", []),
         })
         state["phase"]["current"] = "out_of_combat"
     else:
         state["phase"]["current"] = "chain_declaration"
         state["phase"]["round_started"] = False
-        # Web: offer to build next chain
+        # Web: offer prompt to rebuild chain (let the player see resolution output first)
         if not getattr(ui, "is_blocking", True):
             options = ["build_chain"]
             ui.choice("Build your next chain?", ["Build chain"])
@@ -425,10 +604,12 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
             "rp": res_after.get("resolve", 0),
             "veinscore": res_after.get("veinscore", 0),
             "attributes": character.get("attributes", {}),
-            "name": character.get("name")
+            "name": character.get("name"),
+            "abilities": character.get("abilities", []),
         })
     character["resources"]["heat"] = character["resources"].get("heat", 0) if character["resources"].get("heat", 0) <= 2 else 0
     return True
+
 def load_canon():
     canon = {}
     canon_dir = Path(__file__).parent / "canon"
@@ -453,7 +634,6 @@ def deep_merge(base, overlay):
         return merged
     # For lists or scalars, overlay replaces base
     return deepcopy(overlay)
-
 
 def format_enemy_preview(enemy):
     """Pretty-print an enemy for quick verification in the CLI."""
@@ -548,30 +728,6 @@ def format_enemy_preview(enemy):
 
     return "\n".join(lines)
 
-BUFF_TYPES = {
-    "radiance",
-    "quickened",
-    "invisibility",
-    "intangible",
-    "defense up",
-    "attack up",
-    "idf up",
-    "retaliate",
-}
-
-DEBUFF_TYPES = {
-    "bleed",
-    "radiant burn",
-    "vulnerable",
-    "primed",
-    "telegraph",
-    "stagger",
-    "slowed",
-    "distracted",
-    "exhausted",
-}
-
-
 def format_status_summary(entity):
     statuses = entity.get("statuses", {}) or {}
     buffs = []
@@ -600,7 +756,6 @@ def format_status_summary(entity):
     neutral_str = ", ".join(neutrals) if neutrals else "none"
     return f"Status:{neutral_str} Buff:{buff_str} Debuff:{debuff_str}"
 
-
 def format_enemy_state(enemy):
     if not enemy:
         return ""
@@ -627,7 +782,6 @@ def format_enemy_state(enemy):
     else:
         status_str = "none"
     return f"[Enemy] HP {hp}/{hp_max or '?'} | RP {rp} | Momentum {momentum} | Status {status_str}"
-
 
 def load_game_data():
     root = Path(__file__).parent / "game-data"
@@ -710,7 +864,6 @@ def load_game_data():
     data["bestiary"] = [resolve_enemy_archetype(e) for e in bestiary]
     return data
 
-
 def select_loot(game_data, enemy):
     """
     Pick a loot item for the given enemy tier.
@@ -725,9 +878,7 @@ def select_loot(game_data, enemy):
         tier_matches = [l for l in loot_table if l.get("tier", 0) <= tier]
     candidates = tier_matches or loot_table
     return random.choice(candidates) if candidates else None
-    
-
-
+  
 def veinscore_value(name, game_data):
     table = game_data.get("veinscore_loot", [])
     for item in table:
@@ -735,12 +886,10 @@ def veinscore_value(name, game_data):
             return item.get("veinscore", 0)
     return 0
 
-
 def award_veinscore(character, amount):
     res = character.setdefault("resources", {})
     res["veinscore"] = res.get("veinscore", 0) + amount
     return res["veinscore"]
-
 
 def enemy_move_damage(enemy, move):
     """Roll damage for an enemy move using its damage_profile."""
@@ -757,7 +906,6 @@ def enemy_move_damage(enemy, move):
     flat = dmg_obj.get("flat", 0)
     dmg_roll = roll(dice)
     return dmg_roll + (flat if isinstance(flat, (int, float)) else 0)
-
 
 def select_enemy_move(enemy, state):
     """Select an enemy move; fall back to first move."""
@@ -809,7 +957,6 @@ def select_enemy_move(enemy, state):
                             return move_lookup[ref]
     return moves[0]
 
-
 def build_enemy_chain(enemy):
     """Build a simple move chain based on available RP."""
     moves = enemy.get("moves", []) if enemy else []
@@ -828,7 +975,6 @@ def build_enemy_chain(enemy):
         chain.append(moves[0])
     return chain
 
-
 def compute_damage_reduction(target):
     """Consume and roll any stored damage_reduction effects on the target."""
     dr_list = target.pop("damage_reduction", [])
@@ -843,6 +989,7 @@ def compute_damage_reduction(target):
         if isinstance(flat, (int, float)):
             total += flat
     return total
+
 def initial_state():
     return {
         'phase': {
@@ -912,171 +1059,6 @@ def advance_phase(state, phase_machine, previous_phase):
     if transitions:
         state["phase"]["current"] = transitions[0]
 
-def create_default_character():
-    fallback = {
-        "name": "The Blooded",
-        "hp": {"current": 24, "max": 24},
-        "rp": 5,
-        "veinscore": 0,
-        "attributes": {
-            "str": 14,
-            "dex": 14,
-            "int": 14,
-            "wil": 8,
-        },
-        "abilities": [
-            {
-      "name": "Basic Strike",
-      "path": "core",
-      "tier": 0,
-      "cooldown": 1,
-      "base_cooldown": 0,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "free",
-      "dice": "1d4",
-      "tags": [
-        "core",
-        "attack"
-      ],
-      "effect": "Make a basic attack for 1d4 + stat. On hit gain +1 Heat. Applies -1 Balance penalty.",
-      "stat": "weapon",
-      "addStatToAttackRoll": "true",
-      "addStatToDamage": "true"
-    },
-
-        ],
-    }
-    try:
-        return json.loads(DEFAULT_CHARACTER_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        return fallback
-
-
-def create_game_context(ui, skip_character_creation=False):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--auto", action="store_true", help="Run in automated mode (no prompts).")
-    parser.add_argument("--nonarrate", action="store_true", help="Disable narration.")
-    parser.add_argument(
-        "--interactive-defaults",
-        action="store_true",
-        help="Interactive mode but default to saved character and narration off without prompting."
-    )
-    args, _ = parser.parse_known_args()
-
-    canon = load_canon()
-    phase_machine = canon["phase_machine.json"]
-    game_data = load_game_data()
-
-    if skip_character_creation:
-        character = create_default_character()
-    elif args.auto or args.interactive_defaults:
-        character = load_character()
-    else:
-        use_saved = ui.choice("Use saved character?", ["Yes", "No"]) == 0
-        if use_saved:
-            character = load_character()
-        else:
-            character = run_character_creation(
-                canon,
-                narrator=None,  # or narrator_stub if you want flavor text
-                ui=ui,
-            )
-            save_character(character)
-
-    # Normalize player resources so hp_max is always available and hp is numeric.
-    res = character.setdefault("resources", {})
-    if isinstance(res.get("hp"), dict):
-        hp_obj = res.get("hp") or {}
-        res["hp"] = hp_obj.get("current", hp_obj.get("hp"))
-        res["hp_max"] = hp_obj.get("max") or res.get("hp_max") or res.get("max_hp") or res.get("maxHp")
-    if "hp_max" not in res and "max_hp" not in res and "maxHp" not in res and isinstance(res.get("hp"), (int, float)):
-        res["hp_max"] = res["hp"]
-
-    state = initial_state()
-    state["flags"] = {"narration_enabled": not args.nonarrate}
-    append_log(f"SESSION_START flags={state.get('flags')}")
-    state["party"]["members"][0].update(character)
-    state["game_data"] = game_data
-    # hydrate abilities from game data (fills effect/pool/etc. for older saves)
-    pool_map = game_data.get("abilities", {}).get("poolByPath", {})
-    gd_abilities = game_data.get("abilities", {}).get("abilities", [])
-    gd_resolve = game_data.get("resolve_abilities", {}).get("abilities", [])
-    lookup = {a.get("name"): a for a in gd_abilities + gd_resolve}
-    for ability in state["party"]["members"][0].get("abilities", []):
-        src = lookup.get(ability.get("name"), {})
-        if src:
-            for key in ["effect", "cost", "dice", "stat", "tags", "path", "type", "effects", "to_hit"]:
-                if key not in ability and key in src:
-                    ability[key] = src[key]
-            if not ability.get("pool"):
-                path = ability.get("path") or src.get("path")
-                ability["path"] = path
-                if path and path in pool_map:
-                    ability["pool"] = pool_map[path]
-
-    ui.system("Veinbreaker AI Session Started.\n")
-
-    return {
-        "ui": ui,
-        "state": state,
-        "phase_machine": phase_machine,
-        "game_data": game_data,
-        "args": args,
-    }
-
-
-def start_game(ctx):
-    ui = ctx["ui"]
-
-    text = """
-WELCOME, VEINBREAKER
-
-You are wondering if this is a game.
-If there are rules. if you can win.
-NO. THIS IS NOT A GAME.
-Games forgive hesitation.
-I do not.  Games give you turns. I give you moments—and I take them back when you waste them.
-
-WHAT YOU ARE
-You are not a hero. You are not chosen. You are not special.
-You are interesting.
-You came from a place where rules were safety rails. Where numbers meant comfort. Where death was the end.
-Here, numbers are temptation. Here, death is a lesson.
-
-HOW YOU SURVIVE
-
-You will strike. You will miss. You will strike again anyway.
-You will learn that a failed blow does not end a fight— but greed does.
-You will feel your Balance slip as you overreach.
-You will feel Heat rise as blood splashes the stone.
-You will feel Momentum surge when you defend perfectly and realize—
-That feeling? 
-That is Resolve. Spend it. Spend it boldly. Spend it gloriously.
-I do not want perfection.I do not want safety.I do not want caution.
-I want commitment.
-Declare your chains before you swing.Show me your plan before you bleed.
-Let me see whether your hands shake when the rhythm turns against you.
-And when an enemy is Primed—when they are open, gasping, begging—do not hesitate.
-Execute.Take the Blood Mark.Feel the weight of it settle into your bones.
-You will be stronger after.You will also be ... noticed.
-
-A WARNING (I ONLY GIVE ONE)
-The longer you impress me,the more I will send things that remember how to impress me back.
-Former players.Broken champions.Hunters who learned too much and stopped dying properly.
-You cannot kill them.You can only survive them.
-Come, Veinbreaker.I am watching.I am listening.I am already entertained.
-And if you live long enough—maybe I will let you change the rules.Or maybe I will carve your name into the walls
-and let the next one read it while they wonder how long they’ll last.
-Come. Let’s see how you move when the stone starts breathing.
-
-"""
-    ui.scene(text)
-
-    ui.choice(
-        "What do you do?",
-        ["Advance"]
-    )
 
 
 def game_step(ctx, player_input):
@@ -1108,6 +1090,15 @@ def game_step(ctx, player_input):
         elif awaiting["type"] == "chain_builder":
             # handled via action "declare_chain"
             state["awaiting"] = awaiting  # restore; action handler will pop
+        # If the user explicitly clicked the Build Chain choice (any casing/spaces), shortcut into reopening the builder
+        norm_choice = resolved_choice.lower().replace(" ", "_") if isinstance(resolved_choice, str) else resolved_choice
+        if norm_choice == "build_chain":
+            usable_objs = usable_ability_objects(state)
+            state["phase"]["current"] = "chain_declaration"
+            state["phase"]["round_started"] = False
+            emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+            state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
+            return True
 
     nonarrate = args.nonarrate if args else False
     interactive_defaults = args.interactive_defaults if args else False
@@ -1121,34 +1112,24 @@ def game_step(ctx, player_input):
         if not getattr(ui, "is_blocking", True):
             ch = state["party"]["members"][0]
             res = ch.get("resources", {})
-            emit_character_update(ui, {
-                "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp"))))},
-                "rp": res.get("resolve", 0),
-                "veinscore": res.get("veinscore", 0),
-                "attributes": ch.get("attributes", {}),
-                "name": ch.get("name")
-            })
+        emit_character_update(ui, {
+            "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp"))))},
+            "rp": res.get("resolve", 0),
+            "veinscore": res.get("veinscore", 0),
+            "attributes": ch.get("attributes", {}),
+            "name": ch.get("name"),
+            "abilities": ch.get("abilities", []),
+        })
 
     current_phase = state["phase"]["current"]
-    if current_phase == "chain_declaration":
-        handled = handle_chain_declaration(ctx, player_input)
-        if handled is not None:
-            return handled
-    if current_phase == "chain_resolution":
-        handled = handle_chain_resolution(ctx)
-        if handled is not None:
-            return handled
-
-
-    actions = allowed_actions(state, phase_machine)
-
-    if not (nonarrate or interactive_defaults):
-        try:
-            narrate(state, actions)
-        except Exception as e:
-            ui.error(f"[Narrator error: {e}]")
-    else:
-        ui.system("\n(Narration suppressed)")
+    # In non-blocking UI, if we've entered chain_declaration without a pending prompt, surface the builder + choice.
+    if current_phase == "chain_declaration" and not getattr(ui, "is_blocking", True) and "awaiting" not in state:
+        append_log(f"DEBUG: auto chain prompt (phase={current_phase}, round={state['phase'].get('round')}, awaiting=None)")
+        usable_objs = usable_ability_objects(state)
+        ui.choice("Build your next chain?", ["Build chain"])
+        emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+        state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
+        return True
 
     requested_action = player_input.get("action") if isinstance(player_input, dict) else None
     # quick start hook for web: immediately prompt chain builder
@@ -1157,7 +1138,8 @@ def game_step(ctx, player_input):
         emit_declare_chain(ui, usable_objs, max_len=3)
         state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
         return True
-    if isinstance(player_input, dict) and player_input.get("action") == "declare_chain":
+    # handle declare_chain actions before phase handlers so we don't short-circuit
+    if isinstance(player_input, dict) and requested_action == "declare_chain":
         chain_ids = player_input.get("chain") or []
         awaiting = state.pop("awaiting", None) if state.get("awaiting", {}).get("type") == "chain_builder" else None
         usable = awaiting.get("options") if awaiting else usable_ability_objects(state)
@@ -1178,7 +1160,7 @@ def game_step(ctx, player_input):
             ui.error(f"Invalid chain: {resp}")
             emit_event(ui, {"type": "chain_rejected", "reason": resp})
             # Re-open chain builder with usable options
-            emit_declare_chain(ui, usable, max_len=3)
+            emit_declare_chain(ui, usable, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
             state["awaiting"] = {"type": "chain_builder", "options": usable}
             return True
         for ability in character.get("abilities", []):
@@ -1188,10 +1170,34 @@ def game_step(ctx, player_input):
                 ability["cooldown"] = cd
                 ability["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
         state["phase"]["current"] = "chain_resolution"
+        state.pop("awaiting", None)
         # For web/non-blocking, immediately proceed into resolution so we don't get stuck waiting.
         if not getattr(ui, "is_blocking", True):
             return game_step(ctx, {"action": "tick"})
         return True
+
+    if current_phase == "chain_declaration":
+        handled = handle_chain_declaration(ctx, player_input)
+        if handled is not None:
+            return handled
+    if current_phase == "chain_resolution":
+        handled = handle_chain_resolution(ctx)
+        if handled is not None:
+            return handled
+    # For non-blocking UIs, if we're waiting on any prompt, do not surface generic action lists.
+    if not getattr(ui, "is_blocking", True) and "awaiting" in state:
+        return True
+
+
+    actions = allowed_actions(state, phase_machine)
+
+    if not (nonarrate or interactive_defaults):
+        try:
+            narrate(state, actions)
+        except Exception as e:
+            ui.error(f"[Narrator error: {e}]")
+    else:
+        ui.system("\n(Narration suppressed)")
     if resolved_choice is not None:
         choice = resolved_choice
     elif requested_action in actions:
@@ -1204,7 +1210,8 @@ def game_step(ctx, player_input):
         if choice is None:
             return True
     # Web helper: explicit build_chain choice should reopen chain builder instead of falling through to phase actions.
-    if choice == "build_chain":
+    choice_norm = choice.lower().replace(" ", "_") if isinstance(choice, str) else choice
+    if choice_norm == "build_chain":
         usable_objs = usable_ability_objects(state)
         state["phase"]["current"] = "chain_declaration"
         state["phase"]["round_started"] = False
@@ -1247,13 +1254,19 @@ def game_step(ctx, player_input):
                     ui.error(f"[NARRATOR ERROR] {e}")
                     append_log(f"NARRATION_ERROR: {e}")
         advance_phase(state, phase_machine, prev_phase)
+        # Web: surface chain builder only when actually entering combat, not when just generating
+        if not getattr(ui, "is_blocking", True) and choice == "enter_encounter":
+            usable_objs = usable_ability_objects(state)
+            ui.choice("Build your next chain?", ["Build chain"])
+            emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+            state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
+            return True
 
     # For non-blocking UIs, immediately surface the next prompt without waiting for another action payload.
     if not getattr(ui, "is_blocking", True) and "awaiting" not in state:
         return game_step(ctx, {"action": "tick"})
 
     return True
-
 
 def main():
     ui = UI(CLIProvider())
@@ -1265,7 +1278,6 @@ def main():
         keep_going = game_step(ctx, {"action": "tick"})
         if keep_going is False:
             break
-
 
 if __name__ == "__main__":
     main()

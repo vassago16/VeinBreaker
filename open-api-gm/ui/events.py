@@ -46,6 +46,7 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
         "int": attrs.get("int") or attrs.get("INT") or attrs.get("MND"),
         "wil": attrs.get("wil") or attrs.get("WIL") or attrs.get("SPR"),
     }
+    abilities = character.get("abilities") if isinstance(character, dict) else None
     return {
         "type": "character_update",
         "character": {
@@ -54,6 +55,7 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
             "rp": character.get("rp"),
             "veinscore": character.get("veinscore"),
             "attributes": norm_attrs,
+            "abilities": abilities,
         }
     }
 

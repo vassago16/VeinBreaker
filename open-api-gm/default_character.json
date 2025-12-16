@@ -75,8 +75,8 @@
         "core",
         "movement"
       ],
-      "effect": "Move 1 zone. Improve Balance by +1 if negative. DEX modifier applies to the Defense roll during this movement.",
-      "stat": "DEX",
+      "effect": "Move 1 zone. Improve Balance by +1 if negative. AGI modifier applies to the Defense roll during this movement.",
+      "stat": "AGI",
       "addStatToAttackRoll": true,
       "addStatToDamage": true
     },
@@ -142,14 +142,15 @@
     }
   ],
   "stats": {
-    "POW": 14,
+    "POW": 21,
     "AGI": 14,
     "MND": 14,
     "SPR": 13
   },
   "resources": {
-    "hp": 30,
-    "resolve": 5,
+    "name":"default_character",
+    "hp": 31,
+    "resolve": 15,
     "resolve_cap": 5,
     "momentum": 0,
     "heat": 0,

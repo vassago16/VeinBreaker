@@ -1025,7 +1025,10 @@ function handleEvents(events) {
       case "declare_chain":
         chainAbilities = ev.abilities || [];
         maxChainLength = Math.max(ev.maxLength ?? 6, 6);
-        document.getElementById("chain-max").textContent = String(maxChainLength);
+        const maxEl = document.getElementById("chain-max");
+        if (maxEl) {
+          maxEl.textContent = String(maxChainLength);
+        }
         chain = [];
         renderAbilities(chainAbilities);
         renderChain();
@@ -1079,7 +1082,7 @@ async function pollEvents() {
   }
 }
 
-setInterval(pollEvents, 120000);
+setInterval(pollEvents, 12000000);
 
 // CHAIN BUILDER STATE AND HELPERS
 let chainAbilities = []; // from backend event
@@ -1231,7 +1234,9 @@ function renderChainRules(rules) {
 
   const min = rules?.min ?? 0;
   const max = rules?.max ?? maxChainLength;
-  span.textContent = String(max);
+  if (span) {
+    span.textContent = String(max);
+  }
 
   if (min === 0 && max) {
     sub.textContent = `Build a chain of up to ${max} links — or stand and endure.`;
