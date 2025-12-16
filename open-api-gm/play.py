@@ -16,6 +16,7 @@ from ui.events import (
     emit_character_update,
     emit_declare_chain,
 )
+from combat import Combat
 from engine.phases import allowed_actions, tick_cooldowns, list_usable_abilities
 from engine.apply import apply_action
 from flow.character_creation import run_character_creation
@@ -154,6 +155,7 @@ def create_game_context(ui, skip_character_creation=False):
         "phase_machine": phase_machine,
         "game_data": game_data,
         "args": args,
+        "combat": None,
     }
 
 def start_game(ctx):
@@ -608,6 +610,9 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
             "abilities": character.get("abilities", []),
         })
     character["resources"]["heat"] = character["resources"].get("heat", 0) if character["resources"].get("heat", 0) <= 2 else 0
+    # End combat controller when combat ends
+    if ctx.get("combat") and state["phase"]["current"] not in ("chain_declaration", "chain_resolution"):
+        ctx["combat"] = None
     return True
 
 def load_canon():
@@ -1112,25 +1117,16 @@ def game_step(ctx, player_input):
         if not getattr(ui, "is_blocking", True):
             ch = state["party"]["members"][0]
             res = ch.get("resources", {})
-        emit_character_update(ui, {
-            "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp"))))},
-            "rp": res.get("resolve", 0),
-            "veinscore": res.get("veinscore", 0),
-            "attributes": ch.get("attributes", {}),
-            "name": ch.get("name"),
-            "abilities": ch.get("abilities", []),
-        })
+            emit_character_update(ui, {
+                "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp"))))},
+                "rp": res.get("resolve", 0),
+                "veinscore": res.get("veinscore", 0),
+                "attributes": ch.get("attributes", {}),
+                "name": ch.get("name"),
+                "abilities": ch.get("abilities", []),
+            })
 
-    current_phase = state["phase"]["current"]
-    # In non-blocking UI, if we've entered chain_declaration without a pending prompt, surface the builder + choice.
-    if current_phase == "chain_declaration" and not getattr(ui, "is_blocking", True) and "awaiting" not in state:
-        append_log(f"DEBUG: auto chain prompt (phase={current_phase}, round={state['phase'].get('round')}, awaiting=None)")
-        usable_objs = usable_ability_objects(state)
-        ui.choice("Build your next chain?", ["Build chain"])
-        emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
-        state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
-        return True
-
+    # Requested action (handle early to avoid combat short-circuit)
     requested_action = player_input.get("action") if isinstance(player_input, dict) else None
     # quick start hook for web: immediately prompt chain builder
     if requested_action == "start" and not getattr(ui, "is_blocking", True):
@@ -1174,6 +1170,22 @@ def game_step(ctx, player_input):
         # For web/non-blocking, immediately proceed into resolution so we don't get stuck waiting.
         if not getattr(ui, "is_blocking", True):
             return game_step(ctx, {"action": "tick"})
+        return True
+
+    current_phase = state["phase"]["current"]
+    # If we are in combat and have a controller, delegate chain phases to it.
+    combat = ctx.get("combat")
+    if combat and state["phase"]["current"] in ("chain_declaration", "chain_resolution"):
+        handled = combat.step(player_input if isinstance(player_input, dict) else {})
+        if handled is not None:
+            return handled
+    # In non-blocking UI, if we've entered chain_declaration without a pending prompt, surface the builder + choice.
+    if current_phase == "chain_declaration" and not getattr(ui, "is_blocking", True) and "awaiting" not in state:
+        append_log(f"DEBUG: auto chain prompt (phase={current_phase}, round={state['phase'].get('round')}, awaiting=None)")
+        usable_objs = usable_ability_objects(state)
+        ui.choice("Build your next chain?", ["Build chain"])
+        emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+        state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
         return True
 
     if current_phase == "chain_declaration":
@@ -1256,10 +1268,9 @@ def game_step(ctx, player_input):
         advance_phase(state, phase_machine, prev_phase)
         # Web: surface chain builder only when actually entering combat, not when just generating
         if not getattr(ui, "is_blocking", True) and choice == "enter_encounter":
-            usable_objs = usable_ability_objects(state)
-            ui.choice("Build your next chain?", ["Build chain"])
-            emit_declare_chain(ui, usable_objs, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
-            state["awaiting"] = {"type": "chain_builder", "options": usable_objs}
+            if not ctx.get("combat"):
+                ctx["combat"] = Combat(ctx, handle_chain_declaration, handle_chain_resolution, usable_ability_objects)
+            ctx["combat"].start()
             return True
 
     # For non-blocking UIs, immediately surface the next prompt without waiting for another action payload.
