@@ -1,0 +1,17 @@
+{
+  "schema_version": "loot.v1",
+  "id": "loot.vein_fragment.t1",
+  "name": "Faint Vein Sigil",
+
+  "tier": 1,
+  "rarity": "common",
+
+  "effects": [
+    {
+      "type": "add_veinscore",
+      "amount": 1
+    }
+  ],
+
+  "narration": "A dull sigil pulses weakly, still warm with borrowed blood."
+}

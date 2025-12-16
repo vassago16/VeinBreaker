@@ -360,6 +360,7 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
     enemies = state.get("enemies", [])
     chain = character.get("chain", {})
     chain_attack_d20 = roll("1d20")
+    emit_combat_log(ui, f"Player Roll: {chain_attack_d20}", log_type="roll")
     ic = InterruptController(enemies[0] if enemies else {})
     enemy = enemies[0] if enemies else None
     enemy_dv = 0
@@ -446,19 +447,51 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
                 ui.system("Enemy interrupt fails.")
     if enemies:
         ui.system(format_enemy_state(enemies[0]))
+    # Apply balance/heat tweaks after player chain
+    if character["resources"].get("heat", 0) >= 2 and enemies and dmg and dmg > 0:
+        bonus = min(4, max(0, character["resources"]["heat"] - 1))
+        if bonus > 0:
+            enemies[0]["hp"] = max(0, enemies[0].get("hp", 0) - bonus)
+            ui.system(f"Heat bonus deals +{bonus} damage. Enemy HP now {enemies[0].get('hp')}.")
+    # Update balance after chain (simple heuristic based on ability type)
+    balance_change = 0
+    for idx, ability_name in enumerate(chain.get("abilities", [])):
+        ability = next((a for a in character.get("abilities", []) if a.get("name") == ability_name), None)
+        if not ability:
+            continue
+        if ability.get("type") == "movement":
+            balance_change += 2
+        elif ability.get("type") == "attack":
+            balance_change -= 1
+        elif ability.get("type") == "resolve":
+            balance_change -= 1
+    character["resources"]["balance"] = character["resources"].get("balance", 0) + balance_change
+    chain_moves = []
     if enemies:
         enemy_hp = enemies[0].get("hp", 0)
         if enemy_hp > 0:
             enemy = enemies[0]
-            chain_moves = build_enemy_chain(enemy)
-            for midx, move in enumerate(chain_moves):
-                move = move or {}
-                move_name = move.get("name", move.get("id", "Enemy move"))
-                to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
-                atk_mod = enemy.get("attack_mod", 0)
-                enemy_to_hit_d20 = roll("1d20")
-                enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
-                if midx > 0:
+            chain_moves = build_enemy_chain(enemy) or []
+    start_idx = state.pop("pending_enemy_action", {}).get("move_index", 0)
+    for midx in range(start_idx, len(chain_moves)):
+        move = chain_moves[midx] or {}
+        move = move or {}
+        move_name = move.get("name", move.get("id", "Enemy move"))
+        to_hit_mod = move.get("to_hit", {}).get("av_mod", 0)
+        atk_mod = enemy.get("attack_mod", 0)
+        # Offer defense prompt before resolving, if non-blocking and not already awaiting.
+        if not getattr(ui, "is_blocking", True) and "awaiting" not in state:
+            defenses = [a for a in character.get("abilities", []) if a.get("type") == "defense" and a.get("cooldown", 0) == 0]
+            if defenses:
+                choices = [d.get("name") for d in defenses] + ["Continue chain"]
+                ui.choice(f"Defend against {move_name}?", choices)
+                state["awaiting"] = {"type": "defense_pick", "options": defenses + [None]}
+                state["pending_enemy_action"] = {"move_index": midx}
+                return True
+        enemy_to_hit_d20 = roll("1d20")
+        emit_combat_log(ui, f"Enemy Roll: {enemy_to_hit_d20}", log_type="roll")
+        enemy_to_hit = enemy_to_hit_d20 + to_hit_mod + atk_mod
+        if midx > 0:
                     if getattr(ui, "is_blocking", True):
                         resp = ui.text_input("Attempt interrupt? (y/n): ")
                         resp = resp.lower() if isinstance(resp, str) else ""
@@ -489,22 +522,50 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
                                 ui.system(f"Interrupt fails (enemy atk {enemy_to_hit}).")
                         else:
                             ui.system("No defense abilities available.")
-                player_def_d20 = roll("1d20")
-                tb = character.get("temp_bonuses", {}) or {}
-                player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0) + tb.get("idf", 0) + tb.get("defense", 0)
-                if enemy_to_hit > player_def:
-                    counter_dmg = enemy_move_damage(enemy, move)
-                    reduction = compute_damage_reduction(character)
-                    dmg_after = max(0, counter_dmg - reduction)
-                    character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg_after)
-                    if dmg_after == 0 and character.get("damage_reduction_success"):
-                        apply_effect_list(character.pop("damage_reduction_success", []), actor=character, enemy=enemy, default_target="self")
-                    on_hit_effects = move.get("on_hit", {}).get("effects", [])
-                    applied = apply_status_effects(character, on_hit_effects)
-                    applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
-                    ui.system(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> HIT for {counter_dmg - reduction} (raw {counter_dmg}, reduced {reduction}). PC HP {character['resources']['hp']}.{applied_note}")
+        player_def_d20 = roll("1d20")
+        tb = character.get("temp_bonuses", {}) or {}
+        player_def = player_def_d20 + character["resources"].get("idf", 0) + character["resources"].get("momentum", 0) + tb.get("idf", 0) + tb.get("defense", 0)
+        if enemy_to_hit > player_def:
+            counter_dmg = enemy_move_damage(enemy, move)
+            reduction = compute_damage_reduction(character)
+            # apply simple defense ability if chosen
+            defense_used = state.pop("pending_defense", None)
+            if defense_used:
+                # spend resolve
+                cost = defense_used.get("cost", 1)
+                character["resources"]["resolve"] = max(0, character["resources"].get("resolve", 0) - cost)
+                # cooldown the defense ability
+                cd = defense_used.get("base_cooldown", defense_used.get("cooldown", 0) or 0)
+                defense_used["base_cooldown"] = cd
+                defense_used["cooldown"] = cd
+                defense_used["cooldown_round"] = state["phase"]["round"] + cd if cd else state["phase"]["round"]
+                # reduce damage
+                if defense_used.get("dice"):
+                    reduction += roll(defense_used["dice"])
                 else:
-                    ui.system(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> MISS.")
+                    reduction += 1
+                # reward momentum/balance on successful defense attempt
+                character["resources"]["momentum"] = character["resources"].get("momentum", 0) + 1
+                character["resources"]["balance"] = character["resources"].get("balance", 0) + 1
+            dmg_after = max(0, counter_dmg - reduction)
+            character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg_after)
+            if dmg_after == 0 and character.get("damage_reduction_success"):
+                apply_effect_list(character.pop("damage_reduction_success", []), actor=character, enemy=enemy, default_target="self")
+            on_hit_effects = move.get("on_hit", {}).get("effects", [])
+            applied = apply_status_effects(character, on_hit_effects)
+            applied_note = f" Effects applied: {', '.join(applied)}." if applied else ""
+            ui.system(
+                f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} "
+                f"vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} "
+                f"-> HIT for {counter_dmg - reduction} (raw {counter_dmg}, reduced {reduction}). PC HP {character['resources']['hp']}."
+                f"{applied_note}"
+            )
+        else:
+            ui.system(f"Enemy uses {move_name}: atk {enemy_to_hit_d20}+{to_hit_mod}+{atk_mod}={enemy_to_hit} vs def {player_def_d20}+idf/mom={character['resources'].get('idf',0)}/{character['resources'].get('momentum',0)}={player_def} -> MISS.")
+            # Perfect Defense margin grants momentum/balance
+            if enemy_to_hit + 5 <= player_def:
+                character["resources"]["momentum"] = character["resources"].get("momentum", 0) + 1
+                character["resources"]["balance"] = character["resources"].get("balance", 0) + 1
     if enemies and enemies[0].get("hp", 0) <= 0:
         ui.system("Enemy defeated.")
         emit_combat_state(ui, False)
@@ -1095,6 +1156,12 @@ def game_step(ctx, player_input):
         elif awaiting["type"] == "chain_builder":
             # handled via action "declare_chain"
             state["awaiting"] = awaiting  # restore; action handler will pop
+        elif awaiting["type"] == "defense_pick":
+            if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
+                state["pending_defense"] = awaiting["options"][idx]
+            else:
+                ui.error("Invalid defense selection.")
+                return True
         # If the user explicitly clicked the Build Chain choice (any casing/spaces), shortcut into reopening the builder
         norm_choice = resolved_choice.lower().replace(" ", "_") if isinstance(resolved_choice, str) else resolved_choice
         if norm_choice == "build_chain":
@@ -1239,7 +1306,9 @@ def game_step(ctx, player_input):
         if state.get("enemies"):
             enemy = state["enemies"][0]
             emit_combat_state(ui, True)
-            emit_combat_log(ui, format_enemy_preview(enemy))
+            # Emit preview only on generate, not on enter (avoid duplicate log/system spam)
+            if choice == "generate_encounter":
+                emit_combat_log(ui, format_enemy_preview(enemy))
             # Scene intro narration
             if state.get("flags", {}).get("narration_enabled") and NARRATION:
                 log_flags("SCENE_INTRO", state)

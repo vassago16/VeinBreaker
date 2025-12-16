@@ -1,0 +1,18 @@
+{
+  "schema_version": "script.v1",
+  "id": "script.echoes.test",
+  "title": "Echoes — Test Descent",
+
+  "acts": [
+    {
+      "id": "act.01.test",
+      "title": "First Pressure",
+      "order": 1,
+
+      "scenes": [
+        { "$ref": "scene.01.01" },
+        { "$ref": "scene.01.02" }
+      ]
+    }
+  ]
+}

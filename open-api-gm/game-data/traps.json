@@ -1,0 +1,40 @@
+{
+  "schema_version": "traps.v1",
+  "traps": [
+    {
+      "id": "trap.hematite_spike",
+      "name": "Hematite Spike",
+      "trigger": "pressure_plate",
+      "effect": "Impales the nearest target for 1d6 piercing.",
+      "tags": ["vein", "collapsed", "claustrophobic"]
+    },
+    {
+      "id": "trap.blood_siphon",
+      "name": "Blood Siphon Vent",
+      "trigger": "proximity",
+      "effect": "Sprays caustic mist; 1d4 acid and gain +1 Heat.",
+      "tags": ["vein", "chemical", "mist"]
+    },
+    {
+      "id": "trap.vein_lure",
+      "name": "Vein Lure Glyph",
+      "trigger": "line_of_sight",
+      "effect": "Compels approach; WIL save or forced move 1 zone.",
+      "tags": ["glyph", "psychic", "vein"]
+    },
+    {
+      "id": "trap.falling_shale",
+      "name": "Falling Shale",
+      "trigger": "tripwire",
+      "effect": "Ceiling debris; 1d6 bludgeoning and Knockdown on fail.",
+      "tags": ["environment", "debris", "loud"]
+    },
+    {
+      "id": "trap.vein_surge",
+      "name": "Vein Surge Conduit",
+      "trigger": "tamper",
+      "effect": "Vein energy discharge; 1d4 lightning and Stagger 1 on fail.",
+      "tags": ["electric", "arc", "vein"]
+    }
+  ]
+}

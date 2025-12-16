@@ -29,8 +29,11 @@ def emit_combat_state(ui, active: bool) -> None:
     emit_event(ui, build_combat_state(active))
 
 
-def emit_combat_log(ui, text: str) -> None:
-    emit_event(ui, {"type": "combat_log", "text": text})
+def emit_combat_log(ui, text: str, log_type: str | None = None) -> None:
+    payload = {"type": "combat_log", "text": text}
+    if log_type:
+        payload["logType"] = log_type
+    emit_event(ui, payload)
     ui.system(text)
 
 

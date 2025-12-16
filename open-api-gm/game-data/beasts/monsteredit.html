@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bestiary Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #8b0000;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            color: #a52a2a;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #8b0000;
+        }
+
+        .controls {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-buttons button {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px 20px;
+            background-color: #8b0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-buttons button:hover {
+            background-color: #a52a2a;
+        }
+
+        .nav-buttons button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .file-label,
+        .action-buttons button {
+            flex: 1;
+            min-width: 160px;
+            padding: 12px 20px;
+            background-color: #8b0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            text-align: center;
+        }
+
+        .action-buttons .file-label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .action-buttons .file-label input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .action-buttons button:hover {
+            background-color: #a52a2a;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 10px;
+            background-color: #333;
+            border: 1px solid #555;
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 16px;
+        }
+
+        .search-bar button {
+            padding: 10px 25px;
+            background-color: #8b0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .search-bar button:hover {
+            background-color: #a52a2a;
+        }
+
+        .record-info {
+            text-align: center;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        .editor {
+            background-color: #2a2a2a;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a52a2a;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background-color: #333;
+            border: 1px solid #555;
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #8b0000;
+            box-shadow: 0 0 5px rgba(139, 0, 0, 0.5);
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+            }
+            
+            .nav-buttons button {
+                width: 100%;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+
+        .error {
+            background-color: #4a0000;
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #8b0000;
+        }
+
+        .success {
+            background-color: #004a00;
+            color: #6bff6b;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #008b00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐉 Bestiary Viewer 🐉</h1>
+
+        <div id="message-container"></div>
+
+        <div class="controls">
+            <div class="nav-buttons">
+                <button id="firstBtn">⏮ First</button>
+                <button id="prevBtn">◀ Previous</button>
+                <button id="nextBtn">Next ▶</button>
+                <button id="lastBtn">Last ⏭</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search by ID...">
+                <button id="searchBtn">🔍 Search</button>
+            </div>
+            <div class="action-buttons">
+                <label class="file-label">
+                    Load local bestiary.json
+                    <input type="file" id="fileInput" accept="application/json">
+                </label>
+                <button id="saveBtn">Save (download bestiary.json)</button>
+            </div>
+            <div class="record-info" id="recordInfo">No data loaded</div>
+        </div>
+
+        <div class="editor" id="editor">
+            <div class="loading">Loading data...</div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let bestiaryData = [];
+        let currentIndex = 0;
+        let bestiaryRoot = null; // preserve meta if source is an object
+
+        // DOM elements
+        const editor = document.getElementById('editor');
+        const recordInfo = document.getElementById('recordInfo');
+        const messageContainer = document.getElementById('message-container');
+        const firstBtn = document.getElementById('firstBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const lastBtn = document.getElementById('lastBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const fileInput = document.getElementById('fileInput');
+
+        // Load data from JSON file
+        async function loadData() {
+            try {
+                const candidates = [
+                    '../monsters/bestiary.json',
+                    '../bestiary.json',
+                    'bestiary.json',
+                ];
+                let loaded = null;
+                let lastError = null;
+                for (const url of candidates) {
+                    try {
+                        const res = await fetch(url);
+                        if (!res.ok) {
+                            throw new Error(`HTTP ${res.status}`);
+                        }
+                loaded = await res.json();
+                break;
+            } catch (err) {
+                lastError = `${url} -> ${err.message}`;
+            }
+        }
+                if (!loaded) {
+                    throw new Error(`Tried: ${lastError}`);
+                }
+                normalizeLoadedData(loaded);
+                if (bestiaryData.length === 0) {
+                    showMessage('No records found in bestiary.json', 'error');
+                    return;
+                }
+
+                currentIndex = 0;
+                renderRecord();
+                updateNavButtons();
+                showMessage('Data loaded successfully!', 'success');
+            } catch (error) {
+                showMessage(`Error loading data: ${error.message} — or choose a file below.`, 'error');
+                editor.innerHTML = '<div class="loading">Failed to load data via fetch. ' + error +'</div>';
+            }
+        }
+
+        function onFileSelected(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    normalizeLoadedData(parsed);
+                    if (bestiaryData.length === 0) {
+                        showMessage('Loaded file is empty.', 'error');
+                        editor.innerHTML = '<div class="loading">No records found.</div>';
+                        return;
+                    }
+                    currentIndex = 0;
+                    renderRecord();
+                    updateNavButtons();
+                    showMessage(`Loaded ${bestiaryData.length} records from file input.`, 'success');
+                } catch (err) {
+                    showMessage(`Error reading file: ${err.message}`, 'error');
+                }
+            };
+            reader.onerror = () => {
+                showMessage('Error reading file.', 'error');
+            };
+            reader.readAsText(file);
+        }
+
+        function normalizeLoadedData(loaded) {
+            if (Array.isArray(loaded)) {
+                bestiaryRoot = null;
+                bestiaryData = loaded;
+            } else if (loaded && typeof loaded === 'object') {
+                bestiaryRoot = loaded;
+                bestiaryData = Array.isArray(loaded.enemies) ? loaded.enemies : [];
+            } else {
+                throw new Error('Unsupported JSON structure');
+            }
+            if (currentIndex >= bestiaryData.length) {
+                currentIndex = 0;
+            }
+        }
+
+        // Render the current record
+        function renderRecord() {
+            if (bestiaryData.length === 0) return;
+
+            const record = bestiaryData[currentIndex];
+            
+            editor.innerHTML = `
+                <h2>Creature Details</h2>
+                
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="id">ID</label>
+                        <input type="text" id="id" value="${escapeHtml(record.id)}" onchange="updateField('id', this.value)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" value="${escapeHtml(record.name)}" onchange="updateField('name', this.value)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" onchange="updateField('description', this.value)">${escapeHtml(record.description)}</textarea>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <input type="text" id="type" value="${escapeHtml(record.type)}" onchange="updateField('type', this.value)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="size">Size</label>
+                        <input type="text" id="size" value="${escapeHtml(record.size)}" onchange="updateField('size', this.value)">
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="alignment">Alignment</label>
+                        <input type="text" id="alignment" value="${escapeHtml(record.alignment)}" onchange="updateField('alignment', this.value)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="challengeRating">Challenge Rating</label>
+                        <input type="text" id="challengeRating" value="${escapeHtml(record.challengeRating)}" onchange="updateField('challengeRating', this.value)">
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 30px;">Attributes</h2>
+                
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="armorClass">Armor Class</label>
+                        <input type="number" id="armorClass" value="${record.armorClass}" onchange="updateField('armorClass', parseInt(this.value))">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="hitPoints">Hit Points</label>
+                        <input type="number" id="hitPoints" value="${record.hitPoints}" onchange="updateField('hitPoints', parseInt(this.value))">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="speed">Speed</label>
+                    <input type="text" id="speed" value="${escapeHtml(record.speed)}" onchange="updateField('speed', this.value)">
+                </div>
+
+                <h2 style="margin-top: 30px;">Ability Scores</h2>
+                
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="strength">Strength</label>
+                        <input type="number" id="strength" value="${record.strength}" onchange="updateField('strength', parseInt(this.value))">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dexterity">Dexterity</label>
+                        <input type="number" id="dexterity" value="${record.dexterity}" onchange="updateField('dexterity', parseInt(this.value))">
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="constitution">Constitution</label>
+                        <input type="number" id="constitution" value="${record.constitution}" onchange="updateField('constitution', parseInt(this.value))">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="intelligence">Intelligence</label>
+                        <input type="number" id="intelligence" value="${record.intelligence}" onchange="updateField('intelligence', parseInt(this.value))">
+                    </div>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="wisdom">Wisdom</label>
+                        <input type="number" id="wisdom" value="${record.wisdom}" onchange="updateField('wisdom', parseInt(this.value))">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charisma">Charisma</label>
+                        <input type="number" id="charisma" value="${record.charisma}" onchange="updateField('charisma', parseInt(this.value))">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="specialAbilities">Special Abilities</label>
+                    <textarea id="specialAbilities" onchange="updateField('specialAbilities', this.value)">${escapeHtml(record.specialAbilities)}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="actions">Actions</label>
+                    <textarea id="actions" onchange="updateField('actions', this.value)">${escapeHtml(record.actions)}</textarea>
+                </div>
+            `;
+
+            updateRecordInfo();
+        }
+
+        // Update a field in the current record
+        function updateField(fieldName, value) {
+            bestiaryData[currentIndex][fieldName] = value;
+            console.log(`Updated ${fieldName} to:`, value);
+        }
+
+        // Update record info display
+        function updateRecordInfo() {
+            recordInfo.textContent = `Record ${currentIndex + 1} of ${bestiaryData.length}`;
+        }
+
+        // Update navigation button states
+        function updateNavButtons() {
+            firstBtn.disabled = currentIndex === 0;
+            prevBtn.disabled = currentIndex === 0;
+            nextBtn.disabled = currentIndex >= bestiaryData.length - 1;
+            lastBtn.disabled = currentIndex >= bestiaryData.length - 1;
+        }
+
+        // Navigation functions
+        function goToFirst() {
+            currentIndex = 0;
+            renderRecord();
+            updateNavButtons();
+        }
+
+        function goToPrevious() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderRecord();
+                updateNavButtons();
+            }
+        }
+
+        function goToNext() {
+            if (currentIndex < bestiaryData.length - 1) {
+                currentIndex++;
+                renderRecord();
+                updateNavButtons();
+            }
+        }
+
+        function goToLast() {
+            currentIndex = bestiaryData.length - 1;
+            renderRecord();
+            updateNavButtons();
+        }
+
+        function searchById() {
+            const searchId = searchInput.value.trim();
+            if (!searchId) {
+                showMessage('Please enter an ID to search', 'error');
+                return;
+            }
+
+            const index = bestiaryData.findIndex(record => 
+                record.id.toLowerCase() === searchId.toLowerCase()
+            );
+
+            if (index !== -1) {
+                currentIndex = index;
+                renderRecord();
+                updateNavButtons();
+                showMessage(`Found: ${bestiaryData[index].name}`, 'success');
+                searchInput.value = '';
+            } else {
+                showMessage(`No record found with ID: ${searchId}`, 'error');
+            }
+        }
+
+        // Show message (success or error)
+        function showMessage(message, type) {
+            messageContainer.innerHTML = `<div class="${type}">${escapeHtml(message)}</div>`;
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        firstBtn.addEventListener('click', goToFirst);
+        prevBtn.addEventListener('click', goToPrevious);
+        nextBtn.addEventListener('click', goToNext);
+        lastBtn.addEventListener('click', goToLast);
+        searchBtn.addEventListener('click', searchById);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchById();
+            }
+        });
+        saveBtn.addEventListener('click', saveData);
+        fileInput.addEventListener('change', onFileSelected);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return; // Don't interfere with form inputs
+            }
+
+            switch(e.key) {
+                case 'ArrowLeft':
+                    goToPrevious();
+                    break;
+                case 'ArrowRight':
+                    goToNext();
+                    break;
+                case 'Home':
+                    goToFirst();
+                    break;
+                case 'End':
+                    goToLast();
+                    break;
+            }
+        });
+
+        // Load data on page load
+        loadData();
+
+        // Save data to a downloadable JSON file
+        function saveData() {
+            if (bestiaryData.length === 0) {
+                showMessage('No data to save.', 'error');
+                return;
+            }
+            const output = bestiaryRoot ? { ...bestiaryRoot, enemies: bestiaryData } : bestiaryData;
+            const blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bestiary.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Download ready: bestiary.json (monsters)', 'success');
+        }
+    </script>
+</body>
+</html>

@@ -547,6 +547,7 @@ footer {
   .log-entry.block  { color: #7fa6ff; }
   .log-entry.system { color: #888; }
   .log-entry.interrupt { color: #ff8484; }
+  .log-entry.roll { color: #e07070; font-weight: 600; }
 
   #main-scroll::-webkit-scrollbar,
   #combat-log::-webkit-scrollbar {
@@ -858,8 +859,8 @@ function logCombat(text, type = "system") {
   const div = document.createElement("div");
   div.className = `log-entry ${type}`;
   div.textContent = text;
-  combatLog.appendChild(div);
-  combatLog.scrollTop = combatLog.scrollHeight;
+  combatLog.prepend(div);
+  combatLog.scrollTop = 0;
 }
 
 function addSignal(type, text) {

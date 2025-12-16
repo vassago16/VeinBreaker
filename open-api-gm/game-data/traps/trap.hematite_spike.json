@@ -1,0 +1,12 @@
+{
+  "schema_version": "environment.v1",
+  "id": "trap.hematite_spike",
+  "name": "Spike Trap",
+
+  "modifiers": {
+    "visibility": -1,
+    "movement_cost": 1
+  },
+
+  "tags": ["vein", "collapsed", "claustrophobic"]
+}
