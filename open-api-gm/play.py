@@ -2,6 +2,7 @@ import json
 import os
 import argparse
 from pathlib import Path
+import pdb
 import random
 
 
@@ -39,6 +40,10 @@ from engine.action_resolution import (
 )
 from engine.interrupt_controller import InterruptController, apply_interrupt
 from engine.status import apply_status_effects, tick_statuses
+
+import debugpy
+
+
 
 LOG_FILE = Path(__file__).parent / "narration.log"
 DEFAULT_CHARACTER_PATH = Path(__file__).parent / "default_character.json"
@@ -94,7 +99,9 @@ def create_default_character():
 def create_game_context(ui, skip_character_creation=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--auto", action="store_true", help="Run in automated mode (no prompts).")
-    parser.add_argument("--nonarrate", action="store_true", help="Disable narration.")
+    parser.add_argument("--narrate", dest="narrate", action="store_true", help="Enable narration (off by default).")
+    parser.add_argument("--nonarrate", dest="narrate", action="store_false", help="Disable narration (default).")
+    parser.set_defaults(narrate=False)
     parser.add_argument(
         "--interactive-defaults",
         action="store_true",
@@ -132,7 +139,7 @@ def create_game_context(ui, skip_character_creation=False):
         res["hp_max"] = res["hp"]
 
     state = initial_state()
-    state["flags"] = {"narration_enabled": not args.nonarrate}
+    state["flags"] = {"narration_enabled": bool(args.narrate)}
     append_log(f"SESSION_START flags={state.get('flags')}")
     state["party"]["members"][0].update(character)
     state["game_data"] = game_data
@@ -315,6 +322,7 @@ def handle_chain_declaration(ctx: dict, player_input: dict) -> bool | None:
     usable_objs = usable_ability_objects(state)
     awaiting_chain_builder = state.get("awaiting", {}).get("type") == "chain_builder"
 
+  
     if not getattr(ui, "is_blocking", True) and awaiting_chain_builder:
         append_log("DEBUG: handle_chain_declaration short-circuit (awaiting chain_builder)")
         # Always re-emit the chain prompt while awaiting so the UI sees it.
@@ -973,6 +981,19 @@ def resolve_awaiting(state, ui, player_input):
             else:
                 ui.error("Invalid defense selection.")
                 should_return = True
+        elif awaiting["type"] == "interrupt":
+            if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
+                option = awaiting["options"][idx]
+                option_id = option.get("id")
+
+                # Normalize to a boolean interrupt decision
+                if option_id == "interrupt_yes":
+                    state["pending_interrupt"] = True
+                else:
+                    state["pending_interrupt"] = False
+            else:
+                ui.error("Invalid interrupt selection.")
+                should_return = True
 
         norm_choice = resolved_choice.lower().replace(" ", "_") if isinstance(resolved_choice, str) else resolved_choice
         if norm_choice == "build_chain":
@@ -1104,7 +1125,7 @@ def game_step(ctx, player_input):
         return True
 
 
-    nonarrate = args.nonarrate if args else False
+    nonarrate = not args.narrate if args else True
     interactive_defaults = args.interactive_defaults if args else False
     auto_mode = args.auto if args else False
 

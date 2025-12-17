@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Protocol
 
@@ -13,13 +13,12 @@ class UIProtocol(Protocol):
 
 @dataclass
 class InterruptDecision:
-    attempt: bool
-    reason: str = ""
+    kind: str                  # "no_interrupt" | "attempt" | "awaiting"
     window: Optional[Dict[str, Any]] = None
 
 
 class InterruptPolicy(Protocol):
-    def decide(self, when: str, ctx: InterruptContext) -> InterruptDecision: ...
+    def decide(self, when: str, ctx: InterruptContext, state: Optional[Dict[str, Any]] = None, ui: Optional[UIProtocol] = None) -> InterruptDecision: ...
 
 
 class EnemyWindowPolicy:
@@ -31,42 +30,56 @@ class EnemyWindowPolicy:
     def __init__(self, rng):
         self.rng = rng
 
-    def decide(self, when: str, ctx: InterruptContext) -> InterruptDecision:
+    def decide(self, when: str, ctx: InterruptContext, state: Optional[Dict[str, Any]] = None, ui: Optional[UIProtocol] = None) -> InterruptDecision:
         windows = ctx.defender.get("interrupt_windows") or ctx.defender.get("ai", {}).get("interrupt_windows") or []
         w = window_allows_interrupt(windows, when, ctx)
         if not w:
-            return InterruptDecision(False, "no_matching_window")
+            return InterruptDecision("no_interrupt")
 
         chance = float(w.get("chance", 0.0))
         roll = self.rng.random()
-        return InterruptDecision(roll < chance, f"chance={chance:.2f},roll={roll:.2f}", window=w)
+        return InterruptDecision("attempt" if roll < chance else "no_interrupt", window=w)
 
 
 class PlayerPromptPolicy:
     """
-    Prompts the player IF a window is open.
-    The window rules live in a ruleset dict so you can edit without touching engine code.
+    Non-blocking interrupt policy.
+    Emits awaiting state and pauses chain resolution.
     """
 
-    def __init__(self, ui: UIProtocol, ruleset: Dict[str, Any]):
-        self.ui = ui
-        self.ruleset = ruleset or {}
+    def decide(self, when: str, ctx, state, ui) -> InterruptDecision:
+        windows = state.get("player_interrupt_rules", {}).get("interrupt_windows", [])
+        window = window_allows_interrupt(windows, when, ctx)
+        if not window:
+            return InterruptDecision("no_interrupt")
 
-    def decide(self, when: str, ctx: InterruptContext) -> InterruptDecision:
-        # ruleset can define predicates via same window model
-        windows = self.ruleset.get("interrupt_windows", [])
-        w = window_allows_interrupt(windows, when, ctx)
-        if not w:
-            return InterruptDecision(False, "no_matching_window")
-
-        # you can also enforce costs here:
-        rp = int(ctx.defender.get("resources", {}).get("rp", 0))
-        cost = int(w.get("rp_cost", 1))
+        rp = ctx.defender.get("resources", {}).get("rp", 0)
+        cost = int(window.get("rp_cost", 1))
         if rp < cost:
-            return InterruptDecision(False, "insufficient_rp", window=w)
+            return InterruptDecision("no_interrupt")
 
-        # Non-blocking UI note: your system already has awaiting/choice patterns.
-        # For now, keep this simple; the refactor step will use your awaiting mechanism.
-        choice = self.ui.choice("Interrupt? (spend RP)", ["No", "Yes"])
-        attempt = (choice == "Yes") if isinstance(choice, str) else False
-        return InterruptDecision(attempt, "player_prompt", window=w)
+        state["awaiting"] = {
+            "type": "interrupt",
+            "chain": {
+                "aggressor": ctx.aggressor.get("name"),
+                "defender": ctx.defender.get("name"),
+                "chain_index": ctx.chain_index,
+                "ability": ctx.link.get("name"),
+            },
+            "options": [
+                { "id": "interrupt_no", "label": "Do not interrupt" },
+                { "id": "interrupt_yes", "label": f"Interrupt (Spend {cost} RP)" },
+            ],
+            "resume": {
+                "engine": "chain",
+                "payload": {
+                    "decision_map": {
+                        "interrupt_no": False,
+                        "interrupt_yes": True,
+                    }
+                }
+            }
+        }
+
+        ui.emit({"type": "awaiting_interrupt", "data": state["awaiting"]})
+        return InterruptDecision("awaiting", window)

@@ -10,7 +10,7 @@ Write-Host ""
 
 Set-Location $PROJECT_PATH
 
-# Start FastAPI (port 8000)
+# Start FastAPI (port 8000) with optional debugpy attach (set DEBUGPY=1 when you want to attach from VS Code)
 Write-Host "Starting FastAPI server on http://localhost:8000"
 Start-Process powershell -ArgumentList `
     "-NoExit", `
