@@ -723,6 +723,65 @@ footer {
   100% { transform: translateX(0); }
 }
 
+/* ===== COMBAT RESULT OVERLAY ===== */
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: radial-gradient(circle at center, rgba(30, 180, 80, 0.18), rgba(0, 0, 0, 0.88));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.result-overlay.defeat {
+  background: radial-gradient(circle at center, rgba(180, 30, 30, 0.18), rgba(0, 0, 0, 0.88));
+}
+
+.result-overlay.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.result-overlay.hidden {
+  display: none;
+}
+
+.result-text {
+  font-family: inherit;
+  font-size: clamp(48px, 8vw, 96px);
+  letter-spacing: 0.22em;
+  color: var(--fg);
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.15),
+    0 0 24px rgba(255, 255, 255, 0.08);
+}
+
+.result-overlay.defeat .result-text {
+  color: #e54b4b;
+  text-shadow:
+    0 0 8px rgba(229, 75, 75, 0.6),
+    0 0 24px rgba(229, 75, 75, 0.35);
+}
+
+.result-continue {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  padding: 10px 18px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+
+.result-continue:hover {
+  border-color: var(--accent);
+}
+
   /* ===== Narration Container ===== */
 
     #narration-wrapper {
@@ -904,6 +963,12 @@ footer {
   <div class="interrupt-text">INTERRUPTED</div>
 </div>
 
+<!-- COMBAT RESULT OVERLAY -->
+<div id="combat-result-overlay" class="result-overlay hidden">
+  <div class="result-text" id="combat-result-text">VICTORY</div>
+  <button class="result-continue" onclick="continueAfterCombat()">CONTINUE</button>
+</div>
+
 <script>
 const API = "http://localhost:8000/step"; // adjust if needed
 const EVENTS_API = "http://localhost:8000/events";
@@ -1059,6 +1124,8 @@ function showInterruptOverlay(duration = 10000) {
 let interruptTimeout = null;
 
 function openInterruptWindow(abilities, seconds = null) {
+  clearChoices();
+  try { closeChainBuilder(); } catch (e) { /* ignore */ }
   const win = document.getElementById("interrupt-window");
   const host = document.getElementById("interrupt-abilities");
   const timer = document.getElementById("interrupt-timer");
@@ -1116,6 +1183,34 @@ function closeInterruptWindow() {
 async function skipInterrupt() {
   closeInterruptWindow();
   await sendStep({ action: "interrupt_skip" });
+}
+
+function showCombatResult(result) {
+  const overlay = document.getElementById("combat-result-overlay");
+  const text = document.getElementById("combat-result-text");
+  if (!overlay || !text) return;
+
+  const r = (result || "").toLowerCase();
+  if (r === "defeat") {
+    text.textContent = "DEFEATED";
+    overlay.classList.add("defeat");
+  } else {
+    text.textContent = "VICTORY";
+    overlay.classList.remove("defeat");
+  }
+
+  overlay.classList.remove("hidden");
+  overlay.offsetHeight;
+  overlay.classList.add("active");
+}
+
+async function continueAfterCombat() {
+  const overlay = document.getElementById("combat-result-overlay");
+  if (overlay) {
+    overlay.classList.remove("active");
+    setTimeout(() => overlay.classList.add("hidden"), 200);
+  }
+  await sendStep({ action: "combat_continue" });
 }
 
 function updateCharacterUI(char) {
@@ -1228,6 +1323,9 @@ function handleEvents(events) {
         break;
       case "combat_state":
         setCombatActive(!!ev.active);
+        break;
+      case "combat_result":
+        showCombatResult(ev.result);
         break;
       case "interrupt":
         flashInterrupt();

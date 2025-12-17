@@ -22,6 +22,7 @@ from ui.events import (
     emit_interrupt,
     emit_character_update,
     emit_declare_chain,
+    emit_resource_update,
 )
 from combat import Combat
 from engine.phases import allowed_actions, tick_cooldowns, list_usable_abilities
@@ -261,17 +262,14 @@ def round_upkeep(state: dict) -> None:
     else:
         res["resolve"] = min(cap, before + regen)
     state["phase"]["resolve_regen"] = (before, regen, res["resolve"])
-    # Combat-only meters are encounter-scoped; reset via encounter participant store when available.
-    if "encounter" in state and ch.get("_combat_key"):
-        combat_set(state, ch, "balance", 0)
-        combat_set(state, ch, "momentum", 0)
-        prior_heat = combat_get(state, ch, "heat", 0)
-        combat_set(state, ch, "heat", 2 if prior_heat >= 3 else 0)
-    else:
+    # Combat meters:
+    # - Balance resets per chain (handled at chain start/end), not here.
+    # - Momentum/Heat persist for the encounter (for now), so do not reset here.
+    if "encounter" not in state or not ch.get("_combat_key"):
+        # Legacy non-encounter mode
         res["balance"] = 0
         res["momentum"] = 0
-        prior_heat = res.get("heat", 0)
-        res["heat"] = 2 if prior_heat >= 3 else 0
+        res["heat"] = 0
     for en in state.get("enemies", []):
         en["interrupts_used"] = 0
         en["rp"] = en.get("rp_pool", 2)
@@ -465,6 +463,14 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         # Pause and wait for next /step to resolve the player's interrupt decision.
         state["phase"]["current"] = "chain_resolution"
         return True
+    # Clear any suppression after a chain finishes resolving.
+    state.pop("suppress_chain_interrupt", None)
+
+    # Balance is per-chain: reset aggressor balance after chain resolves.
+    try:
+        combat_set(state, aggressor, "balance", 0)
+    except Exception:
+        pass
 
     ui.system(
         f"Chain resolved: {result.break_reason} "
@@ -563,6 +569,8 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
         ]
 
         # Don't auto-dismiss; the player must explicitly Endure or pick an interrupt ability.
+        state["suppress_chain_interrupt"] = True
+        emit_event(ui, {"type": "clear", "target": "choices"})
         emit_event(ui, {"type": "interrupt_window", "abilities": defense_abilities})
         state["awaiting"] = {"type": "enemy_interrupt", "options": options, "abilities": defense_abilities}
         return True
@@ -1237,7 +1245,18 @@ def maybe_start_round(ctx):
                 "attributes": ch.get("attributes", {}),
                 "name": ch.get("name"),
                 "abilities": ch.get("abilities", []),
+                "meters": {
+                    "momentum": combat_get(state, ch, "momentum", res.get("momentum", 0)),
+                    "balance": combat_get(state, ch, "balance", res.get("balance", 0)),
+                    "heat": combat_get(state, ch, "heat", res.get("heat", 0)),
+                },
             })
+            emit_resource_update(
+                ui,
+                momentum=combat_get(state, ch, "momentum", res.get("momentum", 0)),
+                balance=combat_get(state, ch, "balance", res.get("balance", 0)),
+                heat=combat_get(state, ch, "heat", res.get("heat", 0)),
+            )
 
 def handle_start_action(ctx, requested_action):
     state = ctx["state"]
@@ -1346,17 +1365,45 @@ def game_step(ctx, player_input):
     interactive_defaults = args.interactive_defaults if args else False
     auto_mode = args.auto if args else False
 
+    # Requested action (needed even when combat_over is set)
+    requested_action = player_input.get("action") if isinstance(player_input, dict) else None
+
     if state.get("combat_over"):
+        from ui.events import emit_event
+
+        def _hp(entity):
+            if not isinstance(entity, dict):
+                return 0
+            hp_val = entity.get("hp")
+            if isinstance(hp_val, dict):
+                return int(hp_val.get("current", hp_val.get("hp", 0)) or 0)
+            if isinstance(entity.get("resources"), dict) and entity["resources"].get("hp") is not None:
+                return int(entity["resources"].get("hp") or 0)
+            return int(hp_val or 0)
+
+        if requested_action == "combat_continue":
+            state["combat_over"] = False
+            state.pop("awaiting", None)
+            state["phase"]["current"] = "out_of_combat"
+            state.pop("encounter", None)
+            emit_combat_state(ui, False)
+            ui.system("Continuing...")
+            return True
+
+        player = state.get("party", {}).get("members", [None])[0]
+        enemy = state.get("enemies", [None])[0] if state.get("enemies") else None
+        player_dead = _hp(player) <= 0 if player else False
+        enemy_dead = _hp(enemy) <= 0 if enemy else False
+        result = "defeat" if player_dead else "victory" if enemy_dead else "ended"
+
         emit_combat_state(ui, False)
         state["phase"]["current"] = "out_of_combat"
         state.pop("awaiting", None)
         ui.system("Combat over.")
+        emit_event(ui, {"type": "combat_result", "result": result})
         return True
 
     maybe_start_round(ctx)
-
-    # Requested action (handle early to avoid combat short-circuit)
-    requested_action = player_input.get("action") if isinstance(player_input, dict) else None
     start_handled = handle_start_action(ctx, requested_action)
     if start_handled is not None:
         return start_handled

@@ -138,6 +138,10 @@ class ChainResolutionEngine:
 
         momentum_cap = int((state.get("rules") or {}).get("momentum_cap", 8) or 8)
 
+        # Balance is per-chain: reset aggressor balance at chain start.
+        if isinstance(aggressor, dict) and aggressor.get("_combat_key"):
+            combat_set(state, aggressor, "balance", 0)
+
         # Roll attack ONCE per chain
         attack_d20 = int(self.roll("1d20"))
         balance = combat_get(state, aggressor, "balance", _get_resource(aggressor, "balance", 0))
@@ -145,7 +149,11 @@ class ChainResolutionEngine:
         attack_total = int(attack_d20 + balance + atk_tb)
 
         if self.emit_log:
-            self.emit_log(ui, f"Aggressor d20: {attack_d20} → attack_total {attack_total}", "roll")
+            self.emit_log(
+                ui,
+                f"Aggressor d20: {attack_d20} (balance {balance}, atk_bonus {atk_tb}) → attack_total {attack_total}",
+                "roll",
+            )
 
         idx = 0
         while idx < len(chain_ability_names):
@@ -174,7 +182,8 @@ class ChainResolutionEngine:
             if self.emit_log:
                 self.emit_log(
                     ui,
-                    f"Link {idx + 1}: attack_total {attack_total} vs defense_target {defense_target} → {'HIT' if hit else 'MISS'}",
+                    f"Link {idx + 1}: attack_total {attack_total} vs defense_target {defense_target} "
+                    f"(def_momentum {def_mom}) → {'HIT' if hit else 'MISS'}",
                     "system",
                 )
 

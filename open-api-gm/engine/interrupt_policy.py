@@ -144,6 +144,11 @@ class PlayerPromptPolicy:
     """
 
     def decide(self, when: str, ctx: InterruptContext, state, ui) -> InterruptDecision:
+        # If the outer flow already presented an explicit interrupt window (e.g. enemy pre-action),
+        # suppress additional per-link prompts to avoid duplicate UI windows.
+        if isinstance(state, dict) and state.get("suppress_chain_interrupt"):
+            return InterruptDecision("no_interrupt")
+
         rules = state.get("player_interrupt_rules", {}) if isinstance(state, dict) else {}
         windows = rules.get("interrupt_windows", []) or []
         window = window_allows_interrupt(windows, when, ctx)
@@ -186,6 +191,7 @@ class PlayerPromptPolicy:
                 "effect": ab.get("effect"),
             })
 
+        emit_event(ui, {"type": "clear", "target": "choices"})
         emit_event(ui, {"type": "interrupt_window", "abilities": usable_defense})
         options = [
             {"id": "interrupt_no", "label": "Do not interrupt"},

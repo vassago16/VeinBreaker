@@ -64,6 +64,7 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
     rp = character.get("rp") if isinstance(character, dict) else None
     rp_cap = character.get("rp_cap") if isinstance(character, dict) else None
     veinscore = character.get("veinscore") if isinstance(character, dict) else None
+    meters = character.get("meters") if isinstance(character, dict) else None
 
     # Compact ability payload: id + cooldown only (UI keeps a catalog from /character).
     abilities_full = (character.get("abilities") if isinstance(character, dict) else None) or []
@@ -84,6 +85,7 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
             "rp": {"current": rp, "cap": rp_cap} if rp_cap is not None else rp,
             "veinscore": veinscore,
             "abilities": abilities,
+            "meters": meters,
         }
     }
 
@@ -102,6 +104,17 @@ def emit_character_update(ui, character: Dict[str, Any]) -> None:
     except Exception:
         pass
     emit_event(ui, build_character_update(character))
+
+
+def emit_resource_update(ui, *, momentum: int | None = None, balance: int | None = None, heat: int | None = None) -> None:
+    payload: Dict[str, Any] = {"type": "resource_update"}
+    if momentum is not None:
+        payload["momentum"] = int(momentum)
+    if balance is not None:
+        payload["balance"] = int(balance)
+    if heat is not None:
+        payload["heat"] = int(heat)
+    emit_event(ui, payload)
 
 
 def emit_declare_chain(ui, abilities: List[Dict[str, Any]], max_len: int = 3) -> None:
