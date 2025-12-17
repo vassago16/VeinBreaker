@@ -782,6 +782,52 @@ footer {
   border-color: var(--accent);
 }
 
+/* ===== HEAT METER ===== */
+.heat-container {
+  margin-top: 10px;
+}
+
+.heat-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #ffb347;
+  margin-bottom: 4px;
+}
+
+.heat-bar {
+  position: relative;
+  height: 10px;
+  background: #1a0f08;
+  border: 1px solid #3a1d0f;
+  overflow: hidden;
+}
+
+.heat-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff9f1c, #ff6f00, #ff3d00);
+  box-shadow:
+    0 0 6px rgba(255, 140, 0, 0.6),
+    0 0 12px rgba(255, 90, 0, 0.4);
+  transition: width 0.25s ease, box-shadow 0.25s ease;
+}
+
+.heat-container.high .heat-fill {
+  animation: heat-pulse 0.8s infinite alternate;
+}
+
+@keyframes heat-pulse {
+  from { box-shadow: 0 0 10px rgba(255, 100, 0, 0.8); }
+  to   { box-shadow: 0 0 18px rgba(255, 50, 0, 1); }
+}
+
+.heat-value {
+  font-size: 11px;
+  color: #ffcc80;
+  margin-top: 4px;
+  text-align: right;
+}
+
   /* ===== Narration Container ===== */
 
     #narration-wrapper {
@@ -862,6 +908,15 @@ footer {
       <div>AGI <span id="stat-dex">–</span></div>
       <div>MND <span id="stat-int">–</span></div>
       <div>SPR <span id="stat-wil">–</span></div>
+    </div>
+
+    <!-- HEAT METER -->
+    <div id="heat-container" class="heat-container">
+      <div class="heat-label">HEAT</div>
+      <div class="heat-bar">
+        <div id="heat-fill" class="heat-fill"></div>
+      </div>
+      <div id="heat-value" class="heat-value">0</div>
     </div>
 
     <section id="abilities-panel">
@@ -994,6 +1049,7 @@ let signals = [];
 let hasUnreadSignals = false;
 let characterState = null;
 let abilityById = new Map();
+const HEAT_CAP = 8;
 
 function addEntry(text, cls) {
   const div = document.createElement("div");
@@ -1236,6 +1292,21 @@ function updateCharacterUI(char) {
   renderAbilitiesPanel(char);
 }
 
+function updateHeat(value) {
+  const fill = document.getElementById("heat-fill");
+  const val = document.getElementById("heat-value");
+  const container = document.getElementById("heat-container");
+  if (!fill || !val || !container) return;
+
+  const clamped = Math.max(0, Math.min(Number(value ?? 0), HEAT_CAP));
+  const pct = (clamped / HEAT_CAP) * 100;
+  fill.style.width = pct + "%";
+  val.textContent = String(clamped);
+
+  if (clamped >= 5) container.classList.add("high");
+  else container.classList.remove("high");
+}
+
 function renderAbilitiesPanel(character) {
   const host = document.getElementById("abilities-list");
   host.innerHTML = "";
@@ -1308,6 +1379,9 @@ function handleEvents(events) {
         break;
       case "character_update":
         applyCharacterUpdate(ev.character);
+        break;
+      case "resource_update":
+        if (ev.heat !== undefined) updateHeat(ev.heat);
         break;
       case "loot":
         addEntry(ev.text, "loot");

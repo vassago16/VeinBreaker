@@ -211,3 +211,12 @@ SESSION_START flags={'narration_enabled': False}
 14:57:17 DEBUG: character_update emitted (hp={'current': 28, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
 14:57:44 DEBUG: character_update emitted (hp={'current': 20, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
 14:58:15 DEBUG: character_update emitted (hp={'current': 16, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
+SESSION_START flags={'narration_enabled': False}
+15:40:58 DEBUG: character_update emitted (hp={'current': 28, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
+15:41:05 DEBUG: character_update emitted (hp={'current': 26, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
+15:41:11 DEBUG: character_update emitted (hp={'current': 22, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
+15:41:22 DEBUG: character_update emitted (hp={'current': 19, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
+15:41:38 DEBUG: character_update emitted (hp={'current': 17, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
+15:41:46 DEBUG: character_update emitted (hp={'current': 13, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
+SESSION_START flags={'narration_enabled': False}
+15:46:46 DEBUG: character_update emitted (hp={'current': 28, 'max': 28}, rp=5, pulse_cd=0, pulse_base_cd=1)
