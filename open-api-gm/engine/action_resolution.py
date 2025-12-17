@@ -194,13 +194,14 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     log["ability_name"] = pending.get("ability")
     effects = ability.get("effects") or {}
 
-    # Defense roll: use static DV from data (no contested d20 for enemies)
+        # Defense roll:
+    # - If defense_d20 provided, use contested DV: d20 + IDF + Momentum + temp bonuses
+    # - Else, use static dv_base from data
     enemy = enemies[0] if enemies else None
     dv_base = None
     enemy_idf = 0
     enemy_momentum = 0
     enemy_tb = {}
-    enemy_hp_before = enemy.get("hp") if enemy else None
     if enemy:
         dv_base = enemy.get("dv_base")
         if dv_base is None:
@@ -208,14 +209,38 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         enemy_idf = enemy.get("idf", 0)
         enemy_momentum = enemy.get("momentum", 0)
         enemy_tb = enemy.get("temp_bonuses", {}) or {}
-    defense_roll = (dv_base if dv_base is not None else 0) + enemy_idf + enemy_momentum + enemy_tb.get("defense", 0) + enemy_tb.get("idf", 0)
+
+    if defense_d20 is not None:
+        defense_roll = (
+            defense_d20
+            + enemy_idf
+            + enemy_momentum
+            + enemy_tb.get("defense", 0)
+            + enemy_tb.get("idf", 0)
+        )
+        log["defense_d20"] = defense_d20
+        log["defense_breakdown"] = {
+            "defense_d20": defense_d20,
+            "idf": enemy_idf,
+            "momentum": enemy_momentum,
+        }
+    else:
+        defense_roll = (
+            (dv_base if dv_base is not None else 0)
+            + enemy_idf
+            + enemy_momentum
+            + enemy_tb.get("defense", 0)
+            + enemy_tb.get("idf", 0)
+        )
+        log["defense_d20"] = None
+        log["defense_breakdown"] = {
+            "dv_base": dv_base if dv_base is not None else 0,
+            "idf": enemy_idf,
+            "momentum": enemy_momentum,
+        }
+
     log["defense_roll"] = defense_roll
-    log["defense_d20"] = None  # static DV (no roll)
-    log["defense_breakdown"] = {
-        "dv_base": dv_base if dv_base is not None else 0,
-        "idf": enemy_idf,
-        "momentum": enemy_momentum,
-    }
+
 
     margin = defense_roll - to_hit
     if margin >= 5:
@@ -275,7 +300,7 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     if "balance_plus_2" in tags:
         character["resources"]["balance"] = character["resources"].get("balance", 0) + 2
 
-    enemy_hp_after = enemy.get("hp") if enemy else enemy_hp_before
+    enemy_hp_after = enemy.get("hp")  #if enemy else enemy_hp_before
 
     log.update({
         "damage_applied": damage_applied,
@@ -285,7 +310,7 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         "balance": character["resources"].get("balance", 0),
         "resolve": character["resources"].get("resolve", 0),
         "momentum": character["resources"].get("momentum", 0),
-        "enemy_hp_before": enemy_hp_before,
+     #   "enemy_hp_before": enemy_hp_before,
         "enemy_hp_after": enemy_hp_after,
     })
 

@@ -37,7 +37,7 @@ def build_runtime_ability(ability, pool_map=None):
         "path": ability.get("path"),
         "tier": ability.get("tier", 0),
         "cooldown": ability.get("cooldown", 0) or 0,
-        "base_cooldown": ability.get("cooldown", 0) or 0,
+        "base_cooldown": ability.get("base_cooldown", 0) or 0,
         "cost": ability.get("cost", 0),
         "resource": ability.get("resource", "resolve"),
         "pool": pool,

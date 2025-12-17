@@ -114,6 +114,7 @@ def step(req: StepRequest):
         "action": req.action,
         "choice": req.choice,
         "chain": req.chain,
+        
     })
     return events
 

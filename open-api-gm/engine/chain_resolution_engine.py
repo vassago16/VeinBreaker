@@ -123,13 +123,13 @@ class ChainResolutionEngine:
         if not self.apply_interrupt:
             return False
 
-        hit, dmg, rolls = self.apply_interrupt(state, defender, aggressor)
+        hit, dmg, rolls, chain_broken = self.apply_interrupt(state, defender, aggressor)
         # Convention: defender interrupts aggressor (defender becomes attacker in contest)
-        if hit and dmg > 0:
+        if chain_broken:
             ui.system(f"INTERRUPT hits for {dmg}. Chain broken.")
             return True
         # You also had the MoD>=5 break rule; keep it:
-        if hit and (rolls.get("atk_total", 0) - rolls.get("def_total", 0) >= 5):
+        if chain_broken and (rolls.get("atk_total", 0) - rolls.get("def_total", 0) >= 5):
             ui.system("INTERRUPT breaks the chain (MoD>=5).")
             return True
         ui.system("Interrupt fails.")

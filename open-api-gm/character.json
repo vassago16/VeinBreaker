@@ -126,7 +126,7 @@
       "path": "spellforged",
       "tier": 1,
       "cooldown": 0,
-      "base_cooldown": 1,
+      "base_cooldown": 0,
       "cost": 1,
       "resource": "resolve",
       "pool": "magic",
@@ -142,12 +142,7 @@
       "addStatToDamage": true
     }
   ],
-  "stats": {
-    "POW": 24,
-    "AGI": 14,
-    "MND": 14,
-    "SPR": 13
-  },
+  
   "resources": {
     "hp": 28,
     "resolve": 15,
@@ -180,5 +175,5 @@
     "stable": false,
     "invalidated": false
   },
-  "veinscore": 0
+  "veinscore": 10
 }

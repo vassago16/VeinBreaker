@@ -117,48 +117,74 @@ class InterruptController:
         }
 
 
-def apply_interrupt(state, character, enemy, defense_ability=None, defense_block_roll=None):
+def apply_interrupt(state, interruptor, target):
     """
-    Attempts an interrupt; if damage > 0, break the chain.
-    If a defense_ability is provided, resolve it against the incoming damage.
+    Resolve an interrupt attempt as a contested roll.
+
+    This function is PURE:
+    - No phase changes
+    - No chain mutation
+    - No turn control
+    - No UI side-effects
+
+    Returns:
+        hit (bool)
+        damage (int)
+        rolls (dict)
+        chain_broken (bool)
     """
-    ic = InterruptController(enemy)
-    hit, dmg, rolls = ic.roll_interrupt(enemy or {}, character or {})
-    # Apply on-hit effects from enemy's first move, if any
-    moves = enemy.get("moves", []) if enemy else []
-    on_hit_effects = []
-    if moves:
-        on_hit_effects = moves[0].get("on_hit", {}).get("effects", [])
-    if hit and on_hit_effects:
-        apply_status_effects(character, on_hit_effects)
-    margin_rules = (
-        (enemy or {})
-        .get("resolved_archetype", {})
-        .get("rhythm_profile", {})
-        .get("interrupt", {})
-        .get("margin_rules", {})
-    )
-    break_chain_on_margin = margin_rules.get("break_chain_on_margin_gte", 5)
-    margin = rolls["atk_total"] - rolls["def_total"]
-    if hit and dmg > 0:
-        # Allow a defensive reaction to mitigate/reflect damage
-        if defense_ability:
-            summary = resolve_defense_reaction(
-                state,
-                defender=character,
-                attacker=enemy,
-                ability=defense_ability,
-                incoming_damage=dmg,
-                block_roll=defense_block_roll,
-            )
-            dmg = summary.get("damage_after_block", dmg)
-        # apply any remaining damage and break chain
-        character["resources"]["hp"] = max(0, character["resources"].get("hp", 0) - dmg)
-    if hit and margin >= break_chain_on_margin:
-        # invalidate chain even if damage was 0
-        if character.get("chain", {}).get("declared"):
-            character["chain"]["invalidated"] = True
-            character["chain"]["declared"] = False
-            character["chain"]["abilities"] = []
-            character["chain"]["reason"] = "interrupted"
-    return hit, dmg, rolls
+
+    # ──────────────────────────────────────────────
+    # Pull stats
+    # ──────────────────────────────────────────────
+    atk_stat = interruptor.get("stats", {}).get("weapon", 0)
+    def_stat = target.get("stats", {}).get("defense", 0)
+
+    atk_bonus = interruptor.get("resources", {}).get("momentum", 0)
+    def_bonus = target.get("resources", {}).get("idf", 0)
+
+    break_margin = state.get("rules", {}).get("interrupt_break_margin", 5)
+
+    # ──────────────────────────────────────────────
+    # Contested roll
+    # ──────────────────────────────────────────────
+    atk_d20 = roll_dice("1d20")
+    def_d20 = roll_dice("1d20")
+
+    atk_total = atk_d20 + atk_stat + atk_bonus
+    def_total = def_d20 + def_stat + def_bonus
+
+    margin = atk_total - def_total
+    hit = margin >= 0
+
+    # ──────────────────────────────────────────────
+    # Damage (interrupts usually light)
+    # ──────────────────────────────────────────────
+    damage = 0
+    if hit:
+        damage = roll_dice("1d4")  # interrupt damage scale
+        target["resources"]["hp"] = max(
+            0, target["resources"].get("hp", 0) - damage
+        )
+
+    # ──────────────────────────────────────────────
+    # Determine chain break (RULE-LEVEL DECISION)
+    # ──────────────────────────────────────────────
+    chain_broken = False
+    if hit and (damage > 0 or margin >= break_margin):
+        chain_broken = True
+
+    # ──────────────────────────────────────────────
+    # Return ALL info to engine
+    # ──────────────────────────────────────────────
+    rolls = {
+        "atk_d20": atk_d20,
+        "def_d20": def_d20,
+        "atk_total": atk_total,
+        "def_total": def_total,
+        "margin": margin,
+    }
+
+    return hit, damage, rolls, chain_broken
+
+   

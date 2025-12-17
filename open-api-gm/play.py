@@ -6,7 +6,7 @@ import random
 
 
 from engine.chain_resolution_engine import ChainResolutionEngine
-from engine.interrupt_policy import EnemyWindowPolicy
+from engine.interrupt_policy import EnemyWindowPolicy, PlayerPromptPolicy
 
 
 from copy import deepcopy
@@ -361,7 +361,7 @@ def handle_chain_declaration(ctx: dict, player_input: dict) -> bool | None:
 def handle_chain_resolution(ctx: dict) -> bool | None:
     """
     Resolves a declared chain using the unified Chain Resolution Engine.
-    Works for player or enemy chains (player-first for now).
+    Handles both player and enemy chains symmetrically.
     """
     state = ctx["state"]
     ui = ctx["ui"]
@@ -373,7 +373,7 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         state["phase"]["current"] = "chain_declaration"
         return True
 
-    character = members[0]
+    player = members[0]
     enemies = state.get("enemies", [])
 
     if not enemies:
@@ -383,42 +383,61 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
 
     enemy = enemies[0]
 
-    # Pull declared chain
-    chain = character.get("chain", {})
-    chain_names = list(chain.get("abilities", []))
+    # ─────────────────────────────────────────
+    # Determine who is acting this chain
+    # ─────────────────────────────────────────
+    active = state.get("active_combatant", "player")
+
+    if active == "player":
+        aggressor = player
+        defender = enemy
+        chain_names = list(player.get("chain", {}).get("abilities", []))
+    else:
+        aggressor = enemy
+        defender = player
+        chain_names = list(enemy.get("chain", {}).get("abilities", []))
 
     if not chain_names:
         ui.system("No chain declared.")
         state["phase"]["current"] = "chain_declaration"
         return True
 
-    # Deterministic RNG per encounter (optional but recommended)
+    # ─────────────────────────────────────────
+    # Interrupt policy selection (DEFENDER-based)
+    # ─────────────────────────────────────────
     seed = state.get("seed", None)
     rng = random.Random(seed)
 
-    # Enemy uses interrupt windows defined on its data/archetype
-    interrupt_policy = EnemyWindowPolicy(rng)
+    if defender.get("is_player", False):
+        interrupt_policy = PlayerPromptPolicy(
+            ui=ui,
+            ruleset=state.get("player_interrupt_rules", {})
+        )
+    else:
+        interrupt_policy = EnemyWindowPolicy(rng)
 
-    # Instantiate Chain Resolution Engine
+    # ─────────────────────────────────────────
+    # Chain Resolution Engine
+    # ─────────────────────────────────────────
     cre = ChainResolutionEngine(
         roll_fn=roll,
         resolve_action_step_fn=resolve_action_step,
         apply_action_effects_fn=apply_action_effects,
         interrupt_policy=interrupt_policy,
         emit_log_fn=emit_combat_log,
-        interrupt_apply_fn=apply_interrupt,  # existing interrupt contest logic
+        interrupt_apply_fn=apply_interrupt,
     )
 
-    ui.system("Resolving chain...")
+    ui.system(f"{aggressor.get('name','Combatant')} resolves a chain...")
 
     result = cre.resolve_chain(
         state=state,
         ui=ui,
-        aggressor=character,
-        defender=enemy,
+        aggressor=aggressor,
+        defender=defender,
         chain_ability_names=chain_names,
-        defender_group=enemies,
-        dv_mode="per_chain",  # single defender roll per chain
+        defender_group=enemies if defender is enemy else [player],
+        dv_mode="per_chain",
     )
 
     ui.system(
@@ -426,15 +445,41 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         f"(links resolved: {result.links_resolved})"
     )
 
-    # Clear declared chain
-    character["chain"] = {
+    # ─────────────────────────────────────────
+    # Cleanup
+    # ─────────────────────────────────────────
+    aggressor["chain"] = {
         "abilities": [],
         "declared": False,
     }
 
-    # Return to declaration phase
+    # Swap active combatant
+    state["active_combatant"] = "enemy" if active == "player" else "player"
     state["phase"]["current"] = "chain_declaration"
+
+        # For non-blocking UI, emit the next actionable prompt NOW
+    if not getattr(ui, "is_blocking", True):
+        # If it's now player's turn, reopen builder immediately
+        if state.get("active_combatant") == "player":
+            reopen_chain_builder(state, ui)
+        else:
+            # Enemy turn: (minimal) auto-declare a simple chain and advance to resolution
+            # You likely want to replace this with your real enemy AI selector.
+            enemy_chain = []
+            for a in enemy.get("moves", []):
+                if a.get("type") == "attack":
+                    enemy_chain.append(a["name"])
+                if len(enemy_chain) >= 1:
+                    break
+            enemy.setdefault("chain", {})
+            enemy["chain"]["abilities"] = enemy_chain
+            enemy["chain"]["declared"] = True
+            state["phase"]["current"] = "chain_resolution"
+            # Resolve enemy chain immediately (same request) so flow returns to player
+            handle_chain_resolution(ctx)
+
     return True
+
 
 def load_canon():
     canon = {}
