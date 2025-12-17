@@ -31,6 +31,7 @@ class StepRequest(BaseModel):
     action: str | None = None
     choice: int | None = None
     chain: list[str] | None = None
+    ability: str | None = None
 
 
 class EmitRequest(BaseModel):
@@ -110,12 +111,9 @@ def step(req: StepRequest):
         sessions[req.session_id] = session
 
     session = sessions[req.session_id]
-    events = session.step({
-        "action": req.action,
-        "choice": req.choice,
-        "chain": req.chain,
-        
-    })
+    payload: Dict[str, Any] = {"action": req.action, "choice": req.choice, "chain": req.chain, "ability": req.ability}
+    payload = {k: v for k, v in payload.items() if v is not None}
+    events = session.step(payload)
     return events
 
 

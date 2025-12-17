@@ -40,6 +40,7 @@ from engine.action_resolution import (
 )
 from engine.interrupt_controller import InterruptController, apply_interrupt
 from engine.status import apply_status_effects, tick_statuses
+from engine.combat_state import register_participant, combat_get, combat_set
 
 import debugpy
 
@@ -249,12 +250,28 @@ def round_upkeep(state: dict) -> None:
     cap = res.get("resolve_cap", res.get("resolve", 0))
     before = res.get("resolve", 0)
     regen = 2
-    res["resolve"] = min(cap, before + regen)
+    # RP is encounter-scoped; keep `resources.resolve` mirrored for legacy systems.
+    if "encounter" in state and ch.get("_combat_key"):
+        cur = combat_get(state, ch, "rp", before)
+        rp_cap = combat_get(state, ch, "rp_cap", cap)
+        new_rp = min(rp_cap, cur + regen)
+        combat_set(state, ch, "rp", new_rp)
+        combat_set(state, ch, "rp_cap", rp_cap)
+        res["resolve"] = new_rp
+    else:
+        res["resolve"] = min(cap, before + regen)
     state["phase"]["resolve_regen"] = (before, regen, res["resolve"])
-    res["balance"] = 0
-    res["momentum"] = 0
-    prior_heat = res.get("heat", 0)
-    res["heat"] = 2 if prior_heat >= 3 else 0
+    # Combat-only meters are encounter-scoped; reset via encounter participant store when available.
+    if "encounter" in state and ch.get("_combat_key"):
+        combat_set(state, ch, "balance", 0)
+        combat_set(state, ch, "momentum", 0)
+        prior_heat = combat_get(state, ch, "heat", 0)
+        combat_set(state, ch, "heat", 2 if prior_heat >= 3 else 0)
+    else:
+        res["balance"] = 0
+        res["momentum"] = 0
+        prior_heat = res.get("heat", 0)
+        res["heat"] = 2 if prior_heat >= 3 else 0
     for en in state.get("enemies", []):
         en["interrupts_used"] = 0
         en["rp"] = en.get("rp_pool", 2)
@@ -416,13 +433,9 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
     seed = state.get("seed", None)
     rng = random.Random(seed)
 
-    if defender.get("is_player", False):
-        interrupt_policy = PlayerPromptPolicy(
-            ui=ui,
-            ruleset=state.get("player_interrupt_rules", {})
-        )
-    else:
-        interrupt_policy = EnemyWindowPolicy(rng)
+    # Player chain (player -> enemy): enemy decides (enemy policy)
+    # Enemy chain (enemy -> player): player decides (player policy)
+    interrupt_policy = PlayerPromptPolicy() if defender is player else EnemyWindowPolicy(rng)
 
     # ─────────────────────────────────────────
     # Chain Resolution Engine
@@ -448,6 +461,11 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         dv_mode="per_chain",
     )
 
+    if getattr(result, "status", None) == "awaiting":
+        # Pause and wait for next /step to resolve the player's interrupt decision.
+        state["phase"]["current"] = "chain_resolution"
+        return True
+
     ui.system(
         f"Chain resolved: {result.break_reason} "
         f"(links resolved: {result.links_resolved})"
@@ -461,31 +479,189 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         "declared": False,
     }
 
-    # Swap active combatant
+    # Swap active combatant and advance phase
     state["active_combatant"] = "enemy" if active == "player" else "player"
-    state["phase"]["current"] = "chain_declaration"
+    if state.get("active_combatant") == "enemy":
+        state["phase"]["current"] = "enemy_turn"
+    else:
+        state["phase"]["current"] = "chain_declaration"
 
-        # For non-blocking UI, emit the next actionable prompt NOW
-    if not getattr(ui, "is_blocking", True):
-        # If it's now player's turn, reopen builder immediately
-        if state.get("active_combatant") == "player":
-            reopen_chain_builder(state, ui)
-        else:
-            # Enemy turn: (minimal) auto-declare a simple chain and advance to resolution
-            # You likely want to replace this with your real enemy AI selector.
-            enemy_chain = []
-            for a in enemy.get("moves", []):
-                if a.get("type") == "attack":
-                    enemy_chain.append(a["name"])
-                if len(enemy_chain) >= 1:
+    # For non-blocking UI, emit the next actionable prompt NOW (player only).
+    if not getattr(ui, "is_blocking", True) and state.get("active_combatant") == "player":
+        reopen_chain_builder(state, ui)
+    elif not getattr(ui, "is_blocking", True) and state.get("active_combatant") == "enemy":
+        # Surface the enemy-turn prompt immediately so the client gets options in this same response.
+        handle_enemy_turn(ctx, {})
+
+    return True
+
+
+def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | None:
+    """
+    Minimal enemy phase:
+    - Enemy declares a simple one-move chain (first attack move)
+    - Player gets a single interrupt prompt before the enemy chain resolves
+    """
+    state = ctx["state"]
+    ui = ctx["ui"]
+
+    party = state.get("party", {})
+    members = party.get("members", [])
+    if not members:
+        state["phase"]["current"] = "chain_declaration"
+        return True
+
+    player = members[0]
+    enemies = state.get("enemies", [])
+    if not enemies:
+        state["phase"]["current"] = "chain_declaration"
+        return True
+
+    enemy = enemies[0]
+
+    awaiting = state.get("awaiting", {})
+    if awaiting.get("type") == "enemy_interrupt":
+        # Web-safe: resolve via actions instead of a blocking/choice return value.
+        if isinstance(player_input, dict):
+            act = player_input.get("action")
+            if act == "interrupt_skip":
+                state.pop("awaiting", None)
+                state["pending_enemy_interrupt"] = False
+            elif act == "interrupt":
+                state.pop("awaiting", None)
+                state["pending_enemy_interrupt"] = True
+                # optional: stash chosen ability id/name for future interrupt mechanics
+                if player_input.get("ability"):
+                    state["pending_interrupt_ability"] = player_input["ability"]
+        # still awaiting input
+        if state.get("awaiting", {}).get("type") == "enemy_interrupt":
+            return True
+
+    pending = state.pop("pending_enemy_interrupt", None)
+
+    # Prompt once per enemy turn (web/non-blocking)
+    if pending is None and not getattr(ui, "is_blocking", True):
+        from ui.events import emit_event
+
+        # Present only defensive/interrupt-capable abilities.
+        usable = usable_ability_objects(state)
+        defense_abilities = []
+        for ab in usable:
+            tags = ab.get("tags", []) or []
+            if "defense" in tags or ab.get("type") == "defense":
+                defense_abilities.append({
+                    "id": ab.get("id") or ab.get("name"),
+                    "name": ab.get("name"),
+                    "cost": ab.get("cost", 0),
+                    "effect": ab.get("effect"),
+                })
+
+        # Keep legacy options so older UIs using `choice` still function.
+        options = [
+            {"id": "interrupt_no", "label": "Do not interrupt"},
+            {"id": "interrupt_yes", "label": "Interrupt enemy action"},
+        ]
+
+        # Don't auto-dismiss; the player must explicitly Endure or pick an interrupt ability.
+        emit_event(ui, {"type": "interrupt_window", "abilities": defense_abilities})
+        state["awaiting"] = {"type": "enemy_interrupt", "options": options, "abilities": defense_abilities}
+        return True
+
+    # Prompt (CLI/blocking)
+    if pending is None and getattr(ui, "is_blocking", True):
+        idx = ui.choice("Interrupt the enemy before they act?", ["No", "Interrupt"])
+        pending = (idx == 1)
+
+    # Minimal contest (no damage yet): player attempts to cancel the enemy's action.
+    if pending:
+        from engine.stats import stat_mod
+
+        player_res = player.get("resources", {}) or {}
+        momentum = combat_get(state, player, "momentum", player_res.get("momentum", 0) or 0)
+        idf = player_res.get("idf", 0) or 0
+
+        chosen_id = state.pop("pending_interrupt_ability", None)
+        chosen = None
+        if chosen_id:
+            for ab in player.get("abilities", []) or []:
+                if ab.get("id") == chosen_id or ab.get("name") == chosen_id:
+                    chosen = ab
                     break
-            enemy.setdefault("chain", {})
-            enemy["chain"]["abilities"] = enemy_chain
-            enemy["chain"]["declared"] = True
-            state["phase"]["current"] = "chain_resolution"
-            # Resolve enemy chain immediately (same request) so flow returns to player
-            handle_chain_resolution(ctx)
 
+        # Ability-driven interrupt bonus (simple, tweakable):
+        # - If player picked a defensive ability, add its stat mod (if any) to the interrupt roll
+        # - Spend resolve + set cooldown like a normal use
+        ab_bonus = 0
+        if isinstance(chosen, dict):
+            stat_key = chosen.get("stat")
+            attrs = player.get("attributes") or player.get("stats") or {}
+            if stat_key and stat_key in attrs:
+                try:
+                    ab_bonus += stat_mod(int(attrs.get(stat_key) or 0))
+                except Exception:
+                    pass
+
+            cost = chosen.get("cost", 0) or 0
+            if cost:
+                cur_rp = combat_get(state, player, "rp", int(player_res.get("resolve", 0) or 0))
+                new_rp = max(0, int(cur_rp) - int(cost))
+                combat_set(state, player, "rp", new_rp)
+                player_res["resolve"] = new_rp
+
+            base_cd = chosen.get("base_cooldown")
+            if base_cd is None:
+                base_cd = chosen.get("cooldown", 0)
+            try:
+                base_cd = int(base_cd or 0)
+            except Exception:
+                base_cd = 0
+            chosen["base_cooldown"] = base_cd
+            chosen["cooldown"] = base_cd
+
+            emit_combat_log(ui, f"Interrupt ability: {chosen.get('name')} (bonus {ab_bonus})", "system")
+
+        p_d20 = roll("1d20")
+        p_roll = p_d20 + int(idf) + int(momentum) + int(ab_bonus)
+        defense = (enemy.get("stat_block", {}) or {}).get("defense", {})
+        dv = enemy.get("dv_base", defense.get("dv_base", 10))
+        e_d20 = roll("1d20")
+        e_roll = e_d20 + (dv or 0)
+        emit_combat_log(ui, f"Interrupt contest: player {p_roll} (d20 {p_d20}) vs enemy {e_roll} (d20 {e_d20})", "roll")
+        if p_roll >= e_roll:
+            emit_interrupt(ui)
+            emit_combat_log(ui, "Player interrupt!", "interrupt")
+            emit_combat_log(ui, "You cut the enemy's rhythm. Their action is denied.", "system")
+            from ui.events import emit_event
+            emit_event(ui, {"type": "chain_interrupted", "text": "Enemy chain interrupted."})
+            state["active_combatant"] = "player"
+            state["phase"]["current"] = "chain_declaration"
+            if not getattr(ui, "is_blocking", True):
+                reopen_chain_builder(state, ui)
+            return True
+        emit_combat_log(ui, "Interrupt failed. Enemy acts.", "system")
+
+    # Enemy declares a simple one-move chain (first attack move)
+    enemy_chain = []
+    for mv in enemy.get("moves", []):
+        if mv.get("type") == "attack":
+            enemy_chain.append(mv.get("name") or mv.get("id"))
+            break
+    if not enemy_chain:
+        state["active_combatant"] = "player"
+        state["phase"]["current"] = "chain_declaration"
+        if not getattr(ui, "is_blocking", True):
+            reopen_chain_builder(state, ui)
+        return True
+
+    emit_combat_log(ui, f"{enemy.get('name','Enemy')} declares: {', '.join(enemy_chain)}", "system")
+    enemy.setdefault("chain", {})
+    enemy["chain"]["abilities"] = enemy_chain
+    enemy["chain"]["declared"] = True
+    state["active_combatant"] = "enemy"
+    state["phase"]["current"] = "chain_resolution"
+    # In web mode, resolve immediately so the response includes the enemy action and then returns to player prompt.
+    if not getattr(ui, "is_blocking", True):
+        return handle_chain_resolution(ctx)
     return True
 
 
@@ -956,7 +1132,29 @@ def resolve_awaiting(state, ui, player_input):
     resolved_choice = None
     should_return = False
 
-    if "awaiting" in state and isinstance(player_input, dict) and "choice" in player_input:
+    # Web-safe: chain interrupt decisions are action-based (not choice-index-based).
+    if isinstance(state.get("awaiting"), dict) and isinstance(player_input, dict):
+        awaiting = state.get("awaiting", {})
+        if awaiting.get("type") == "chain_interrupt":
+            act = player_input.get("action")
+            if act == "interrupt_skip":
+                state.pop("awaiting", None)
+                state["pending_chain_interrupt"] = False
+                # Continue game_step so chain resolution can resume in this same /step.
+                should_return = False
+            if act == "interrupt":
+                state.pop("awaiting", None)
+                state["pending_chain_interrupt"] = True
+                if player_input.get("ability"):
+                    state["pending_interrupt_ability"] = player_input["ability"]
+                should_return = False
+
+    if (
+        "awaiting" in state
+        and isinstance(player_input, dict)
+        and "choice" in player_input
+        and isinstance(player_input.get("choice"), int)
+    ):
         awaiting = state.pop("awaiting")
         idx = player_input["choice"]
 
@@ -981,18 +1179,34 @@ def resolve_awaiting(state, ui, player_input):
             else:
                 ui.error("Invalid defense selection.")
                 should_return = True
-        elif awaiting["type"] == "interrupt":
+        elif awaiting["type"] == "enemy_interrupt":
             if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
                 option = awaiting["options"][idx]
                 option_id = option.get("id")
 
                 # Normalize to a boolean interrupt decision
                 if option_id == "interrupt_yes":
-                    state["pending_interrupt"] = True
+                    state["pending_enemy_interrupt"] = True
                 else:
-                    state["pending_interrupt"] = False
+                    state["pending_enemy_interrupt"] = False
             else:
                 ui.error("Invalid interrupt selection.")
+                should_return = True
+        elif awaiting["type"] == "chain_interrupt":
+            if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
+                option = awaiting["options"][idx]
+                option_id = option.get("id")
+                state["pending_chain_interrupt"] = (option_id == "interrupt_yes")
+            else:
+                ui.error("Invalid interrupt selection.")
+                should_return = True
+        elif awaiting["type"] == "press_window":
+            if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
+                option = awaiting["options"][idx]
+                option_id = option.get("id")
+                state["pending_press_decision"] = option_id
+            else:
+                ui.error("Invalid press selection.")
                 should_return = True
 
         norm_choice = resolved_choice.lower().replace(" ", "_") if isinstance(resolved_choice, str) else resolved_choice
@@ -1013,9 +1227,12 @@ def maybe_start_round(ctx):
         if not getattr(ui, "is_blocking", True):
             ch = state["party"]["members"][0]
             res = ch.get("resources", {})
+            rp_cur = combat_get(state, ch, "rp", res.get("resolve", 0))
+            rp_cap = combat_get(state, ch, "rp_cap", res.get("resolve_cap", rp_cur))
             emit_character_update(ui, {
                 "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp"))))},
-                "rp": res.get("resolve", 0),
+                "rp": rp_cur,
+                "rp_cap": rp_cap,
                 "veinscore": res.get("veinscore", 0),
                 "attributes": ch.get("attributes", {}),
                 "name": ch.get("name"),
@@ -1129,6 +1346,13 @@ def game_step(ctx, player_input):
     interactive_defaults = args.interactive_defaults if args else False
     auto_mode = args.auto if args else False
 
+    if state.get("combat_over"):
+        emit_combat_state(ui, False)
+        state["phase"]["current"] = "out_of_combat"
+        state.pop("awaiting", None)
+        ui.system("Combat over.")
+        return True
+
     maybe_start_round(ctx)
 
     # Requested action (handle early to avoid combat short-circuit)
@@ -1154,6 +1378,10 @@ def game_step(ctx, player_input):
 
     if current_phase == "chain_declaration":
         handled = handle_chain_declaration(ctx, player_input)
+        if handled is not None:
+            return handled
+    if current_phase == "enemy_turn":
+        handled = handle_enemy_turn(ctx, player_input if isinstance(player_input, dict) else {})
         if handled is not None:
             return handled
     if current_phase == "chain_resolution":
@@ -1188,6 +1416,15 @@ def game_step(ctx, player_input):
     if choice in ("enter_encounter", "generate_encounter" ):
         if state.get("enemies"):
             enemy = state["enemies"][0]
+            # Encounter-scoped combat meters (heat/balance/momentum)
+            player = state.get("party", {}).get("members", [None])[0]
+            if choice == "enter_encounter" and player and enemy:
+                try:
+                    register_participant(state, key="player", entity=player, side="player")
+                    register_participant(state, key="enemy0", entity=enemy, side="enemy")
+                except Exception:
+                    pass
+
             emit_combat_state(ui, True)
             # Emit preview only on generate, not on enter (avoid duplicate log/system spam)
             if choice == "generate_encounter":
@@ -1205,9 +1442,9 @@ def game_step(ctx, player_input):
                             "distance": "near",
                         },
                         player_state={
-                            "momentum": state["party"]["members"][0]["resources"].get("momentum", 0),
-                            "heat": state["party"]["members"][0]["resources"].get("heat", 0),
-                            "balance": state["party"]["members"][0]["resources"].get("balance", 0),
+                            "momentum": combat_get(state, player, "momentum", state["party"]["members"][0]["resources"].get("momentum", 0)),
+                            "heat": combat_get(state, player, "heat", state["party"]["members"][0]["resources"].get("heat", 0)),
+                            "balance": combat_get(state, player, "balance", state["party"]["members"][0]["resources"].get("balance", 0)),
                         },
                         threat_level="immediate",
                     )

@@ -3,6 +3,7 @@
   "tier": 1,
   "abilities": [
     {
+      "id": "core.basic_strike",
       "name": "Basic Strike",
       "path": "core",
       "tier": 0,
@@ -22,6 +23,7 @@
       "addStatToDamage": true
     },
     {
+      "id": "core.basic_guard",
       "name": "Basic Guard",
       "path": "core",
       "tier": 0,
@@ -42,6 +44,7 @@
       "addStatToDamage": true
     },
     {
+      "id": "core.focus_action",
       "name": "Focus Action",
       "path": "core",
       "tier": 0,
@@ -62,11 +65,12 @@
       "addStatToDamage": true
     },
     {
+      "id": "core.shift",
       "name": "Shift",
       "path": "core",
       "tier": 0,
       "cooldown": 0,
-      "base_cooldown": 0,
+      "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
       "pool": "free",
@@ -81,11 +85,12 @@
       "addStatToDamage": true
     },
     {
+      "id": "resolve_basic.disengage",
       "name": "Disengage",
       "path": "resolve_basic",
       "tier": 0,
-      "cooldown": 1,
-      "base_cooldown": 0,
+      "cooldown": 0,
+      "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
       "pool": null,
@@ -101,31 +106,12 @@
       "addStatToDamage": true
     },
     {
+      "id": "stonepulse.pulse_strike",
       "name": "Pulse Strike",
       "path": "stonepulse",
       "tier": 1,
-      "cooldown": 1,
-      "base_cooldown": 0,
-      "cost": 1,
-      "resource": "resolve",
-      "pool": "martial",
-      "dice": "1d4",
-      "tags": [
-        "stonepulse",
-        "attack",
-        "momentum"
-      ],
-      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
-      "stat": "STR",
-      "addStatToAttackRoll": true,
-      "addStatToDamage": true
-    },
-    {
-      "name": "Pulse Strike",
-      "path": "stonepulse",
-      "tier": 1,
-      "cooldown": 1,
-      "base_cooldown": 0,
+      "cooldown": 0,
+      "base_cooldown": 1,
       "cost": 1,
       "resource": "resolve",
       "pool": "martial",
@@ -140,6 +126,7 @@
       "addStatToAttackRoll": true,
       "addStatToDamage": true
     }
+  
   ],
   "stats": {
     "POW": 10,

@@ -2,6 +2,7 @@ import random
 from engine.stats import stat_mod
 from engine.status import apply_status_effects
 from engine.utilities import compare
+from engine.combat_state import combat_add, combat_get, combat_set
 
 try:
     from game_context import NARRATOR
@@ -101,15 +102,16 @@ def resolve_action_step(state, character, ability, attack_roll=None, balance_bon
     """
     Pay costs and roll dice; do not apply effects yet.
     """
+    resources = character.setdefault("resources", {}) if isinstance(character, dict) else {}
     cost = ability.get("cost", 0)
     resource = ability.get("resource", "resolve")
     pool = ability.get("pool")
     if cost:
         if pool and pool in character.get("pools", {}):
             character["pools"][pool] = max(0, character["pools"][pool] - cost)
-        elif resource != "resolve" and resource in character.get("resources", {}):
-            character["resources"][resource] = max(
-                0, character["resources"][resource] - cost
+        elif resource != "resolve" and resource in resources:
+            resources[resource] = max(
+                0, resources[resource] - cost
             )
 
     attack_total, d20_roll = ability_attack_roll(character, ability, base_d20=attack_roll)
@@ -186,6 +188,8 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         state["pending_action"] = None
         return "action_cancelled"
 
+    resources = character.setdefault("resources", {}) if isinstance(character, dict) else {}
+
     ability = pending.get("ability_obj", {}) or {}
     damage_roll = pending.get("damage_roll", 0)
     to_hit = pending.get("to_hit", 0)
@@ -194,7 +198,33 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
     log["ability_name"] = pending.get("ability")
     effects = ability.get("effects") or {}
 
-        # Defense roll:
+    def _get_res(e, k, default=0):
+        if isinstance(e, dict) and isinstance(e.get("resources"), dict) and k in e["resources"]:
+            return e["resources"].get(k, default)
+        if isinstance(e, dict):
+            return e.get(k, default)
+        return default
+
+    def _get_hp_val(e):
+        hp = _get_res(e, "hp", None)
+        if hp is None:
+            hp = e.get("hp") if isinstance(e, dict) else None
+        if isinstance(hp, dict):
+            return hp.get("current", hp.get("hp", 0))
+        return hp if hp is not None else 0
+
+    def _set_hp_val(e, hp):
+        if not isinstance(e, dict):
+            return
+        if isinstance(e.get("hp"), dict):
+            e["hp"]["current"] = hp
+            return
+        if isinstance(e.get("resources"), dict) and e["resources"].get("hp") is not None:
+            e["resources"]["hp"] = hp
+            return
+        e["hp"] = hp
+
+    # Defense roll:
     # - If defense_d20 provided, use contested DV: d20 + IDF + Momentum + temp bonuses
     # - Else, use static dv_base from data
     enemy = enemies[0] if enemies else None
@@ -206,69 +236,94 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         dv_base = enemy.get("dv_base")
         if dv_base is None:
             dv_base = enemy.get("stat_block", {}).get("defense", {}).get("dv_base")
-        enemy_idf = enemy.get("idf", 0)
-        enemy_momentum = enemy.get("momentum", 0)
+        enemy_idf = _get_res(enemy, "idf", enemy.get("idf", 0) if isinstance(enemy, dict) else 0)
+        enemy_momentum = _get_res(enemy, "momentum", enemy.get("momentum", 0) if isinstance(enemy, dict) else 0)
         enemy_tb = enemy.get("temp_bonuses", {}) or {}
 
-    if defense_d20 is not None:
-        defense_roll = (
-            defense_d20
-            + enemy_idf
-            + enemy_momentum
-            + enemy_tb.get("defense", 0)
-            + enemy_tb.get("idf", 0)
-        )
-        log["defense_d20"] = defense_d20
-        log["defense_breakdown"] = {
-            "defense_d20": defense_d20,
-            "idf": enemy_idf,
-            "momentum": enemy_momentum,
-        }
-    else:
-        defense_roll = (
-            (dv_base if dv_base is not None else 0)
-            + enemy_idf
-            + enemy_momentum
-            + enemy_tb.get("defense", 0)
-            + enemy_tb.get("idf", 0)
-        )
+    forced_defense = pending.get("forced_defense_roll")
+    if forced_defense is not None:
+        defense_roll = forced_defense
         log["defense_d20"] = None
-        log["defense_breakdown"] = {
-            "dv_base": dv_base if dv_base is not None else 0,
-            "idf": enemy_idf,
-            "momentum": enemy_momentum,
-        }
+        log["defense_breakdown"] = {"forced": True}
+        log["defense_roll"] = defense_roll
+    else:
+        if defense_d20 is not None:
+            defense_roll = (
+                defense_d20
+                + enemy_idf
+                + enemy_momentum
+                + enemy_tb.get("defense", 0)
+                + enemy_tb.get("idf", 0)
+            )
+            log["defense_d20"] = defense_d20
+            log["defense_breakdown"] = {
+                "defense_d20": defense_d20,
+                "idf": enemy_idf,
+                "momentum": enemy_momentum,
+            }
+        else:
+            defense_roll = (
+                (dv_base if dv_base is not None else 0)
+                + enemy_idf
+                + enemy_momentum
+                + enemy_tb.get("defense", 0)
+                + enemy_tb.get("idf", 0)
+            )
+            log["defense_d20"] = None
+            log["defense_breakdown"] = {
+                "dv_base": dv_base if dv_base is not None else 0,
+                "idf": enemy_idf,
+                "momentum": enemy_momentum,
+            }
 
     log["defense_roll"] = defense_roll
 
-
-    margin = defense_roll - to_hit
-    if margin >= 5:
-        log["perfect_defense"] = True
-    if to_hit < defense_roll:
-        log["hit"] = False
-        # On miss, attacker drifts: Balance +2
-        character["resources"]["balance"] = character["resources"].get("balance", 0) + 2
-        log["balance"] = character["resources"].get("balance", 0)
-        momentum_gained = apply_momentum_feeds(enemy, "player_miss")
-        if momentum_gained:
-            log["enemy_momentum_gained"] = momentum_gained
-            log["enemy_momentum"] = enemy.get("momentum", 0)
-        # apply structured on_miss effects
-        miss_applied = apply_effect_list(effects.get("on_miss", []), actor=character, enemy=enemy, default_target="self")
-        if miss_applied.get("statuses"):
-            log["statuses_applied"] = miss_applied["statuses"]
-        state.setdefault("log", []).append({"action_effects": log})
-        state["pending_action"] = None
-        return "miss"
-    log["hit"] = True
+    resolved_hit = pending.get("resolved_hit")
+    if isinstance(resolved_hit, bool):
+        log["forced_resolution"] = True
+        log["hit"] = resolved_hit
+        margin = defense_roll - to_hit
+        if margin >= 5:
+            log["perfect_defense"] = True
+        if not resolved_hit:
+            miss_applied = apply_effect_list(effects.get("on_miss", []), actor=character, enemy=enemy, default_target="self")
+            if miss_applied.get("statuses"):
+                log["statuses_applied"] = miss_applied["statuses"]
+            state.setdefault("log", []).append({"action_effects": log})
+            state["pending_action"] = None
+            return "miss"
+    else:
+        margin = defense_roll - to_hit
+        if margin >= 5:
+            log["perfect_defense"] = True
+        if to_hit < defense_roll:
+            log["hit"] = False
+            # On miss, attacker drifts: Balance +2
+            if character.get("_combat_key"):
+                combat_add(state, character, "balance", 2)
+                log["balance"] = combat_get(state, character, "balance", 0)
+            else:
+                resources["balance"] = resources.get("balance", 0) + 2
+                log["balance"] = resources.get("balance", 0)
+            momentum_gained = apply_momentum_feeds(enemy, "player_miss")
+            if momentum_gained:
+                log["enemy_momentum_gained"] = momentum_gained
+                log["enemy_momentum"] = combat_get(state, enemy, "momentum", enemy.get("momentum", 0) if isinstance(enemy, dict) else 0)
+            # apply structured on_miss effects
+            miss_applied = apply_effect_list(effects.get("on_miss", []), actor=character, enemy=enemy, default_target="self")
+            if miss_applied.get("statuses"):
+                log["statuses_applied"] = miss_applied["statuses"]
+            state.setdefault("log", []).append({"action_effects": log})
+            state["pending_action"] = None
+            return "miss"
+        log["hit"] = True
 
     # Simple damage application to the first enemy, if any
     damage_applied = 0
     if enemies:
         enemy = enemies[0]
         # heat bonus to damage (use projected heat after this hit)
-        prior_heat = character["resources"].get("heat", 0)
+        prior_heat = combat_get(state, character, "heat", resources.get("heat", 0))
         projected_heat = prior_heat + 1
         heat_bonus = max(0, min(4, projected_heat - 1))
         # structured damage support
@@ -279,37 +334,54 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
             dmg_extra_flat = dmg_entry.get("flat", 0) or 0
         dmg_total = ability_damage_total(character, ability, damage_roll) + heat_bonus + dmg_extra_flat
         damage_applied = dmg_total
-        enemy["hp"] = enemy.get("hp", 10) - dmg_total
-        enemy["momentum"] = enemy.get("momentum", 0)
+        hp_now = _get_hp_val(enemy)
+        _set_hp_val(enemy, hp_now - dmg_total)
+        if isinstance(enemy, dict) and "momentum" in enemy:
+            enemy["momentum"] = enemy.get("momentum", 0)
         # gain heat on successful hit
-        character["resources"]["heat"] = projected_heat
+        if character.get("_combat_key"):
+            combat_set(state, character, "heat", projected_heat)
+        else:
+            resources["heat"] = projected_heat
         # apply structured on_hit effects (statuses, resource deltas)
         hit_applied = apply_effect_list(effects.get("on_hit", []), actor=character, enemy=enemy, default_target="enemy")
         if hit_applied.get("statuses"):
             log["statuses_applied"] = hit_applied["statuses"]
 
     if "momentum" in tags:
-        character["resources"]["momentum"] = character["resources"].get("momentum", 0) + 1
+        if character.get("_combat_key"):
+            combat_add(state, character, "momentum", 1)
+        else:
+            resources["momentum"] = resources.get("momentum", 0) + 1
 
     if "heat" in tags:
-        character["resources"]["heat"] = character["resources"].get("heat", 0) + 1
+        if character.get("_combat_key"):
+            combat_add(state, character, "heat", 1)
+        else:
+            resources["heat"] = resources.get("heat", 0) + 1
 
     # Track Balance changes if tagged
     if "balance_minus_1" in tags:
-        character["resources"]["balance"] = character["resources"].get("balance", 0) - 1
+        if character.get("_combat_key"):
+            combat_add(state, character, "balance", -1)
+        else:
+            resources["balance"] = resources.get("balance", 0) - 1
     if "balance_plus_2" in tags:
-        character["resources"]["balance"] = character["resources"].get("balance", 0) + 2
+        if character.get("_combat_key"):
+            combat_add(state, character, "balance", 2)
+        else:
+            resources["balance"] = resources.get("balance", 0) + 2
 
-    enemy_hp_after = enemy.get("hp")  #if enemy else enemy_hp_before
+    enemy_hp_after = _get_hp_val(enemy) if enemy else None  # if enemy else enemy_hp_before
 
     log.update({
         "damage_applied": damage_applied,
         "to_hit": to_hit,
         "heat_bonus": heat_bonus if 'heat_bonus' in locals() else 0,
-        "heat": character["resources"].get("heat", 0),
-        "balance": character["resources"].get("balance", 0),
-        "resolve": character["resources"].get("resolve", 0),
-        "momentum": character["resources"].get("momentum", 0),
+        "heat": combat_get(state, character, "heat", resources.get("heat", 0)),
+        "balance": combat_get(state, character, "balance", resources.get("balance", 0)),
+        "resolve": resources.get("resolve", 0),
+        "momentum": combat_get(state, character, "momentum", resources.get("momentum", 0)),
      #   "enemy_hp_before": enemy_hp_before,
         "enemy_hp_after": enemy_hp_after,
     })
@@ -372,9 +444,17 @@ def resolve_defense_reaction(state, defender, attacker, ability, incoming_damage
     return summary
 
 def check_exposure(character):
-    if character["resources"].get("heat", 0) >= 5:
+    res = character.get("resources", {}) if isinstance(character, dict) else {}
+    heat = res.get("heat", 0)
+    if isinstance(character, dict) and character.get("_combat_key"):
+        try:
+            # state isn't available here; leave legacy path for now.
+            pass
+        except Exception:
+            pass
+    if heat >= 5:
         return "overheat"
-    if character["resources"].get("balance", 0) <= -3:
+    if res.get("balance", 0) <= -3:
         return "off_balance"
     return None
 

@@ -603,15 +603,125 @@ footer {
   }
 
   /* Interrupt flash */
-  @keyframes interrupt-flash {
-    0%   { background-color: rgba(180, 0, 0, 0.15); }
-    50%  { background-color: rgba(180, 0, 0, 0.35); }
-    100% { background-color: transparent; }
-  }
+@keyframes interrupt-flash {
+  0%   { background-color: rgba(180, 0, 0, 0.15); }
+  50%  { background-color: rgba(180, 0, 0, 0.35); }
+  100% { background-color: transparent; }
+}
 
-  .interrupt-flash {
-    animation: interrupt-flash 0.18s ease-out;
-  }
+.interrupt-flash {
+  animation: interrupt-flash 0.18s ease-out;
+}
+
+/* ===== INTERRUPT SLIDE-UP ===== */
+#interrupt-window {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42vh;
+  background: linear-gradient(to top, #0b0c0e, #0f1114);
+  border-top: 2px solid var(--accent);
+  z-index: 1100;
+  transform: translateY(100%);
+  transition: transform 0.22s ease-out;
+}
+
+#interrupt-window.active {
+  transform: translateY(0);
+}
+
+#interrupt-window.hidden {
+  display: none;
+}
+
+.interrupt-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  letter-spacing: 2px;
+  font-size: 11px;
+  color: var(--fg);
+  border-bottom: 1px solid var(--line);
+}
+
+.interrupt-list {
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.interrupt-list .ability-card {
+  min-width: 220px;
+  border-color: rgba(158, 43, 37, 0.6);
+}
+
+.interrupt-footer {
+  padding: 10px;
+  border-top: 1px solid var(--line);
+  text-align: right;
+}
+
+.interrupt-skip {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--dim);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.interrupt-skip:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+/* ===== INTERRUPTED OVERLAY ===== */
+.interrupt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: radial-gradient(
+    circle at center,
+    rgba(180, 30, 30, 0.25),
+    rgba(0, 0, 0, 0.85)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.interrupt-overlay.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.interrupt-overlay.hidden {
+  display: none;
+}
+
+.interrupt-text {
+  font-family: inherit;
+  font-size: clamp(48px, 8vw, 96px);
+  letter-spacing: 0.3em;
+  color: #e54b4b;
+  text-shadow:
+    0 0 8px rgba(229, 75, 75, 0.6),
+    0 0 24px rgba(229, 75, 75, 0.4),
+    0 0 48px rgba(229, 75, 75, 0.25);
+  animation: interrupt-smear 0.18s steps(2) 3;
+}
+
+@keyframes interrupt-smear {
+  0%   { transform: translateX(0); }
+  33%  { transform: translateX(-6px); }
+  66%  { transform: translateX(6px); }
+  100% { transform: translateX(0); }
+}
 
   /* ===== Narration Container ===== */
 
@@ -775,7 +885,26 @@ footer {
   </div>
 </div>
 
-  <script>
+<!-- INTERRUPT WINDOW -->
+<div id="interrupt-window" class="interrupt hidden">
+  <div class="interrupt-header">
+    <span>INTERRUPT WINDOW</span>
+    <span class="interrupt-timer" id="interrupt-timer">—</span>
+  </div>
+
+  <div id="interrupt-abilities" class="interrupt-list"></div>
+
+  <div class="interrupt-footer">
+    <button class="interrupt-skip" onclick="skipInterrupt()">ENDURE</button>
+  </div>
+</div>
+
+<!-- INTERRUPTED OVERLAY -->
+<div id="interrupt-overlay" class="interrupt-overlay hidden">
+  <div class="interrupt-text">INTERRUPTED</div>
+</div>
+
+<script>
 const API = "http://localhost:8000/step"; // adjust if needed
 const EVENTS_API = "http://localhost:8000/events";
 const CHARACTER_API = "http://localhost:8000/character";
@@ -787,6 +916,7 @@ const combatLog = document.getElementById("combat-log");
 const signalDot = document.getElementById("signal-dot");
 const narrationWrapper = document.getElementById("narration-wrapper");
 const narrationEl = document.getElementById("narration");
+const mainScroll = document.getElementById("main-scroll");
 const choicesEl = document.getElementById("choices");
 const charHp = document.getElementById("char-hp");
 const charRp = document.getElementById("char-rp");
@@ -797,13 +927,17 @@ const statInt = document.getElementById("stat-int");
 const statWil = document.getElementById("stat-wil");
 let signals = [];
 let hasUnreadSignals = false;
+let characterState = null;
+let abilityById = new Map();
 
 function addEntry(text, cls) {
   const div = document.createElement("div");
   div.className = `entry ${cls}`;
   div.textContent = text;
-  log.appendChild(div);
-  window.scrollTo(0, document.body.scrollHeight);
+  log.prepend(div);
+  if (mainScroll) {
+    mainScroll.scrollTop = 0;
+  }
 }
 
 function clearChoices() {
@@ -907,6 +1041,83 @@ function triggerInterruptFlash() {
   }, 180);
 }
 
+function showInterruptOverlay(duration = 10000) {
+  const overlay = document.getElementById("interrupt-overlay");
+  if (!overlay) return;
+
+  overlay.classList.remove("hidden");
+  overlay.offsetHeight; // force reflow so transition fires
+  overlay.classList.add("active");
+
+  setTimeout(() => {
+    overlay.classList.remove("active");
+    setTimeout(() => overlay.classList.add("hidden"), 200);
+  }, duration);
+}
+
+// INTERRUPT WINDOW UI
+let interruptTimeout = null;
+
+function openInterruptWindow(abilities, seconds = null) {
+  const win = document.getElementById("interrupt-window");
+  const host = document.getElementById("interrupt-abilities");
+  const timer = document.getElementById("interrupt-timer");
+
+  if (!win || !host || !timer) {
+    console.warn("interrupt_window: missing DOM nodes", { win, host, timer });
+    return;
+  }
+
+  host.innerHTML = "";
+  const sec = (seconds === undefined || seconds === null) ? null : Number(seconds);
+  timer.textContent = (sec && sec > 0) ? `${sec}s` : "—";
+
+  (abilities || []).forEach(ab => {
+    const card = document.createElement("div");
+    card.className = "ability-card";
+
+    card.innerHTML = `
+      <div class="row">
+        <div class="name">${ab.name}</div>
+        <div class="meta">${ab.cost ?? 0} RP</div>
+      </div>
+      <div class="desc">${ab.effect ?? ""}</div>
+    `;
+
+    card.onclick = async () => {
+      closeInterruptWindow();
+      await sendStep({ action: "interrupt", ability: ab.id });
+    };
+
+    host.appendChild(card);
+  });
+
+  win.classList.remove("hidden");
+  // Make it visible immediately; RAF just ensures transitions fire.
+  win.classList.add("active");
+  requestAnimationFrame(() => win.classList.add("active"));
+
+  clearTimeout(interruptTimeout);
+  interruptTimeout = null;
+  if (sec && sec > 0) {
+    interruptTimeout = setTimeout(() => {
+      skipInterrupt();
+    }, sec * 1000);
+  }
+}
+
+function closeInterruptWindow() {
+  const win = document.getElementById("interrupt-window");
+  if (!win) return;
+  win.classList.remove("active");
+  setTimeout(() => win.classList.add("hidden"), 220);
+}
+
+async function skipInterrupt() {
+  closeInterruptWindow();
+  await sendStep({ action: "interrupt_skip" });
+}
+
 function updateCharacterUI(char) {
   if (!char) return;
   if (char.hp) {
@@ -915,7 +1126,8 @@ function updateCharacterUI(char) {
     charHp.textContent = `${cur}/${max}`;
   }
   if (char.rp !== undefined) {
-    charRp.textContent = char.rp;
+    const rpCur = (typeof char.rp === "object" && char.rp) ? (char.rp.current ?? 0) : char.rp;
+    charRp.textContent = rpCur;
   }
   if (char.veinscore !== undefined) {
     charVeinscore.textContent = char.veinscore;
@@ -1000,7 +1212,7 @@ function handleEvents(events) {
         appendNarration(ev.text);
         break;
       case "character_update":
-        updateCharacterUI(ev.character);
+        applyCharacterUpdate(ev.character);
         break;
       case "loot":
         addEntry(ev.text, "loot");
@@ -1022,6 +1234,14 @@ function handleEvents(events) {
         if (ev.text) {
           logCombat(ev.text, "interrupt");
         }
+        break;
+      case "chain_interrupted":
+        showInterruptOverlay(10000);
+        logCombat(ev.text || "Chain interrupted!", "interrupt");
+        break;
+      case "interrupt_window":
+        flashInterrupt();
+        openInterruptWindow(ev.abilities, ev.timeout ?? null);
         break;
       case "declare_chain":
         chainAbilities = ev.abilities || [];
@@ -1050,6 +1270,30 @@ function handleEvents(events) {
   });
 }
 
+function applyCharacterUpdate(delta) {
+  if (!delta) return;
+  if (!characterState) {
+    characterState = { abilities: [] };
+  }
+  if (delta.name !== undefined) characterState.name = delta.name;
+  if (delta.hp !== undefined) characterState.hp = delta.hp;
+  if (delta.rp !== undefined) characterState.rp = delta.rp;
+  if (delta.veinscore !== undefined) characterState.veinscore = delta.veinscore;
+
+  if (Array.isArray(delta.abilities)) {
+    delta.abilities.forEach(a => {
+      if (!a || !a.id) return;
+      const existing = abilityById.get(a.id) || { id: a.id, name: a.id };
+      if (a.cooldown !== undefined) existing.cooldown = a.cooldown;
+      abilityById.set(a.id, existing);
+    });
+    characterState.abilities = Array.from(abilityById.values());
+  }
+
+  updateCharacterUI(characterState);
+  renderAbilitiesPanel(characterState);
+}
+
 // initial kick
 fetch(API, {
   method: "POST",
@@ -1064,7 +1308,20 @@ fetch(API, {
 
 fetch(CHARACTER_API)
   .then(res => res.json())
-  .then(updateCharacterUI);
+  .then(ch => {
+    characterState = ch;
+    abilityById = new Map();
+    if (Array.isArray(ch?.abilities)) {
+      ch.abilities.forEach(ab => {
+        if (!ab) return;
+        const id = ab.id || ab.name;
+        if (!id) return;
+        abilityById.set(id, { ...ab, id });
+      });
+    }
+    updateCharacterUI(characterState);
+    renderAbilitiesPanel(characterState);
+  });
 
 async function pollEvents() {
   try {
@@ -1264,7 +1521,7 @@ function renderChainHint(rules) {
   }
 }
 
-  </script>
+</script>
 
 </body>
 
