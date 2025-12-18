@@ -125,7 +125,85 @@ You cannot change an action mid-chain unless an item, boon, or ability explicitl
 [DUNGEON NOTICE: Chain Pattern Locked]
 “Show me your rhythm… all of it.”
 ```
+Final Agreed Meanings (Authoritative)
+Momentum — Encounter-scale pressure
 
+What it is: Control of the fight over time.
+
+Scope: Persists for the entire encounter.
+
+Cap: 8 (for now; explicitly a tuning knob).
+
+Primary uses:
+
+Adds to Defense (DV side) when defending.
+
+Makes you harder to hit as the fight goes on.
+
+How it changes:
+
+On hit:
+
+Links 1–2: +1
+
+Link ≥3: +2
+
+On miss: −1
+
+On interrupt suffered: Momentum is halved (round down).
+
+Why:
+Creates a rising tension curve and makes interrupts matter without initiative.
+
+Balance — Chain-local execution stability
+
+What it is: How steady you are right now while executing a chain.
+
+Scope: Per-chain only; resets when the chain ends.
+
+Primary uses:
+
+Adds to the attack roll of the aggressor.
+
+Reduces interrupt vulnerability (high balance = harder to interrupt).
+
+How it changes:
+
+On hit: +1 (early), scales with deeper chains.
+
+On miss: −1
+
+On interrupt: irrelevant after (chain always ends).
+
+Why:
+Balance rewards clean execution and punishes sloppy chains without long-term punishment.
+
+Heat — Spendable overcommitment power
+
+What it is: Voluntary excess force. Power you choose to burn.
+
+Scope: Persists across chains; spendable.
+
+Primary uses:
+
+Can be spent to add damage or effects.
+
+Enables late-game spikes and spectacle.
+
+Consequences of high Heat:
+
+Invites more interrupt windows.
+
+Increases punishment severity when interrupted.
+
+Important clarification we locked in:
+
+Heat is not “pushing too far” or loss of control.
+
+Heat is “I’m awesome and daring you to answer.”
+
+Why:
+Heat creates chosen risk, not passive danger.
 ---
 
 # 

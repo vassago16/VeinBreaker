@@ -7,6 +7,7 @@ from engine.interrupt_policy import InterruptPolicy
 from engine.interrupt_windows import InterruptContext
 from engine.stats import stat_mod
 from engine.combat_state import combat_get, combat_set
+from ui.events import emit_event, emit_resource_update
 
 
 @dataclass
@@ -49,6 +50,11 @@ def _get_hp_max(entity: Dict[str, Any]) -> Optional[int]:
     if isinstance(res, dict):
         max_hp = res.get("hp_max") or res.get("max_hp")
         return int(max_hp) if max_hp is not None else None
+    stat_block = entity.get("stat_block") if isinstance(entity.get("stat_block"), dict) else {}
+    if isinstance(stat_block, dict):
+        hp_block = stat_block.get("hp") if isinstance(stat_block.get("hp"), dict) else {}
+        if isinstance(hp_block, dict) and hp_block.get("max") is not None:
+            return int(hp_block.get("max") or 0)
     max_hp = entity.get("hp_max") or entity.get("max_hp") or entity.get("maxHp")
     return int(max_hp) if max_hp is not None else None
 
@@ -145,13 +151,14 @@ class ChainResolutionEngine:
         # Roll attack ONCE per chain
         attack_d20 = int(self.roll("1d20"))
         balance = combat_get(state, aggressor, "balance", _get_resource(aggressor, "balance", 0))
+        heat = combat_get(state, aggressor, "heat", _get_resource(aggressor, "heat", 0))
         atk_tb = int(((aggressor.get("temp_bonuses") or {}).get("attack", 0)) or 0)
-        attack_total = int(attack_d20 + balance + atk_tb)
+        attack_total = int(attack_d20 + balance + heat + atk_tb)
 
         if self.emit_log:
             self.emit_log(
                 ui,
-                f"Aggressor d20: {attack_d20} (balance {balance}, atk_bonus {atk_tb}) → attack_total {attack_total}",
+                f"Aggressor d20: {attack_d20} (balance {balance}, heat {heat}, atk_bonus {atk_tb}) → attack_total {attack_total}",
                 "roll",
             )
 
@@ -180,10 +187,11 @@ class ChainResolutionEngine:
             hit = attack_total >= defense_target
 
             if self.emit_log:
+                ab_name = ability.get("name") or ability.get("id") or name_or_id
                 self.emit_log(
                     ui,
-                    f"Link {idx + 1}: attack_total {attack_total} vs defense_target {defense_target} "
-                    f"(def_momentum {def_mom}) → {'HIT' if hit else 'MISS'}",
+                    f"Link {idx + 1}:{ab_name} roll {attack_d20} + {balance} + heat {heat} + {atk_tb} -> attack_total {attack_total} "
+                    f"vs defense_target {dv_base} + {def_mom} + {def_tb} = {defense_target} -> {'HIT' if hit else 'MISS'}",
                     "system",
                 )
 
@@ -204,6 +212,11 @@ class ChainResolutionEngine:
                 return ChainResult("awaiting", "interrupt_prompt", idx)
             if getattr(decision, "kind", None) == "attempt":
                 if self._attempt_interrupt_newrules(state, ui, aggressor, defender, attack_total):
+                    # Let the outer loop render a human-readable chain break banner.
+                    try:
+                        state["_chain_break_action"] = ability.get("name") or ability.get("id") or name_or_id
+                    except Exception:
+                        pass
                     combat_set(state, defender, "momentum", combat_get(state, defender, "momentum", def_mom) // 2)
                     return ChainResult("broken", "interrupt_before_link", idx)
 
@@ -211,10 +224,21 @@ class ChainResolutionEngine:
             if hit:
                 mom_gain = 1 if idx < 2 else 2
                 combat_set(state, defender, "momentum", _clamp(def_mom + mom_gain, 0, momentum_cap))
-                combat_set(state, aggressor, "balance", combat_get(state, aggressor, "balance", balance) + 1)
+                combat_set(state, aggressor, "balance", combat_get(state, aggressor, "balance", balance) + 2)
             else:
                 combat_set(state, defender, "momentum", _clamp(def_mom - 1, 0, momentum_cap))
-                combat_set(state, aggressor, "balance", combat_get(state, aggressor, "balance", balance) - 1)
+                combat_set(state, aggressor, "balance", combat_get(state, aggressor, "balance", balance) + 1)
+
+            # Emit updated meters after this link decision so UI can reflect balance/momentum live.
+            try:
+                emit_resource_update(
+                    ui,
+                    momentum=combat_get(state, aggressor, "momentum", _get_resource(aggressor, "momentum", 0)),
+                    balance=combat_get(state, aggressor, "balance", _get_resource(aggressor, "balance", 0)),
+                    heat=combat_get(state, aggressor, "heat", _get_resource(aggressor, "heat", 0)),
+                )
+            except Exception:
+                pass
 
             # Resolve + apply effects but force hit/miss so legacy code doesn't overwrite outcomes.
             before_hp = _get_hp(defender)
@@ -236,6 +260,27 @@ class ChainResolutionEngine:
                 _set_hp(defender, 0)
                 after_hp = 0
 
+            # Enemy HUD card: update enemy meters + HP each link.
+            try:
+                key = str(defender.get("_combat_key", "")) if isinstance(defender, dict) else ""
+                if key.startswith("enemy"):
+                    emit_event(ui, {
+                        "type": "enemy_update",
+                        "enemy": {
+                            "name": defender.get("name", defender.get("id", "Enemy")),
+                            "tier": defender.get("tier"),
+                            "role": defender.get("role"),
+                            "dv_base": dv_base,
+                            "idf": _get_idf(defender),
+                            "hp": {"current": int(after_hp), "max": int(_get_hp_max(defender) or after_hp)},
+                            "heat": combat_get(state, defender, "heat", _get_resource(defender, "heat", 0)),
+                            "momentum": combat_get(state, defender, "momentum", _get_resource(defender, "momentum", 0)),
+                            "balance": combat_get(state, defender, "balance", _get_resource(defender, "balance", 0)),
+                        }
+                    })
+            except Exception:
+                pass
+
             if self.emit_log and after_hp != before_hp:
                 max_hp = _get_hp_max(defender)
                 if max_hp:
@@ -254,6 +299,11 @@ class ChainResolutionEngine:
                 return ChainResult("awaiting", "interrupt_prompt", idx + 1)
             if getattr(decision2, "kind", None) == "attempt":
                 if self._attempt_interrupt_newrules(state, ui, aggressor, defender, attack_total):
+                    # Let the outer loop render a human-readable chain break banner.
+                    try:
+                        state["_chain_break_action"] = ability.get("name") or ability.get("id") or name_or_id
+                    except Exception:
+                        pass
                     combat_set(state, defender, "momentum", combat_get(state, defender, "momentum", def_mom) // 2)
                     return ChainResult("broken", "interrupt_after_link", idx + 1)
 
@@ -310,6 +360,16 @@ class ChainResolutionEngine:
         if interrupt_total < threshold:
             ui.system("Interrupt fails.")
             return False
+
+        # UI signal: successful interrupt (flash + INTERRUPTED overlay)
+        try:
+            emit_event(ui, {"type": "interrupt"})
+            emit_event(ui, {"type": "chain_interrupted", "text": f"{defender.get('name', 'Defender')} interrupts!"})
+            # Prevent the outer game loop from cascading into the next prompt in the same /step.
+            if isinstance(state, dict):
+                state["_pause_after_interrupt"] = True
+        except Exception:
+            pass
 
         dmg = max(0, int(self.roll("1d4")))
         if dmg > 0:

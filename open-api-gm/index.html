@@ -491,6 +491,86 @@ footer {
     padding-bottom: 12px;
   }
 
+  /* ===== ENEMY CARD ===== */
+
+  .monster-card {
+    border-bottom: 1px solid var(--line);
+    padding: 10px 14px;
+    background: linear-gradient(180deg, rgba(16, 17, 19, 0.95), rgba(12, 12, 12, 0.9));
+  }
+
+  .monster-card.hidden {
+    display: none;
+  }
+
+  .monster-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .monster-name {
+    color: var(--fg);
+    letter-spacing: 2px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  .monster-meta {
+    color: var(--dim);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .monster-meters {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .meter-row {
+    display: grid;
+    grid-template-columns: 34px 1fr 56px;
+    gap: 8px;
+    align-items: center;
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  .meter-label {
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .meter-value {
+    text-align: right;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meter-bar {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.2s ease;
+    background: rgba(158, 43, 37, 0.75);
+  }
+
+  .meter-bar.hp .meter-fill { background: rgba(158, 43, 37, 0.85); }
+  .meter-bar.heat .meter-fill { background: linear-gradient(90deg, #ff9f1c, #ff3d00); }
+  .meter-bar.mom .meter-fill { background: linear-gradient(90deg, #4f7cff, #79a6ff); }
+
   #combat-log-panel {
     width: 260px;
     border-left: 1px solid var(--line);
@@ -680,7 +760,8 @@ footer {
 .interrupt-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  /* Keep below the interrupt chooser so it never blocks selection */
+  z-index: 1050;
   background: radial-gradient(
     circle at center,
     rgba(180, 30, 30, 0.25),
@@ -704,11 +785,11 @@ footer {
   display: none;
 }
 
-.interrupt-text {
-  font-family: inherit;
-  font-size: clamp(48px, 8vw, 96px);
-  letter-spacing: 0.3em;
-  color: #e54b4b;
+  .interrupt-text {
+    font-family: inherit;
+    font-size: clamp(48px, 8vw, 96px);
+    letter-spacing: 0.3em;
+    color: #e54b4b;
   text-shadow:
     0 0 8px rgba(229, 75, 75, 0.6),
     0 0 24px rgba(229, 75, 75, 0.4),
@@ -716,12 +797,110 @@ footer {
   animation: interrupt-smear 0.18s steps(2) 3;
 }
 
-@keyframes interrupt-smear {
-  0%   { transform: translateX(0); }
-  33%  { transform: translateX(-6px); }
-  66%  { transform: translateX(6px); }
-  100% { transform: translateX(0); }
-}
+  @keyframes interrupt-smear {
+    0%   { transform: translateX(0); }
+    33%  { transform: translateX(-6px); }
+    66%  { transform: translateX(6px); }
+    100% { transform: translateX(0); }
+  }
+
+  /* ===== LOOT OVERLAY ===== */
+
+  .loot-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.78);
+    opacity: 0;
+    transition: opacity 0.18s ease-out;
+  }
+
+  .loot-overlay.active {
+    opacity: 1;
+  }
+
+  .loot-overlay.hidden {
+    display: none;
+  }
+
+  .loot-modal {
+    width: min(720px, calc(100vw - 32px));
+    max-height: min(72vh, 720px);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, #0f1114, #0b0c0e);
+    box-shadow: 0 0 0 1px rgba(158, 43, 37, 0.18), 0 18px 60px rgba(0, 0, 0, 0.55);
+  }
+
+  .loot-title {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .loot-h {
+    letter-spacing: 3px;
+    font-size: 12px;
+    color: var(--fg);
+  }
+
+  .loot-sub {
+    font-size: 12px;
+    color: var(--dim);
+  }
+
+  .loot-items {
+    padding: 12px 14px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .loot-item {
+    border: 1px solid var(--line);
+    background: #101113;
+    padding: 10px 10px;
+  }
+
+  .loot-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+  }
+
+  .loot-item-name {
+    color: var(--fg);
+    font-size: 13px;
+  }
+
+  .loot-item-rarity {
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+
+  .loot-item-desc {
+    margin-top: 6px;
+    color: var(--dim);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .loot-actions {
+    padding: 12px 14px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
 
 /* ===== COMBAT RESULT OVERLAY ===== */
 .result-overlay {
@@ -828,6 +1007,93 @@ footer {
   text-align: right;
 }
 
+/* ===== MOMENTUM ===== */
+.momentum-panel {
+  margin-top: 10px;
+}
+
+.momentum-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: #9bb3c9;
+}
+
+.momentum-bar {
+  position: relative;
+  height: 10px;
+  background: #14181c;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#momentum-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4f7cff, #79a6ff);
+  box-shadow: 0 0 6px rgba(79, 124, 255, 0.4);
+  transition: width 0.25s ease-out;
+}
+
+.momentum-shock #momentum-fill {
+  animation: momentum-shock 0.25s ease-out;
+}
+
+@keyframes momentum-shock {
+  0%   { filter: brightness(1.6); }
+  100% { filter: brightness(1); }
+}
+
+/* ===== BALANCE ===== */
+.balance-panel {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.balance-panel.hidden {
+  display: none;
+}
+
+.balance-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: #b0b8c2;
+}
+
+.balance-pips {
+  display: flex;
+  gap: 4px;
+}
+
+.balance-pip {
+  width: 8px;
+  height: 8px;
+  background: #3a3f45;
+  border-radius: 1px;
+}
+
+.balance-pip.active {
+  background: #9bb3c9;
+}
+
+.balance-pip.negative {
+  background: #ff6a6a;
+}
+
+.balance-wobble {
+  animation: balance-wobble 0.2s ease-out;
+}
+
+@keyframes balance-wobble {
+  0%   { transform: translateX(0); }
+  25%  { transform: translateX(-4px); }
+  50%  { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
   /* ===== Narration Container ===== */
 
     #narration-wrapper {
@@ -919,6 +1185,17 @@ footer {
       <div id="heat-value" class="heat-value">0</div>
     </div>
 
+    <!-- MOMENTUM -->
+    <div id="momentum-panel" class="momentum-panel">
+      <div class="momentum-header">
+        <span>MOMENTUM</span>
+        <span id="momentum-value">0</span>
+      </div>
+      <div class="momentum-bar">
+        <div id="momentum-fill"></div>
+      </div>
+    </div>
+
     <section id="abilities-panel">
       <div class="panel-title">ABILITIES</div>
       <div id="abilities-list"></div>
@@ -926,6 +1203,37 @@ footer {
   </aside>
 
   <main id="main">
+    <!-- Enemy HUD card (stays visible during combat; not part of narration/log clearing) -->
+    <section id="enemy-card" class="monster-card hidden" aria-live="polite">
+      <div class="monster-top">
+        <div class="monster-name" id="enemy-name">ENEMY</div>
+        <div class="monster-meta" id="enemy-meta"></div>
+      </div>
+
+      <div class="monster-meters">
+        <div class="meter-row">
+          <div class="meter-label">HP</div>
+          <div class="meter-bar hp"><div id="enemy-hp-fill" class="meter-fill"></div></div>
+          <div class="meter-value" id="enemy-hp-text">—</div>
+        </div>
+        <div class="meter-row">
+          <div class="meter-label">HEAT</div>
+          <div class="meter-bar heat"><div id="enemy-heat-fill" class="meter-fill"></div></div>
+          <div class="meter-value" id="enemy-heat-text">0</div>
+        </div>
+        <div class="meter-row">
+          <div class="meter-label">MOM</div>
+          <div class="meter-bar mom"><div id="enemy-mom-fill" class="meter-fill"></div></div>
+          <div class="meter-value" id="enemy-mom-text">0</div>
+        </div>
+        <div class="meter-row">
+          <div class="meter-label">BAL</div>
+          <div class="meter-bar bal"><div id="enemy-bal-fill" class="meter-fill"></div></div>
+          <div class="meter-value" id="enemy-bal-text">0</div>
+        </div>
+      </div>
+    </section>
+
     <div id="main-scroll">
       <div id="narration-wrapper">
         <div id="narration"></div>
@@ -989,6 +1297,12 @@ footer {
       <h3>CHAIN</h3>
       <div id="chain-slots"></div>
 
+      <!-- BALANCE -->
+      <div id="balance-panel" class="balance-panel hidden">
+        <span class="balance-label">BALANCE</span>
+        <div id="balance-pips" class="balance-pips"></div>
+      </div>
+
       <div class="chain-actions">
         <button id="chain-commit" onclick="submitChain()">COMMIT CHAIN</button>
         <button class="secondary" onclick="clearChain()">CLEAR</button>
@@ -1024,6 +1338,23 @@ footer {
   <button class="result-continue" onclick="continueAfterCombat()">CONTINUE</button>
 </div>
 
+<!-- LOOT OVERLAY -->
+<div id="loot-overlay" class="loot-overlay hidden" aria-hidden="true">
+  <div class="loot-modal">
+    <div class="loot-title">
+      <div class="loot-h">SPOILS</div>
+      <div class="loot-sub" id="loot-sub">Claim what the Dungeon allows.</div>
+    </div>
+
+    <div id="loot-items" class="loot-items"></div>
+
+    <div class="loot-actions">
+      <button id="loot-take-all" onclick="takeAllLoot()">TAKE ALL</button>
+      <button class="secondary" onclick="continueFromLoot()">CONTINUE</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = "http://localhost:8000/step"; // adjust if needed
 const EVENTS_API = "http://localhost:8000/events";
@@ -1048,16 +1379,18 @@ const statWil = document.getElementById("stat-wil");
 let signals = [];
 let hasUnreadSignals = false;
 let characterState = null;
+let enemyState = null;
 let abilityById = new Map();
 const HEAT_CAP = 8;
+const MOMENTUM_MAX = 8;
 
 function addEntry(text, cls) {
   const div = document.createElement("div");
   div.className = `entry ${cls}`;
   div.textContent = text;
-  log.prepend(div);
+  log.appendChild(div);
   if (mainScroll) {
-    mainScroll.scrollTop = 0;
+    mainScroll.scrollTop = mainScroll.scrollHeight;
   }
 }
 
@@ -1103,7 +1436,9 @@ function appendNarration(text) {
   requestAnimationFrame(() => {
     p.style.opacity = "1";
   });
-  window.scrollTo(0, document.body.scrollHeight);
+  if (mainScroll) {
+    mainScroll.scrollTop = mainScroll.scrollHeight;
+  }
 }
 
 function appendCombatLog(text) {
@@ -1148,7 +1483,13 @@ function closeSignals() {
 }
 
 function setCombatActive(active) {
-  // panel is always present; no-op placeholder for future state toggles
+  const card = document.getElementById("enemy-card");
+  if (!card) return;
+  if (active) {
+    card.classList.remove("hidden");
+  } else {
+    card.classList.add("hidden");
+  }
 }
 
 function flashInterrupt() {
@@ -1162,7 +1503,7 @@ function triggerInterruptFlash() {
   }, 180);
 }
 
-function showInterruptOverlay(duration = 10000) {
+function showInterruptOverlay(duration = 1500) {
   const overlay = document.getElementById("interrupt-overlay");
   if (!overlay) return;
 
@@ -1178,6 +1519,30 @@ function showInterruptOverlay(duration = 10000) {
 
 // INTERRUPT WINDOW UI
 let interruptTimeout = null;
+let interruptResizeBound = false;
+
+function positionInterruptWindow() {
+  const win = document.getElementById("interrupt-window");
+  const main = document.getElementById("main");
+  if (!win || !main) return;
+
+  const rect = main.getBoundingClientRect();
+  win.style.left = `${Math.round(rect.left)}px`;
+  win.style.width = `${Math.round(rect.width)}px`;
+  win.style.right = "auto";
+}
+
+function bindInterruptResize() {
+  if (interruptResizeBound) return;
+  interruptResizeBound = true;
+  window.addEventListener("resize", () => {
+    const win = document.getElementById("interrupt-window");
+    if (!win) return;
+    if (!win.classList.contains("hidden")) {
+      positionInterruptWindow();
+    }
+  });
+}
 
 function openInterruptWindow(abilities, seconds = null) {
   clearChoices();
@@ -1190,6 +1555,9 @@ function openInterruptWindow(abilities, seconds = null) {
     console.warn("interrupt_window: missing DOM nodes", { win, host, timer });
     return;
   }
+
+  bindInterruptResize();
+  positionInterruptWindow();
 
   host.innerHTML = "";
   const sec = (seconds === undefined || seconds === null) ? null : Number(seconds);
@@ -1222,11 +1590,7 @@ function openInterruptWindow(abilities, seconds = null) {
 
   clearTimeout(interruptTimeout);
   interruptTimeout = null;
-  if (sec && sec > 0) {
-    interruptTimeout = setTimeout(() => {
-      skipInterrupt();
-    }, sec * 1000);
-  }
+  // Do not auto-dismiss; the player must explicitly Endure or pick an interrupt ability.
 }
 
 function closeInterruptWindow() {
@@ -1234,6 +1598,9 @@ function closeInterruptWindow() {
   if (!win) return;
   win.classList.remove("active");
   setTimeout(() => win.classList.add("hidden"), 220);
+  win.style.left = "";
+  win.style.right = "";
+  win.style.width = "";
 }
 
 async function skipInterrupt() {
@@ -1260,13 +1627,122 @@ function showCombatResult(result) {
   overlay.classList.add("active");
 }
 
+function applyEnemyUpdate(delta) {
+  if (!delta) return;
+  enemyState = { ...(enemyState || {}), ...delta };
+  renderEnemyCard(enemyState);
+}
+
+function renderEnemyCard(enemy) {
+  const card = document.getElementById("enemy-card");
+  if (!card) return;
+  card.classList.remove("hidden");
+
+  const nameEl = document.getElementById("enemy-name");
+  const metaEl = document.getElementById("enemy-meta");
+  if (nameEl) nameEl.textContent = (enemy.name || "ENEMY").toUpperCase();
+
+  const parts = [];
+  if (enemy.tier !== undefined && enemy.tier !== null) parts.push(`T${enemy.tier}`);
+  if (enemy.role) parts.push(String(enemy.role).toUpperCase());
+  if (enemy.dv_base !== undefined && enemy.dv_base !== null) parts.push(`DV ${enemy.dv_base}`);
+  if (enemy.idf !== undefined && enemy.idf !== null) parts.push(`IDF ${enemy.idf}`);
+  if (metaEl) metaEl.textContent = parts.join(" · ");
+
+  const hp = enemy.hp || {};
+  const hpCur = Number(hp.current ?? hp.hp ?? 0);
+  const hpMax = Number(hp.max ?? hp.max_hp ?? hpCur ?? 1);
+  const hpPct = hpMax > 0 ? Math.max(0, Math.min(100, (hpCur / hpMax) * 100)) : 0;
+
+  const hpFill = document.getElementById("enemy-hp-fill");
+  const hpText = document.getElementById("enemy-hp-text");
+  if (hpFill) hpFill.style.width = `${hpPct}%`;
+  if (hpText) hpText.textContent = `${hpCur}/${hpMax}`;
+
+  const heat = Number(enemy.heat ?? 0);
+  const momentum = Number(enemy.momentum ?? 0);
+  const balance = Number(enemy.balance ?? 0);
+
+  const heatFill = document.getElementById("enemy-heat-fill");
+  const heatText = document.getElementById("enemy-heat-text");
+  if (heatFill) heatFill.style.width = `${Math.max(0, Math.min(100, (heat / HEAT_CAP) * 100))}%`;
+  if (heatText) heatText.textContent = String(heat);
+
+  const momFill = document.getElementById("enemy-mom-fill");
+  const momText = document.getElementById("enemy-mom-text");
+  if (momFill) momFill.style.width = `${Math.max(0, Math.min(100, (momentum / MOMENTUM_MAX) * 100))}%`;
+  if (momText) momText.textContent = String(momentum);
+
+  const BAL_CAP = 10;
+  const balAbs = Math.min(BAL_CAP, Math.abs(balance));
+  const balFill = document.getElementById("enemy-bal-fill");
+  const balText = document.getElementById("enemy-bal-text");
+  if (balFill) {
+    balFill.style.width = `${Math.max(0, Math.min(100, (balAbs / BAL_CAP) * 100))}%`;
+    balFill.style.background = balance < 0 ? "rgba(229, 75, 75, 0.9)" : "rgba(155, 179, 201, 0.85)";
+  }
+  if (balText) balText.textContent = String(balance);
+}
+
 async function continueAfterCombat() {
   const overlay = document.getElementById("combat-result-overlay");
   if (overlay) {
     overlay.classList.remove("active");
     setTimeout(() => overlay.classList.add("hidden"), 200);
   }
-  await sendStep({ action: "combat_continue" });
+  await sendStep({ action: "combat_loot" });
+}
+
+function openLootScreen(items, summaryText) {
+  clearChoices();
+  try { closeChainBuilder(); } catch (e) { /* ignore */ }
+  try { closeInterruptWindow(); } catch (e) { /* ignore */ }
+
+  const overlay = document.getElementById("loot-overlay");
+  const host = document.getElementById("loot-items");
+  const sub = document.getElementById("loot-sub");
+  if (!overlay || !host || !sub) return;
+
+  host.innerHTML = "";
+  sub.textContent = summaryText || "Claim what the Dungeon allows.";
+
+  (items || []).forEach(it => {
+    const row = document.createElement("div");
+    row.className = "loot-item";
+    const rarity = (it.rarity || "common").toUpperCase();
+    row.innerHTML = `
+      <div class="loot-item-top">
+        <div class="loot-item-name">${it.name || it.id || "Unknown"}</div>
+        <div class="loot-item-rarity">${rarity}</div>
+      </div>
+      ${it.description ? `<div class="loot-item-desc">${it.description}</div>` : ""}
+    `;
+    host.appendChild(row);
+  });
+
+  overlay.classList.remove("hidden");
+  overlay.setAttribute("aria-hidden", "false");
+  overlay.offsetHeight;
+  overlay.classList.add("active");
+}
+
+function closeLootScreen() {
+  const overlay = document.getElementById("loot-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("active");
+  setTimeout(() => {
+    overlay.classList.add("hidden");
+    overlay.setAttribute("aria-hidden", "true");
+  }, 200);
+}
+
+async function takeAllLoot() {
+  await sendStep({ action: "loot_take_all" });
+}
+
+async function continueFromLoot() {
+  closeLootScreen();
+  await sendStep({ action: "loot_continue" });
 }
 
 function updateCharacterUI(char) {
@@ -1305,6 +1781,56 @@ function updateHeat(value) {
 
   if (clamped >= 5) container.classList.add("high");
   else container.classList.remove("high");
+}
+
+function updateMomentum(value, shocked = false) {
+  const panel = document.getElementById("momentum-panel");
+  const fill = document.getElementById("momentum-fill");
+  const label = document.getElementById("momentum-value");
+  if (!panel || !fill || !label) return;
+
+  const clamped = Math.max(0, Math.min(MOMENTUM_MAX, Number(value ?? 0)));
+  const pct = (clamped / MOMENTUM_MAX) * 100;
+
+  label.textContent = String(clamped);
+  fill.style.width = `${pct}%`;
+
+  if (shocked) {
+    panel.classList.add("momentum-shock");
+    setTimeout(() => panel.classList.remove("momentum-shock"), 300);
+  }
+}
+
+function updateBalance(value) {
+  const panel = document.getElementById("balance-panel");
+  const host = document.getElementById("balance-pips");
+  if (!panel || !host) return;
+
+  host.innerHTML = "";
+  panel.classList.remove("hidden");
+
+  const v = Number(value ?? 0);
+  const abs = Math.abs(v);
+  for (let i = 0; i < abs; i++) {
+    const pip = document.createElement("div");
+    pip.className = "balance-pip";
+    if (v > 0) pip.classList.add("active");
+    if (v < 0) pip.classList.add("negative");
+    host.appendChild(pip);
+  }
+}
+
+function wobbleBalance() {
+  const panel = document.getElementById("balance-panel");
+  if (!panel) return;
+  panel.classList.add("balance-wobble");
+  setTimeout(() => panel.classList.remove("balance-wobble"), 200);
+}
+
+function clearBalance() {
+  const panel = document.getElementById("balance-panel");
+  if (!panel) return;
+  panel.classList.add("hidden");
 }
 
 function renderAbilitiesPanel(character) {
@@ -1381,7 +1907,17 @@ function handleEvents(events) {
         applyCharacterUpdate(ev.character);
         break;
       case "resource_update":
+      case "resources_update":
         if (ev.heat !== undefined) updateHeat(ev.heat);
+        if (ev.momentum !== undefined) updateMomentum(ev.momentum, !!ev.shocked);
+        if (ev.balance !== undefined) updateBalance(ev.balance);
+        break;
+      case "balance_update":
+        if (ev.balance !== undefined) updateBalance(ev.balance);
+        if (ev.wobble) wobbleBalance();
+        break;
+      case "chain_end":
+        clearBalance();
         break;
       case "loot":
         addEntry(ev.text, "loot");
@@ -1398,8 +1934,14 @@ function handleEvents(events) {
       case "combat_state":
         setCombatActive(!!ev.active);
         break;
+      case "enemy_update":
+        applyEnemyUpdate(ev.enemy);
+        break;
       case "combat_result":
         showCombatResult(ev.result);
+        break;
+      case "loot_screen":
+        openLootScreen(ev.items || [], ev.summary);
         break;
       case "interrupt":
         flashInterrupt();
@@ -1408,7 +1950,7 @@ function handleEvents(events) {
         }
         break;
       case "chain_interrupted":
-        showInterruptOverlay(10000);
+        showInterruptOverlay(1500);
         logCombat(ev.text || "Chain interrupted!", "interrupt");
         break;
       case "interrupt_window":
@@ -1638,6 +2180,9 @@ async function submitChain() {
   const ids = chain.map(a => a.id);
 
   closeChainBuilder();
+  // Clear main output so the next chain resolution reads cleanly.
+  clearNarration();
+  log.innerHTML = "";
   await sendStep({
     action: "declare_chain",
     chain: ids

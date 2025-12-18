@@ -449,6 +449,27 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
 
     ui.system(f"{aggressor.get('name','Combatant')} resolves a chain...")
 
+    # ── Combat log round/chain banners (helps readability) ─────────────────────
+    try:
+        round_no = int(state.get("phase", {}).get("round") or 0)
+        active_side = active.upper()
+        ag_name = aggressor.get("name", active_side)
+        def_name = defender.get("name", "DEFENDER")
+
+        # Begin round banner only once per round (player chain is the first half).
+        if active == "player" and state.get("phase", {}).get("round_banner") != round_no:
+            emit_combat_log(ui, f"BEGIN ROUND {round_no}", "system")
+            state.setdefault("phase", {})["round_banner"] = round_no
+
+        # Begin chain banner only once, even if we pause for awaiting interrupts.
+        if not state.get("phase", {}).get("chain_banner_open"):
+            emit_combat_log(ui, f"BEGIN {active_side} CHAIN — {ag_name} → {def_name}", "system")
+            state.setdefault("phase", {})["chain_banner_open"] = True
+            state["phase"]["chain_banner_side"] = active
+            state["phase"]["chain_banner_round"] = round_no
+    except Exception:
+        pass
+
     result = cre.resolve_chain(
         state=state,
         ui=ui,
@@ -472,6 +493,25 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
     except Exception:
         pass
 
+    # End chain banner and (if enemy just finished) end-round banner.
+    try:
+        round_no = int(state.get("phase", {}).get("chain_banner_round") or state.get("phase", {}).get("round") or 0)
+        chain_side = state.get("phase", {}).get("chain_banner_side", active).upper()
+        reason = getattr(result, "break_reason", None) or "completed"
+        if reason in {"interrupt_after_link", "interrupt_before_link"}:
+            action_name = None
+            try:
+                action_name = state.pop("_chain_break_action", None)
+            except Exception:
+                action_name = None
+            reason = f"{action_name} Interrupted" if action_name else "Interrupted"
+        emit_combat_log(ui, f"END {chain_side} CHAIN — {reason}", "system")
+        state.get("phase", {}).pop("chain_banner_open", None)
+        state.get("phase", {}).pop("chain_banner_side", None)
+        state.get("phase", {}).pop("chain_banner_round", None)
+    except Exception:
+        pass
+
     ui.system(
         f"Chain resolved: {result.break_reason} "
         f"(links resolved: {result.links_resolved})"
@@ -491,6 +531,12 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         state["phase"]["current"] = "enemy_turn"
     else:
         state["phase"]["current"] = "chain_declaration"
+        # Enemy just completed their half; declare end of round.
+        try:
+            round_no = int(state.get("phase", {}).get("round") or 0)
+            emit_combat_log(ui, f"END ROUND {round_no}", "system")
+        except Exception:
+            pass
 
     # For non-blocking UI, emit the next actionable prompt NOW (player only).
     if not getattr(ui, "is_blocking", True) and state.get("active_combatant") == "player":
@@ -641,6 +687,8 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
             emit_combat_log(ui, "You cut the enemy's rhythm. Their action is denied.", "system")
             from ui.events import emit_event
             emit_event(ui, {"type": "chain_interrupted", "text": "Enemy chain interrupted."})
+            # Prevent game_step() from immediately cascading into the next turn in the same /step.
+            state["_pause_after_interrupt"] = True
             state["active_combatant"] = "player"
             state["phase"]["current"] = "chain_declaration"
             if not getattr(ui, "is_blocking", True):
@@ -790,6 +838,120 @@ def format_enemy_preview(enemy):
                 lines.append(f"  - Text: {mv['card_text']}")
 
     return "\n".join(lines)
+
+
+def emit_enemy_update(ui, state, enemy) -> None:
+    """
+    Web UI helper: emit an enemy HUD payload (name/meta + hp + meters).
+    """
+    try:
+        from ui.events import emit_event
+        from engine.combat_state import combat_get
+
+        if not isinstance(enemy, dict):
+            return
+
+        stat_block = enemy.get("stat_block") or {}
+        defense = stat_block.get("defense", {}) if isinstance(stat_block, dict) else {}
+
+        name = enemy.get("name", enemy.get("id", "Enemy"))
+        tier = enemy.get("tier")
+        role = enemy.get("role")
+        dv_base = enemy.get("dv_base", defense.get("dv_base", 10))
+        idf = enemy.get("idf", defense.get("idf", 0))
+
+        hp_val = enemy.get("hp")
+        if isinstance(hp_val, dict):
+            hp_cur = hp_val.get("current", hp_val.get("hp", 0))
+            hp_max = hp_val.get("max", hp_cur)
+        else:
+            hp_cur = hp_val if hp_val is not None else None
+            hp_max = None
+
+        if hp_cur is None:
+            res = enemy.get("resources", {}) if isinstance(enemy.get("resources"), dict) else {}
+            hp_cur = res.get("hp")
+            hp_max = hp_max or res.get("hp_max") or res.get("max_hp") or res.get("maxHp")
+
+        if hp_max is None:
+            try:
+                hp_max = (stat_block.get("hp", {}) or {}).get("max") if isinstance(stat_block, dict) else None
+            except Exception:
+                hp_max = None
+        hp_max = hp_max or hp_cur
+        if hp_cur is None:
+            hp_cur = hp_max or 0
+
+        payload = {
+            "name": name,
+            "tier": tier,
+            "role": role,
+            "dv_base": dv_base,
+            "idf": idf,
+            "hp": {"current": int(hp_cur or 0), "max": int(hp_max or hp_cur or 0)},
+            "heat": combat_get(state, enemy, "heat", 0),
+            "momentum": combat_get(state, enemy, "momentum", 0),
+            "balance": combat_get(state, enemy, "balance", 0),
+        }
+        emit_event(ui, {"type": "enemy_update", "enemy": payload})
+    except Exception:
+        pass
+
+
+def build_victory_loot(game_data: dict, enemy: dict | None = None) -> list[dict]:
+    """
+    Minimal loot generator for the web loot overlay.
+    Picks a few items from game-data/loot.json by tier, falling back gracefully.
+    """
+    loot_all = (game_data or {}).get("loot", [])
+    if not isinstance(loot_all, list) or not loot_all:
+        return []
+
+    tier = 1
+    try:
+        if isinstance(enemy, dict) and enemy.get("tier") is not None:
+            tier = int(enemy.get("tier") or 1)
+    except Exception:
+        tier = 1
+
+    candidates = [it for it in loot_all if isinstance(it, dict) and int(it.get("tier", tier) or tier) == tier]
+    if not candidates:
+        candidates = [it for it in loot_all if isinstance(it, dict)]
+
+    # Keep it deterministic for now (easier to debug): first 2 items.
+    return candidates[:2]
+
+
+def apply_loot_to_player(state: dict, items: list[dict]) -> None:
+    """
+    Minimal effect application:
+    - grant_veinscore: adds to player resources.veinscore
+    """
+    party = state.get("party", {})
+    members = party.get("members", []) if isinstance(party, dict) else []
+    if not members:
+        return
+    player = members[0]
+    if not isinstance(player, dict):
+        return
+
+    res = player.get("resources")
+    if not isinstance(res, dict):
+        res = {}
+        player["resources"] = res
+
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        for eff in it.get("effects", []) or []:
+            if not isinstance(eff, dict):
+                continue
+            if eff.get("type") == "grant_veinscore":
+                try:
+                    delta = int(eff.get("value") or 0)
+                except Exception:
+                    delta = 0
+                res["veinscore"] = int(res.get("veinscore", 0) or 0) + delta
 
 def format_status_summary(entity):
     statuses = entity.get("statuses", {}) or {}
@@ -1381,6 +1543,67 @@ def game_step(ctx, player_input):
                 return int(entity["resources"].get("hp") or 0)
             return int(hp_val or 0)
 
+        # Loot flow while combat is over (web UI).
+        if state.get("loot_pending"):
+            if requested_action == "loot_take_all":
+                items = state.get("loot_pending_items", [])
+                apply_loot_to_player(state, items if isinstance(items, list) else [])
+                ui.system("Loot claimed.")
+                try:
+                    emit_event(ui, {"type": "signal", "signalType": "loot", "text": "Spoils claimed."})
+                except Exception:
+                    pass
+                # Push a character update so veinscore/etc can refresh immediately.
+                try:
+                    ch = state.get("party", {}).get("members", [None])[0]
+                    if isinstance(ch, dict):
+                        res = ch.get("resources", {}) if isinstance(ch.get("resources"), dict) else {}
+                        emit_character_update(ui, {
+                            "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp"))))},
+                            "rp": combat_get(state, ch, "rp", res.get("resolve", 0)),
+                            "rp_cap": combat_get(state, ch, "rp_cap", res.get("resolve_cap", res.get("resolve", 0))),
+                            "veinscore": res.get("veinscore", 0),
+                            "attributes": ch.get("attributes", {}),
+                            "name": ch.get("name"),
+                            "abilities": ch.get("abilities", []),
+                            "meters": {
+                                "momentum": combat_get(state, ch, "momentum", res.get("momentum", 0)),
+                                "balance": combat_get(state, ch, "balance", res.get("balance", 0)),
+                                "heat": combat_get(state, ch, "heat", res.get("heat", 0)),
+                            },
+                        })
+                except Exception:
+                    pass
+                return True
+
+            if requested_action == "loot_continue":
+                state["loot_pending"] = False
+                state.pop("loot_pending_items", None)
+                # Continue behaves like the old combat_continue.
+                state["combat_over"] = False
+                state.pop("awaiting", None)
+                state["phase"]["current"] = "out_of_combat"
+                state.pop("encounter", None)
+                emit_combat_state(ui, False)
+                ui.system("Continuing...")
+                if not getattr(ui, "is_blocking", True):
+                    return game_step(ctx, {"action": "tick"})
+                return True
+
+            # Re-emit loot screen if the UI polls/refreshes.
+            items = state.get("loot_pending_items", [])
+            emit_event(ui, {"type": "loot_screen", "items": items if isinstance(items, list) else [], "summary": "Victory spoils."})
+            return True
+
+        if requested_action == "combat_loot":
+            player = state.get("party", {}).get("members", [None])[0]
+            enemy = state.get("enemies", [None])[0] if state.get("enemies") else None
+            items = build_victory_loot(game_data, enemy=enemy)
+            state["loot_pending"] = True
+            state["loot_pending_items"] = items
+            emit_event(ui, {"type": "loot_screen", "items": items, "summary": "Victory spoils."})
+            return True
+
         if requested_action == "combat_continue":
             state["combat_over"] = False
             state.pop("awaiting", None)
@@ -1388,6 +1611,8 @@ def game_step(ctx, player_input):
             state.pop("encounter", None)
             emit_combat_state(ui, False)
             ui.system("Continuing...")
+            if not getattr(ui, "is_blocking", True):
+                return game_step(ctx, {"action": "tick"})
             return True
 
         player = state.get("party", {}).get("members", [None])[0]
@@ -1476,6 +1701,13 @@ def game_step(ctx, player_input):
             # Emit preview only on generate, not on enter (avoid duplicate log/system spam)
             if choice == "generate_encounter":
                 emit_combat_log(ui, format_enemy_preview(enemy))
+            # Always refresh the enemy HUD card.
+            emit_enemy_update(ui, state, enemy)
+            # Web: after generating an encounter, immediately offer the next required action.
+            if not getattr(ui, "is_blocking", True) and choice == "generate_encounter":
+                ui.choice("Enter encounter?", ["enter_encounter"])
+                state["awaiting"] = {"type": "player_choice", "options": ["enter_encounter"]}
+                return True
             # Scene intro narration
             if state.get("flags", {}).get("narration_enabled") and NARRATION:
                 log_flags("SCENE_INTRO", state)
@@ -1510,7 +1742,10 @@ def game_step(ctx, player_input):
             return True
 
     # For non-blocking UIs, immediately surface the next prompt without waiting for another action payload.
+    # If an interrupt just occurred, pause and wait for the user to read/react before advancing.
     if not getattr(ui, "is_blocking", True) and "awaiting" not in state:
+        if state.pop("_pause_after_interrupt", False):
+            return True
         return game_step(ctx, {"action": "tick"})
 
     return True

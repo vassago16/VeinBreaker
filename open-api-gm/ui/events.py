@@ -32,6 +32,16 @@ def emit_event(ui, payload: Dict[str, Any]) -> None:
     try:
         provider = getattr(ui, "provider", None) or ui
         session = getattr(provider, "session", None)
+        # Debug a few critical wiring events; this helps trace "event emitted but not seen" issues.
+        try:
+            t = payload.get("type") if isinstance(payload, dict) else None
+            if t in {"interrupt_window", "interrupt", "chain_interrupted", "combat_result", "declare_chain"}:
+                _debug_log(
+                    f"DEBUG: emit_event type={t} "
+                    f"(has_session={bool(session)}, has_emit={bool(session and hasattr(session, 'emit'))})"
+                )
+        except Exception:
+            pass
         if session and hasattr(session, "emit"):
             session.emit(payload)
     except Exception:

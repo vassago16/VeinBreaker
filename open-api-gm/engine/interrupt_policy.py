@@ -43,11 +43,11 @@ def _default_window_open(when: str, ctx: InterruptContext, state: Dict[str, Any]
     """
     Default rule when no data-driven policy exists:
     - if last action was a miss, a window is open
-    - if chain is at/after the 2nd link (index>=1), a window is open
+    - if chain is at/after the 3nd link (index>=1), a window is open
     """
     if _last_action_missed(state):
         return True
-    return ctx.chain_index >= 1
+    return ctx.chain_index >= 2
 
 
 def _legacy_window_allows_interrupt(w: Dict[str, Any], when: str, ctx: InterruptContext, state: Dict[str, Any]) -> bool:
