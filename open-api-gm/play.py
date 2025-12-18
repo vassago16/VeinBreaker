@@ -28,7 +28,7 @@ from combat import Combat
 from engine.phases import allowed_actions, tick_cooldowns, list_usable_abilities
 from engine.apply import apply_action
 from flow.character_creation import run_character_creation
-from engine.save_load import save_character, load_character
+from engine.save_load import save_character, load_character, load_profile
 from flow.chain_declaration import prompt_chain_declaration
 from engine.chain_rules import declare_chain
 from engine.action_resolution import (
@@ -49,6 +49,9 @@ import debugpy
 
 LOG_FILE = Path(__file__).parent / "narration.log"
 DEFAULT_CHARACTER_PATH = Path(__file__).parent / "default_character.json"
+PROFILE_PATH = Path(__file__).parent / "character.json"
+PLAYER_STATE_PATH = Path(__file__).parent / "player_state.json"
+CHARACTERS_DIR = Path(__file__).parent / "characters"
 BUFF_TYPES = {
     "radiance",
     "quickened",
@@ -73,7 +76,17 @@ DEBUFF_TYPES = {
 }
 
 def create_default_character():
-    """Load the default character from character.json; fallback to built-in template."""
+    """
+    Load the default character.
+
+    New model:
+      - `character.json` is a profile (static, abilities are ids)
+      - `player_state.json` is mutable runtime state (resources/pools/cooldowns)
+
+    Back-compat:
+      - if a legacy `character.json` includes full ability dicts/resources, we accept it.
+      - if files are missing, fallback to `default_character.json` then a built-in template.
+    """
     fallback = {
         "name": "New Blood",
         "hp": {"current": 24, "max": 24},
@@ -87,16 +100,216 @@ def create_default_character():
         },
         "abilities": [],
     }
-    candidate_paths = [
-        Path(__file__).parent / "character.json",
-        DEFAULT_CHARACTER_PATH,
-    ]
-    for path in candidate_paths:
+    def _load_json(path: Path) -> dict | None:
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else None
         except Exception:
-            continue
+            return None
+
+    # If player state specifies a character_id, load that profile from `characters/<id>.json`.
+    selected_profile = None
+    try:
+        state_blob = _load_json(PLAYER_STATE_PATH) or {}
+        if isinstance(state_blob, dict):
+            cid = state_blob.get("character_id")
+            if cid:
+                selected_profile = _load_json(CHARACTERS_DIR / f"{cid}.json")
+    except Exception:
+        selected_profile = None
+
+    profile = selected_profile or _load_json(PROFILE_PATH)
+    if profile:
+        # If this is a legacy full character file, just return it.
+        abilities = profile.get("abilities", [])
+        if isinstance(abilities, list) and abilities and isinstance(abilities[0], dict):
+            return profile
+
+        merged = dict(profile)
+        state = _load_json(PLAYER_STATE_PATH) or {}
+        cooldowns = state.get("cooldowns") if isinstance(state.get("cooldowns"), dict) else {}
+        merged["_cooldowns"] = cooldowns
+        # Merge mutable pieces from player_state.json if present
+        if isinstance(state.get("resources"), dict):
+            merged["resources"] = dict(state["resources"])
+        if isinstance(state.get("pools"), dict):
+            merged["pools"] = dict(state["pools"])
+        if isinstance(state.get("marks"), dict):
+            merged["marks"] = dict(state["marks"])
+        if state.get("veinscore") is not None:
+            merged["veinscore"] = state.get("veinscore")
+        # Ensure chain scaffold exists (engine expects it).
+        merged.setdefault("chain", {"declared": False, "abilities": [], "resolve_spent": 0, "stable": False, "invalidated": False})
+        return merged
+
+    # Fallback: old default file if present
+    legacy_default = _load_json(DEFAULT_CHARACTER_PATH)
+    if legacy_default:
+        return legacy_default
+
     return fallback
+
+
+def hydrate_character_abilities(character: dict, game_data: dict) -> None:
+    """
+    Convert `character["abilities"]` from ids into runtime ability dicts using game data.
+    Also applies cooldown overrides from `character["_cooldowns"]` if present.
+    """
+    if not isinstance(character, dict) or not isinstance(game_data, dict):
+        return
+
+    abilities = character.get("abilities", [])
+    if not isinstance(abilities, list):
+        return
+
+    pool_map = game_data.get("abilities", {}).get("poolByPath", {}) if isinstance(game_data.get("abilities"), dict) else {}
+    gd_abilities = (game_data.get("abilities", {}) or {}).get("abilities", [])
+    gd_resolve = (game_data.get("resolve_abilities", {}) or {}).get("abilities", [])
+    catalog = [a for a in (gd_abilities + gd_resolve) if isinstance(a, dict)]
+    by_id = {a.get("id"): a for a in catalog if a.get("id")}
+    by_name = {a.get("name"): a for a in catalog if a.get("name")}
+
+    cooldowns = character.pop("_cooldowns", None)
+    cooldowns = cooldowns if isinstance(cooldowns, dict) else {}
+
+    runtime: list[dict] = []
+    for entry in abilities:
+        if isinstance(entry, str):
+            src = by_id.get(entry) or by_name.get(entry)
+            if not src:
+                continue
+            ab = {"id": src.get("id") or entry, "name": src.get("name") or entry}
+            for key in ["effect", "cost", "dice", "stat", "tags", "path", "tier", "type", "effects", "to_hit", "resourceDelta", "resolution"]:
+                if key in src:
+                    ab[key] = src[key]
+            # base cooldown lives in game data `cooldown`
+            ab["base_cooldown"] = int(src.get("cooldown", 0) or 0)
+            ab["cooldown"] = 0
+            # Pool: either explicit on src or derived from path
+            if src.get("pool"):
+                ab["pool"] = src.get("pool")
+            else:
+                path = ab.get("path")
+                if path and path in pool_map:
+                    ab["pool"] = pool_map[path]
+            # Apply persisted cooldown overrides
+            cd_state = cooldowns.get(ab["id"]) or cooldowns.get(ab["name"])
+            if isinstance(cd_state, dict):
+                if cd_state.get("cooldown") is not None:
+                    ab["cooldown"] = int(cd_state.get("cooldown") or 0)
+                if cd_state.get("base_cooldown") is not None:
+                    ab["base_cooldown"] = int(cd_state.get("base_cooldown") or 0)
+                if cd_state.get("cooldown_round") is not None:
+                    ab["cooldown_round"] = int(cd_state.get("cooldown_round") or 0)
+            runtime.append(ab)
+            continue
+
+        if isinstance(entry, dict):
+            # Legacy/runtime ability dict; hydrate missing fields from catalog.
+            src = by_id.get(entry.get("id")) or by_name.get(entry.get("name"))
+            if src:
+                for key in ["effect", "cost", "dice", "stat", "tags", "path", "tier", "type", "effects", "to_hit", "resourceDelta", "resolution"]:
+                    if key not in entry and key in src:
+                        entry[key] = src[key]
+                if "base_cooldown" not in entry:
+                    entry["base_cooldown"] = int(src.get("cooldown", entry.get("cooldown", 0) or 0) or 0)
+            runtime.append(entry)
+            continue
+
+    character["abilities"] = runtime
+
+
+def _character_id_from_name(name: str) -> str:
+    s = "".join(ch.lower() if ch.isalnum() else "_" for ch in (name or "").strip())
+    s = "_".join([p for p in s.split("_") if p])
+    return f"character.{s}" if s else "character.unknown"
+
+
+def split_profile_and_state(character: dict) -> tuple[dict, dict]:
+    """
+    Convert a runtime/legacy character dict into:
+      - profile: static fields + ability ids
+      - state: mutable resources/pools/cooldowns
+    """
+    if not isinstance(character, dict):
+        return {}, {}
+
+    name = character.get("name") or "New Blood"
+    profile = {
+        "id": character.get("id") or _character_id_from_name(str(name)),
+        "name": name,
+        "path": character.get("path"),
+        "tier": character.get("tier", 1),
+        "attributes": character.get("attributes") or character.get("stats") or {},
+        "abilities": [],
+    }
+
+    abilities = character.get("abilities", [])
+    if isinstance(abilities, list):
+        for ab in abilities:
+            if isinstance(ab, str):
+                profile["abilities"].append(ab)
+            elif isinstance(ab, dict):
+                profile["abilities"].append(ab.get("id") or ab.get("name"))
+    profile["abilities"] = [a for a in profile["abilities"] if a]
+
+    resources = character.get("resources") if isinstance(character.get("resources"), dict) else {}
+    pools = character.get("pools") if isinstance(character.get("pools"), dict) else {}
+    marks = character.get("marks") if isinstance(character.get("marks"), dict) else {}
+
+    cooldowns: dict[str, dict] = {}
+    if isinstance(abilities, list):
+        for ab in abilities:
+            if not isinstance(ab, dict):
+                continue
+            aid = ab.get("id") or ab.get("name")
+            if not aid:
+                continue
+            cooldowns[aid] = {
+                "cooldown": int(ab.get("cooldown", 0) or 0),
+            }
+            if ab.get("base_cooldown") is not None:
+                cooldowns[aid]["base_cooldown"] = int(ab.get("base_cooldown") or 0)
+            if ab.get("cooldown_round") is not None:
+                cooldowns[aid]["cooldown_round"] = int(ab.get("cooldown_round") or 0)
+
+    # Normalize hp into hp/hp_max ints for state.
+    hp_val = resources.get("hp") if isinstance(resources, dict) else None
+    hp_max = resources.get("hp_max", resources.get("max_hp", resources.get("maxHp"))) if isinstance(resources, dict) else None
+    if isinstance(hp_val, dict):
+        hp_cur = hp_val.get("current") or hp_val.get("hp")
+        hp_max = hp_val.get("max") or hp_max or hp_cur
+    else:
+        hp_cur = hp_val
+    state = {
+        "character_id": profile["id"],
+        "resources": {
+            "hp": int(hp_cur or 0),
+            "hp_max": int(hp_max or hp_cur or 0),
+            "resolve": int(resources.get("resolve", character.get("rp", 0)) or 0) if isinstance(resources, dict) else int(character.get("rp", 0) or 0),
+            "resolve_cap": int(resources.get("resolve_cap", character.get("rp_cap", 0)) or 0) if isinstance(resources, dict) else int(character.get("rp_cap", 0) or 0),
+            "idf": int(resources.get("idf", 0) or 0) if isinstance(resources, dict) else int(character.get("idf", 0) or 0),
+        },
+        "pools": dict(pools) if isinstance(pools, dict) else {},
+        "marks": dict(marks) if isinstance(marks, dict) else {},
+        "veinscore": character.get("veinscore", 0),
+        "cooldowns": cooldowns,
+    }
+    return profile, state
+
+
+def save_profile_and_state(character: dict) -> None:
+    profile, state = split_profile_and_state(character)
+    if profile:
+        CHARACTERS_DIR.mkdir(parents=True, exist_ok=True)
+        (CHARACTERS_DIR / f"{profile.get('id') or 'character.unknown'}.json").write_text(
+            json.dumps(profile, indent=2),
+            encoding="utf-8",
+        )
+        # Keep the legacy `character.json` updated as a fallback.
+        PROFILE_PATH.write_text(json.dumps(profile, indent=2), encoding="utf-8")
+    if state:
+        PLAYER_STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 def create_game_context(ui, skip_character_creation=False):
     parser = argparse.ArgumentParser()
@@ -118,18 +331,71 @@ def create_game_context(ui, skip_character_creation=False):
     if skip_character_creation:
         character = create_default_character()
     elif args.auto or args.interactive_defaults:
-        character = load_character()
+        # Saved run: merge profile + mutable state.
+        try:
+            # Prefer selecting profile by `player_state.json.character_id`.
+            state_blob = load_character(PLAYER_STATE_PATH.name)
+            cid = state_blob.get("character_id") if isinstance(state_blob, dict) else None
+            if cid:
+                profile = load_profile(CHARACTERS_DIR / f"{cid}.json")
+            else:
+                profile = load_profile(PROFILE_PATH.name)
+        except Exception:
+            profile = {}
+        try:
+            state_blob = load_character(PLAYER_STATE_PATH.name)
+        except Exception:
+            state_blob = {}
+        character = dict(profile) if isinstance(profile, dict) else {}
+        if isinstance(state_blob, dict):
+            cooldowns = state_blob.get("cooldowns") if isinstance(state_blob.get("cooldowns"), dict) else {}
+            character["_cooldowns"] = cooldowns
+            if isinstance(state_blob.get("resources"), dict):
+                character["resources"] = dict(state_blob["resources"])
+            if isinstance(state_blob.get("pools"), dict):
+                character["pools"] = dict(state_blob["pools"])
+            if isinstance(state_blob.get("marks"), dict):
+                character["marks"] = dict(state_blob["marks"])
+            if state_blob.get("veinscore") is not None:
+                character["veinscore"] = state_blob.get("veinscore")
+        character.setdefault("chain", {"declared": False, "abilities": [], "resolve_spent": 0, "stable": False, "invalidated": False})
     else:
         use_saved = ui.choice("Use saved character?", ["Yes", "No"]) == 0
         if use_saved:
-            character = load_character()
+            try:
+                state_blob = load_character(PLAYER_STATE_PATH.name)
+                cid = state_blob.get("character_id") if isinstance(state_blob, dict) else None
+                if cid:
+                    profile = load_profile(CHARACTERS_DIR / f"{cid}.json")
+                else:
+                    profile = load_profile(PROFILE_PATH.name)
+            except Exception:
+                profile = {}
+            try:
+                state_blob = load_character(PLAYER_STATE_PATH.name)
+            except Exception:
+                state_blob = {}
+            character = dict(profile) if isinstance(profile, dict) else {}
+            if isinstance(state_blob, dict):
+                cooldowns = state_blob.get("cooldowns") if isinstance(state_blob.get("cooldowns"), dict) else {}
+                character["_cooldowns"] = cooldowns
+                if isinstance(state_blob.get("resources"), dict):
+                    character["resources"] = dict(state_blob["resources"])
+                if isinstance(state_blob.get("pools"), dict):
+                    character["pools"] = dict(state_blob["pools"])
+                if isinstance(state_blob.get("marks"), dict):
+                    character["marks"] = dict(state_blob["marks"])
+                if state_blob.get("veinscore") is not None:
+                    character["veinscore"] = state_blob.get("veinscore")
+            character.setdefault("chain", {"declared": False, "abilities": [], "resolve_spent": 0, "stable": False, "invalidated": False})
         else:
             character = run_character_creation(
                 canon,
                 narrator=None,  # or narrator_stub if you want flavor text
                 ui=ui,
             )
-            save_character(character)
+            # Persist new character as profile + state (web-first model).
+            save_profile_and_state(character)
 
     # Normalize player resources so hp_max is always available and hp is numeric.
     res = character.setdefault("resources", {})
@@ -145,22 +411,7 @@ def create_game_context(ui, skip_character_creation=False):
     append_log(f"SESSION_START flags={state.get('flags')}")
     state["party"]["members"][0].update(character)
     state["game_data"] = game_data
-    # hydrate abilities from game data (fills effect/pool/etc. for older saves)
-    pool_map = game_data.get("abilities", {}).get("poolByPath", {})
-    gd_abilities = game_data.get("abilities", {}).get("abilities", [])
-    gd_resolve = game_data.get("resolve_abilities", {}).get("abilities", [])
-    lookup = {a.get("name"): a for a in gd_abilities + gd_resolve}
-    for ability in state["party"]["members"][0].get("abilities", []):
-        src = lookup.get(ability.get("name"), {})
-        if src:
-            for key in ["effect", "cost", "dice", "stat", "tags", "path", "type", "effects", "to_hit"]:
-                if key not in ability and key in src:
-                    ability[key] = src[key]
-            if not ability.get("pool"):
-                path = ability.get("path") or src.get("path")
-                ability["path"] = path
-                if path and path in pool_map:
-                    ability["pool"] = pool_map[path]
+    hydrate_character_abilities(state["party"]["members"][0], game_data)
 
     ui.system("Veinbreaker AI Session Started.\n")
 

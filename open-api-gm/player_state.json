@@ -1,0 +1,44 @@
+{
+  "character_id": "character.new_blood",
+  "resources": {
+    "hp": 28,
+    "hp_max": 28,
+    "resolve": 5,
+    "resolve_cap": 5,
+    "idf": 0
+  },
+  "pools": {
+    "martial": 7,
+    "shadow": 7,
+    "magic": 7,
+    "faith": 4
+  },
+  "marks": {
+    "blood": 0,
+    "duns": 0
+  },
+  "veinscore": 10,
+  "cooldowns": {
+    "core.basic_strike": {
+      "cooldown": 0
+    },
+    "core.basic_guard": {
+      "cooldown": 0
+    },
+    "core.focus_action": {
+      "cooldown": 0
+    },
+    "core.shift": {
+      "cooldown": 0
+    },
+    "resolve_basic.disengage": {
+      "cooldown": 0
+    },
+    "stonepulse.pulse_strike": {
+      "cooldown": 0
+    },
+    "spellforged.arcane_step": {
+      "cooldown": 0
+    }
+  }
+}

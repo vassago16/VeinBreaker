@@ -4,6 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Dict, Optional
+from pathlib import Path
+from copy import deepcopy
 from game_runner import Game
 from game_session import GameSession
 from ui.web_provider import WebProvider
@@ -45,13 +47,16 @@ class EventsRequest(BaseModel):
     session_id: str
 
 
+class CharacterSelectRequest(BaseModel):
+    character_id: str
+
+
 @app.get("/character")
 def get_character():
     """
     Return the default character payload (from disk if present).
     """
     import play
-    from copy import deepcopy
 
     def normalize(char):
         char = deepcopy(char) if isinstance(char, dict) else {}
@@ -92,13 +97,68 @@ def get_character():
             "abilities": char.get("abilities", []),
         }
 
+    # Load the current profile + mutable state, then hydrate ability IDs into full objects.
     try:
-        path = play.DEFAULT_CHARACTER_PATH
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
         payload = play.create_default_character()
+    except Exception:
+        payload = {}
+    try:
+        game_data = play.load_game_data()
+        play.hydrate_character_abilities(payload, game_data)
+    except Exception:
+        pass
 
     return normalize(payload)
+
+
+@app.get("/characters")
+def list_characters():
+    """
+    List available character profiles (static) from `open-api-gm/characters/`.
+    """
+    root = Path(__file__).resolve().parent
+    chars_dir = root / "characters"
+    out = []
+    if chars_dir.exists():
+        for p in sorted(chars_dir.glob("*.json")):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                if not isinstance(data, dict):
+                    continue
+                out.append({
+                    "id": data.get("id") or p.stem,
+                    "name": data.get("name") or p.stem,
+                    "path": data.get("path"),
+                    "tier": data.get("tier"),
+                })
+            except Exception:
+                continue
+    return out
+
+
+@app.post("/character/select")
+def select_character(req: CharacterSelectRequest):
+    """
+    Select which profile `player_state.json` points at.
+    """
+    import play
+
+    root = Path(__file__).resolve().parent
+    chars_dir = root / "characters"
+    target = chars_dir / f"{req.character_id}.json"
+    if not target.exists():
+        return {"ok": False, "error": f"Unknown character_id: {req.character_id}"}
+
+    try:
+        state_path = play.PLAYER_STATE_PATH
+        state = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else {}
+        if not isinstance(state, dict):
+            state = {}
+        state["character_id"] = req.character_id
+        state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        return {"ok": True, "character_id": req.character_id}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 
 @app.post("/step")

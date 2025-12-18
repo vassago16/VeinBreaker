@@ -1,6 +1,4 @@
 {
-  "_deprecated": true,
-  "_note": "Profiles now live in `open-api-gm/characters/<id>.json`. This file is kept as a fallback for older tooling.",
   "id": "character.new_blood",
   "name": "New Blood",
   "path": "stonepulse",
@@ -16,6 +14,7 @@
     "core.basic_guard",
     "core.focus_action",
     "core.shift",
+    "stonepulse.resonant_break",
     "resolve_basic.disengage",
     "stonepulse.pulse_strike",
     "spellforged.arcane_step"
