@@ -278,7 +278,6 @@ class ChainResolutionEngine:
                         state["_chain_break_action"] = ability.get("name") or ability.get("id") or name_or_id
                     except Exception:
                         pass
-                    combat_set(state, defender, "momentum", combat_get(state, defender, "momentum", def_mom) // 2)
                     return ChainResult("broken", "interrupt_before_link", idx)
 
             # Momentum/balance bookkeeping (authoritative here).
@@ -375,7 +374,6 @@ class ChainResolutionEngine:
                         state["_chain_break_action"] = ability.get("name") or ability.get("id") or name_or_id
                     except Exception:
                         pass
-                    combat_set(state, defender, "momentum", combat_get(state, defender, "momentum", def_mom) // 2)
                     return ChainResult("broken", "interrupt_after_link", idx + 1)
 
             # Press window: after 3rd+ link that HIT, offer press/cash-out (web-safe).
@@ -420,6 +418,7 @@ class ChainResolutionEngine:
             + _get_idf(aggressor)
             - combat_get(state, aggressor, "balance", _get_resource(aggressor, "balance", 0))
         )
+        perfect_threshold = threshold + 5
 
         if self.emit_log:
             self.emit_log(
@@ -432,24 +431,29 @@ class ChainResolutionEngine:
             ui.system("Interrupt fails.")
             return False
 
-        # Counter reward: if the PLAYER interrupts an ENEMY chain, grant +1 RP (clamped to cap).
+        perfect = interrupt_total >= perfect_threshold
+
+        # Interrupt applies penalties to the chain owner (aggressor).
         try:
-            if isinstance(defender, dict) and isinstance(aggressor, dict):
-                if defender.get("_combat_key") == "player" and aggressor.get("_combat_key") == "enemy":
-                    rp_cap = combat_get(state, defender, "rp_cap", 0)
-                    rp_cur = combat_get(state, defender, "rp", 0)
-                    rp_new = rp_cur + 1
-                    if int(rp_cap or 0) > 0:
-                        rp_new = min(int(rp_cap), int(rp_new))
-                    combat_set(state, defender, "rp", int(rp_new))
-                    # UI: push an immediate rp update for the character panel.
-                    emit_event(ui, {"type": "character_update", "character": {"rp": {"current": int(rp_new), "cap": int(rp_cap or 0)}}})
-                    if self.emit_log:
-                        self.emit_log(ui, f"Counter reward: +1 RP ({int(rp_new)}/{int(rp_cap or 0)})", "system")
+            heat_pen = -2 if perfect else -1
+            bal_pen = -1
+            mom_pen = -2 if perfect else -1
+
+            new_heat = _clamp(combat_get(state, aggressor, "heat", _get_resource(aggressor, "heat", 0)) + heat_pen, 0, 99)
+            new_mom = _clamp(combat_get(state, aggressor, "momentum", _get_resource(aggressor, "momentum", 0)) + mom_pen, 0, 99)
+            new_bal = _clamp(combat_get(state, aggressor, "balance", _get_resource(aggressor, "balance", 0)) + bal_pen, -10, 10)
+            combat_set(state, aggressor, "heat", new_heat)
+            combat_set(state, aggressor, "momentum", new_mom)
+            combat_set(state, aggressor, "balance", new_bal)
+            emit_resource_update(ui, heat=new_heat, momentum=new_mom, balance=new_bal)
         except Exception:
             pass
 
-        # UI signal: successful interrupt (flash + INTERRUPTED overlay)
+        if not perfect:
+            ui.system("Interrupt succeeds (not perfect). Chain holds.")
+            return False
+
+        # UI signal: perfect interrupt (flash + INTERRUPTED overlay)
         try:
             emit_event(ui, {"type": "interrupt"})
             emit_event(ui, {"type": "chain_interrupted", "text": f"{defender.get('name', 'Defender')} interrupts!"})
@@ -459,13 +463,29 @@ class ChainResolutionEngine:
         except Exception:
             pass
 
+        # Counter reward: only on perfect counter (player interrupts enemy chain).
+        try:
+            if isinstance(defender, dict) and isinstance(aggressor, dict):
+                if defender.get("_combat_key") == "player" and aggressor.get("_combat_key") == "enemy":
+                    rp_cap = combat_get(state, defender, "rp_cap", 0)
+                    rp_cur = combat_get(state, defender, "rp", 0)
+                    rp_new = rp_cur + 1
+                    if int(rp_cap or 0) > 0:
+                        rp_new = min(int(rp_cap), int(rp_new))
+                    combat_set(state, defender, "rp", int(rp_new))
+                    emit_event(ui, {"type": "character_update", "character": {"rp": {"current": int(rp_new), "cap": int(rp_cap or 0)}}})
+                    if self.emit_log:
+                        self.emit_log(ui, f"Counter reward: +1 RP ({int(rp_new)}/{int(rp_cap or 0)})", "system")
+        except Exception:
+            pass
+
+        # Perfect parry: counter damage.
         dmg = max(0, int(self.roll("1d4")))
         if dmg > 0:
             before_hp = _get_hp(aggressor)
             _set_hp(aggressor, max(0, before_hp - dmg))
-            state["_last_damage"] = {"amount": dmg, "source": "interrupt", "by": defender.get("name")}
-            ui.system(f"INTERRUPT hits for {dmg}.")
-            # Scene metrics: track player damage taken from interrupts.
+            state["_last_damage"] = {"amount": dmg, "source": "counter", "by": defender.get("name")}
+            ui.system(f"PERFECT PARRY hits for {dmg}.")
             try:
                 if isinstance(state, dict) and isinstance(aggressor, dict) and aggressor.get("_combat_key") == "player":
                     metrics = state.setdefault("scene_metrics", {})
@@ -484,5 +504,5 @@ class ChainResolutionEngine:
                 ui.system(f"{aggressor.get('name', 'Target')} is defeated!")
                 state["combat_over"] = True
 
-        ui.system("Chain broken by interrupt.")
+        ui.system("Chain broken by perfect interrupt.")
         return True

@@ -248,6 +248,26 @@ def round_upkeep(state: dict) -> None:
     tick_cooldowns(state)
     ch = state["party"]["members"][0]
     res = ch.get("resources", {})
+    # Reset pools at the start of the player's turn (current rule).
+    # Pools are derived from attributes (POW/AGI/MND/SPR) and treated as per-turn spend.
+    try:
+        attrs = ch.get("attributes") or ch.get("stats") or {}
+        pow_val = int(attrs.get("POW") or attrs.get("pow") or attrs.get("STR") or attrs.get("str") or 0)
+        agi_val = int(attrs.get("AGI") or attrs.get("agi") or attrs.get("DEX") or attrs.get("dex") or 0)
+        mnd_val = int(attrs.get("MND") or attrs.get("mnd") or attrs.get("INT") or attrs.get("int") or 0)
+        spr_val = int(attrs.get("SPR") or attrs.get("spr") or attrs.get("WIL") or attrs.get("wil") or 0)
+        pool_caps = {
+            "martial": max(0, pow_val // 2),
+            "shadow": max(0, agi_val // 2),
+            "magic": max(0, mnd_val // 2),
+            "faith": max(0, spr_val // 2),
+        }
+        pools = ch.setdefault("pools", {})
+        if isinstance(pools, dict):
+            for k, cap in pool_caps.items():
+                pools[k] = int(cap)
+    except Exception:
+        pass
     cap = res.get("resolve_cap", res.get("resolve", 0))
     before = res.get("resolve", 0)
     regen = 2

@@ -12,7 +12,8 @@
       "scenes": [
         { "$ref": "scene.01.01" },
         { "$ref": "scene.01.02" },
-        { "$ref": "scene.01.03" }
+        { "$ref": "scene.01.03" },
+        { "$ref": "scene.01.04" }
       ]
     }
   ]

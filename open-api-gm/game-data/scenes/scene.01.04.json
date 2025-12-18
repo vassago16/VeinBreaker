@@ -1,15 +1,15 @@
 {
   "schema_version": "scene.v1",
   "id": "scene.01.03",
-  "title": "env.goblin.camp",
+  "title": "Vein Narrows",
 
   "environment": {
-    "id": "env.goblin.camp"
+    "id": "env.safe.room"
   },
 
   "encounter": {
   "monsters": [
-    { "id": "enemy.goblin.shieldbearer", "count": 2 }
+    
   ],
   "traps": [
     { }
@@ -25,7 +25,7 @@
 
   "events": [
     {
-      "id": "event.pressure_builds",
+      "id": "event.loot_builds",
       "trigger": { "type": "on_scene_start" },
       "conditions": [],
       "effects": [
@@ -33,7 +33,7 @@
           "type": "emit_ui_event",
           "event": {
             "type": "narration",
-            "text": "The Goblins smell you. They lick their lips."
+            "text": "You have found a safe haven"
           }
         }
       ]
