@@ -1,0 +1,184 @@
+{
+  "path": "canticle",
+  "tier": 1,
+  "abilities": [
+    {
+      "name": "Basic Strike",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "attack"
+      ],
+      "effect": "Make a basic attack for 1d4 + stat. On hit gain +1 Heat. Applies -1 Balance penalty.",
+      "stat": "weapon",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "name": "Basic Guard",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "defense",
+        "momentum"
+      ],
+      "effect": "Reduce incoming damage by 1d4. STR modifier applies to the Defense roll. If damage is reduced to 0, gain +1 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "name": "Focus Action",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "utility",
+        "momentum"
+      ],
+      "effect": "Gain +1 Attack to your next attack this turn and +1 Momentum.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "name": "Shift",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "movement"
+      ],
+      "effect": "Move 1 zone. Improve Balance by +1 if negative. AGI modifier applies to the Defense roll during this movement.",
+      "stat": "AGI",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "name": "Disengage",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": null,
+      "dice": "1d4",
+      "tags": [
+        "resolve",
+        "movement",
+        "defense_window"
+      ],
+      "effect": "End your current chain immediately. No further actions may be taken this chain.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "name": "Pulse Strike",
+      "path": "stonepulse",
+      "tier": 1,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "martial",
+      "dice": "1d4",
+      "tags": [
+        "stonepulse",
+        "attack",
+        "momentum"
+      ],
+      "effect": "1d4 + POW; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "name": "Arcane Step",
+      "path": "spellforged",
+      "tier": 1,
+      "cooldown": 0,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "magic",
+      "dice": "1d4",
+      "tags": [
+        "spellforged",
+        "movement",
+        "momentum"
+      ],
+      "effect": "Gain Arcane Ward 1 (reduce next incoming dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    }
+  ],
+  "stats": {
+    "POW": 21,
+    "AGI": 14,
+    "MND": 14,
+    "SPR": 13
+  },
+  "resources": {
+    "name":"default_character",
+    "hp": 31,
+    "resolve": 15,
+    "resolve_cap": 5,
+    "momentum": 0,
+    "heat": 0,
+    "balance": 0,
+    "idf": 0
+  },
+  "attributes": {
+    "POW": 14,
+    "AGI": 14,
+    "MND": 14,
+    "SPR": 13
+  },
+  "pools": {
+    "martial": 7,
+    "shadow": 7,
+    "magic": 7,
+    "faith": 4
+  },
+  "marks": {
+    "blood": 1,
+    "duns": 0
+  },
+  "chain": {
+    "declared": false,
+    "abilities": [],
+    "resolve_spent": 0,
+    "stable": false,
+    "invalidated": false
+  },
+  "veinscore": 100
+}

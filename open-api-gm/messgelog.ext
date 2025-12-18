@@ -1,0 +1,62 @@
+Signal (loot):
+{
+  "session_id": "SESSION",
+  "type": "signal",
+  "signalType": "loot",
+  "text": "Vein Sigil absorbed (+1 Veinscore)."
+}
+Combat log (damage):
+{
+  "session_id": "SESSION",
+  "type": "log",
+  "logType": "damage",
+  "text": "Hunter deals 4 damage to Veinbound Stalker."
+}
+Combat state on:
+{
+  "session_id": "SESSION",
+  "type": "combat_state",
+  "active": true
+}
+Interrupt:
+{
+  "session_id": "SESSION",
+  "type": "interrupt",
+  "text": "The Stalker snaps forward, cutting your chain short."
+}
+Character update:
+{
+  "session_id": "SESSION",
+  "type": "character_update",
+  "character": {
+    "hp": { "current": 18, "max": 24 },
+    "rp": 3,
+    "veinscore": 2,
+    "attributes": { "str": 14, "dex": 12, "int": 10, "wil": 11 },
+    "abilities": []
+  }
+}
+Declare chain (test abilities):
+{
+  "session_id": "c0d0381c-e481-4f13-9191-0af4ec9e1e6f",
+  "type": "declare_chain",
+  "maxLength": 3,
+  "chainRules": { "min": 0, "max": 3, "source": "Momentum + Tier Bonus" },
+  "abilities": [
+    { "id": "ab.pulse", "name": "Pulse Strike", "type": "attack", "cost": 1, "cooldown": 0, "effect": "1d4 + STR." },
+    { "id": "ab.step", "name": "Stoneguard Step", "type": "movement", "cost": 0, "cooldown": 0, "effect": "Shift and gain +1 momentum." }
+  ]
+}
+Chain rejected:
+{
+  "session_id": "SESSION",
+  "type": "chain_rejected",
+  "reason": "Insufficient Resolve to sustain the chain."
+}
+Combat log (block):
+{
+  "session_id": "SESSION",
+  "type": "combat_log",
+  "logType": "block",
+  "text": "You deflect the blow; momentum holds."
+}

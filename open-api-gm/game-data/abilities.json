@@ -23,11 +23,31 @@
       ],
       "dice": "1d4",
       "stat": "weapon",
+      "effects": {
+        "on_hit": [
+          {
+            "type": "damage",
+            "dice": "1d4",
+            "stat": "weapon"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "heat",
+            "delta": 1
+          },
+          {
+            "type": "resource_delta",
+            "resource": "balance",
+            "delta": -1
+          }
+        ]
+      },
       "resourceDelta": {
         "heat": 1,
         "balance": -1
       },
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "core.basic_strike"
     },
     {
       "path": "core",
@@ -44,10 +64,27 @@
       ],
       "dice": "1d4",
       "stat": "STR",
+      "effects": {
+        "on_use": [
+          {
+            "type": "reduce_damage",
+            "dice": "1d4",
+            "stat": "STR"
+          }
+        ],
+        "on_success": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "core.basic_guard"
     },
     {
       "path": "core",
@@ -62,10 +99,25 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "attack_bonus",
+            "amount": 1,
+            "target": "self"
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "core.focus_action"
     },
     {
       "path": "core",
@@ -80,10 +132,25 @@
         "movement"
       ],
       "stat": "DEX",
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_set",
+            "resource": "balance",
+            "value": 0
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 0
+          }
+        ]
+      },
       "resourceDelta": {
         "balance": 1
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "core.shift"
     },
     {
       "path": "stonepulse",
@@ -100,10 +167,25 @@
       ],
       "dice": "1d4",
       "stat": "STR",
+      "effects": {
+        "on_hit": [
+          {
+            "type": "damage",
+            "dice": "1d4",
+            "stat": "STR"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "stonepulse.pulse_strike"
     },
     {
       "path": "stonepulse",
@@ -119,10 +201,26 @@
         "momentum"
       ],
       "dice": "1d4",
+      "effects": {
+        "on_use": [
+          {
+            "type": "reduce_damage",
+            "dice": "1d4"
+          }
+        ],
+        "on_success": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "stonepulse.stoneguard_step"
     },
     {
       "path": "stonepulse",
@@ -137,12 +235,32 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_delta",
+            "resource": "rp",
+            "delta": 1
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "attack_bonus",
+            "amount": 1,
+            "target": "self"
+          }
+        ]
+      },
       "target": "ally",
       "range": "near",
       "resourceDelta": {
         "rp": 1
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "stonepulse.stonepulse_rhythm"
     },
     {
       "path": "stonepulse",
@@ -157,13 +275,28 @@
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_set",
+            "resource": "balance",
+            "value": 0
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
       "setsResource": {
         "balance": 0
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "stonepulse.stonepulse_step"
     },
     {
       "path": "stonepulse",
@@ -180,6 +313,33 @@
       ],
       "dice": "1d6",
       "stat": "STR",
+      "effects": {
+        "on_hit": [
+          {
+            "type": "damage",
+            "dice": "1d6",
+            "stat": "STR"
+          },
+          {
+            "type": "status",
+            "status": "stagger",
+            "stacks": 1,
+            "target": "enemy"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1,
+            "target": "self"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "rp",
+            "delta": 1,
+            "target": "self"
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "rp": 1
@@ -190,7 +350,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "stonepulse.resonant_break"
     },
     {
       "path": "stonepulse",
@@ -206,10 +367,32 @@
         "momentum"
       ],
       "dice": "1d6",
+      "effects": {
+        "on_use": [
+          {
+            "type": "reduce_damage",
+            "dice": "1d6"
+          }
+        ],
+        "on_success": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "status",
+            "status": "retaliate",
+            "stacks": 1,
+            "target": "self"
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "stonepulse.anchored_form"
     },
     {
       "path": "stonepulse",
@@ -225,10 +408,35 @@
         "momentum"
       ],
       "range": "near",
+      "effects": {
+        "on_use": [
+          {
+            "type": "defense_bonus",
+            "amount": 1,
+            "target": "self"
+          },
+          {
+            "type": "attack_bonus",
+            "amount": 1,
+            "target": "self"
+          },
+          {
+            "type": "idf_bonus",
+            "amount": 1,
+            "target": "self"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "stonepulse.stonepulse_focus"
     },
     {
       "path": "stonepulse",
@@ -243,10 +451,36 @@
         "stance",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "defense_bonus",
+            "amount": 1,
+            "target": "self"
+          },
+          {
+            "type": "idf_bonus",
+            "amount": 1,
+            "target": "self"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "status",
+            "status": "stonepulse_stance",
+            "stacks": 1,
+            "target": "self"
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "stance"
+      "resolution": "stance",
+      "id": "stonepulse.stonepulse_stance"
     },
     {
       "path": "stonepulse",
@@ -273,7 +507,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "stonepulse.sundering_crash"
     },
     {
       "path": "stonepulse",
@@ -289,7 +524,8 @@
         "momentum"
       ],
       "dice": "1d8",
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "stonepulse.steelguard_pivot"
     },
     {
       "path": "stonepulse",
@@ -310,7 +546,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "stonepulse.law_of_the_unshaken"
     },
     {
       "path": "stonepulse",
@@ -331,7 +568,8 @@
       "setsResource": {
         "balance": 0
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "stonepulse.stonepulse_advance"
     },
     {
       "path": "canticle",
@@ -348,11 +586,26 @@
       ],
       "dice": "1d4",
       "stat": "WIS",
+      "effects": {
+        "on_hit": [
+          {
+            "type": "damage",
+            "dice": "1d4",
+            "stat": "WIS"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "range": "near",
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "canticle.gleam_strike"
     },
     {
       "path": "canticle",
@@ -368,10 +621,31 @@
         "momentum"
       ],
       "dice": "1d4",
+      "effects": {
+        "on_use": [
+          {
+            "type": "reduce_damage",
+            "dice": "1d4"
+          },
+          {
+            "type": "defense_bonus",
+            "amount": 1,
+            "target": "self"
+          }
+        ],
+        "on_success": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "canticle.oathbound_guard"
     },
     {
       "path": "canticle",
@@ -387,11 +661,31 @@
         "momentum"
       ],
       "target": "ally",
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "resource_delta",
+            "resource": "radiance",
+            "delta": 2
+          },
+          {
+            "type": "attack_bonus",
+            "amount": 1,
+            "target": "self"
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "radiance": 2
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "canticle.hymn_of_embers"
     },
     {
       "path": "canticle",
@@ -406,11 +700,26 @@
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "resource_delta",
+            "resource": "radiance",
+            "delta": 2
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "radiance": 2
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "canticle.radiant_glide"
     },
     {
       "path": "canticle",
@@ -431,7 +740,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "canticle.searing_canticle"
     },
     {
       "path": "canticle",
@@ -452,7 +762,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "canticle.sanctus_aegis"
     },
     {
       "path": "canticle",
@@ -468,7 +779,8 @@
         "momentum"
       ],
       "target": "ally",
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "canticle.chorus_of_resolve"
     },
     {
       "path": "canticle",
@@ -486,7 +798,8 @@
       "resourceDelta": {
         "radiance": 2
       },
-      "resolution": "stance"
+      "resolution": "stance",
+      "id": "canticle.canticle_stance"
     },
     {
       "path": "canticle",
@@ -503,7 +816,8 @@
       ],
       "dice": "1d8",
       "stat": "WIS",
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "canticle.judgment_lance"
     },
     {
       "path": "canticle",
@@ -520,7 +834,8 @@
       ],
       "dice": "1d8",
       "target": "attacker",
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "canticle.warding_reprisal"
     },
     {
       "path": "canticle",
@@ -537,7 +852,8 @@
       ],
       "dice": "1d8",
       "stat": "WIS",
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "canticle.radiant_burst"
     },
     {
       "path": "canticle",
@@ -561,7 +877,8 @@
         "maxTier": 2,
         "count": 1
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "canticle.sanctified_stride"
     },
     {
       "path": "hemocratic",
@@ -578,6 +895,26 @@
       ],
       "dice": "1d4",
       "stat": "DEX",
+      "effects": {
+        "on_hit": [
+          {
+            "type": "damage",
+            "dice": "1d4",
+            "stat": "DEX"
+          },
+          {
+            "type": "status",
+            "status": "bleed",
+            "stacks": 1,
+            "target": "enemy"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -587,7 +924,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "hemocratic.cutpoint_slice"
     },
     {
       "path": "hemocratic",
@@ -603,6 +941,27 @@
         "momentum"
       ],
       "dice": "1d4",
+      "effects": {
+        "on_use": [
+          {
+            "type": "reduce_damage",
+            "dice": "1d4"
+          }
+        ],
+        "on_success": [
+          {
+            "type": "status",
+            "status": "bleed",
+            "stacks": 1,
+            "target": "enemy"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -612,7 +971,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "hemocratic.veil_step"
     },
     {
       "path": "hemocratic",
@@ -627,10 +987,20 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "hemocratic.wound_mark"
     },
     {
       "path": "hemocratic",
@@ -645,13 +1015,28 @@
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_delta",
+            "resource": "balance",
+            "delta": 2
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
       "adjustsResource": {
         "balance": 2
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "hemocratic.blood_slip"
     },
     {
       "path": "hemocratic",
@@ -678,7 +1063,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "hemocratic.artery_rupture"
     },
     {
       "path": "hemocratic",
@@ -703,7 +1089,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "hemocratic.veinshift_evade"
     },
     {
       "path": "hemocratic",
@@ -721,7 +1108,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "hemocratic.bloodletting_focus"
     },
     {
       "path": "hemocratic",
@@ -739,7 +1127,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "stance"
+      "resolution": "stance",
+      "id": "hemocratic.bloodveil_stance"
     },
     {
       "path": "hemocratic",
@@ -756,7 +1145,8 @@
       ],
       "dice": "1d8",
       "stat": "DEX",
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "hemocratic.hemorrhage_breaker"
     },
     {
       "path": "hemocratic",
@@ -778,7 +1168,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "hemocratic.bloodfade_veil"
     },
     {
       "path": "hemocratic",
@@ -793,7 +1184,8 @@
         "signature",
         "momentum"
       ],
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "hemocratic.crimson_dictate"
     },
     {
       "path": "hemocratic",
@@ -820,7 +1212,8 @@
         "maxTier": 2,
         "count": 1
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "hemocratic.sanguine_dash"
     },
     {
       "path": "spellforged",
@@ -837,10 +1230,25 @@
       ],
       "dice": "1d4",
       "stat": "INT",
+      "effects": {
+        "on_hit": [
+          {
+            "type": "damage",
+            "dice": "1d4",
+            "stat": "INT"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "spellforged.charge_bolt"
     },
     {
       "path": "spellforged",
@@ -857,10 +1265,32 @@
       ],
       "dice": "1d4",
       "target": "attacker",
+      "effects": {
+        "on_use": [
+          {
+            "type": "reduce_damage",
+            "dice": "1d4"
+          }
+        ],
+        "on_success": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "resource_delta",
+            "resource": "hp",
+            "delta": -1,
+            "target": "enemy"
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "spellforged.warding_pulse"
     },
     {
       "path": "spellforged",
@@ -875,11 +1305,31 @@
         "utility",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          },
+          {
+            "type": "resource_delta",
+            "resource": "rp",
+            "delta": 1
+          },
+          {
+            "type": "attack_bonus",
+            "amount": 1,
+            "target": "self"
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1,
         "rp": 1
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "spellforged.arcane_channel"
     },
     {
       "path": "spellforged",
@@ -888,12 +1338,27 @@
       "type": "movement",
       "cost": 1,
       "cooldown": 1,
-      "effect": "Gain Arcane Ward 1 (reduce next incoming dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
+      "effect": "Gain Arcane Ward 1 (reduce dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
       "tags": [
         "spellforged",
         "movement",
         "momentum"
       ],
+      "effects": {
+        "on_use": [
+          {
+            "type": "status",
+            "status": "arcane ward",
+            "stacks": 1,
+            "target": "self"
+          },
+          {
+            "type": "resource_delta",
+            "resource": "momentum",
+            "delta": 1
+          }
+        ]
+      },
       "resourceDelta": {
         "momentum": 1
       },
@@ -903,7 +1368,8 @@
           "stacks": 1
         }
       ],
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "spellforged.arcane_step"
     },
     {
       "path": "spellforged",
@@ -923,7 +1389,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "spellforged.surge_lance"
     },
     {
       "path": "spellforged",
@@ -943,7 +1410,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "spellforged.feedback_shield"
     },
     {
       "path": "spellforged",
@@ -961,7 +1429,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "spellforged.conduit_flow"
     },
     {
       "path": "spellforged",
@@ -979,7 +1448,8 @@
       "resourceDelta": {
         "momentum": 1
       },
-      "resolution": "stance"
+      "resolution": "stance",
+      "id": "spellforged.conduit_stance"
     },
     {
       "path": "spellforged",
@@ -996,7 +1466,8 @@
       ],
       "dice": "1d8",
       "stat": "INT",
-      "resolution": "attack"
+      "resolution": "attack",
+      "id": "spellforged.law_of_the_stormcore"
     },
     {
       "path": "spellforged",
@@ -1012,7 +1483,8 @@
         "momentum"
       ],
       "dice": "1d8",
-      "resolution": "defense"
+      "resolution": "defense",
+      "id": "spellforged.aetheric_reversal"
     },
     {
       "path": "spellforged",
@@ -1029,7 +1501,8 @@
       ],
       "target": "self",
       "range": "self",
-      "resolution": "utility"
+      "resolution": "utility",
+      "id": "spellforged.arcanum_overload"
     },
     {
       "path": "spellforged",
@@ -1058,7 +1531,8 @@
         "maxTier": 2,
         "count": 1
       },
-      "resolution": "movement"
+      "resolution": "movement",
+      "id": "spellforged.arcane_transcendence"
     }
   ]
 }

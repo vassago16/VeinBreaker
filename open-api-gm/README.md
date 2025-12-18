@@ -3,8 +3,10 @@
 Quick map of the files and their roles.
 
 ## Entry & Flow
-- `play.py`: Interactive loop. Loads canon data, runs character creation, calls the narrator, applies player choices, and advances phases.
-- `flow/character_creation.py`: Prompts for path/abilities, builds the initial character record.
+- `play.py`: Core game logic. Builds initial state, runs character creation (CLI), advances phases, resolves chains. Exposes non-blocking emitters for the web UI.
+- `game_runner.py`: Thin wrapper that constructs a `Game` with a UI provider and forwards step-based input.
+- `game_session.py`: Holds a session’s event buffer and forwards inputs to the game.
+- `flow/character_creation.py`: Prompts for path/abilities, builds the initial character record (blocking/CLI).
 
 ## AI Layer
 - `ai/narrator.py`: Loads API key (env or `open-api-gm/apiKey`), calls OpenAI for narration, extracts text, and prints it.
@@ -17,6 +19,9 @@ Quick map of the files and their roles.
 - `engine/validate.py` / `engine/validator.py`: Validation helpers.
 - `engine/save_load.py`: Save/load character data.
 - `engine/abilities.json`: Canon ability data consumed by character creation and validation.
+- `ui/events.py`: Shared event emitters/builders for non-blocking UIs.
+- `ui/web_provider.py` / `ui/cli_provider.py`: UI adapters for web vs. CLI.
+- `index.html`: Web client (polls `/events`, renders narration/log/chain builder/character HUD).
 
 ## Canon Data (JSON)
 Located in `canon/`:
@@ -30,10 +35,25 @@ Located in `canon/`:
 - `rules_lint.md`: Notes/linting guidance for rules.
 
 ## Usage
-Run the interactive loop (requires `OPENAI_API_KEY` env or `open-api-gm/apiKey`):
-```
-cd open-api-gm
-python play.py
-```
+### Web (step-based, non-blocking)
+- Start the API server (FastAPI + uvicorn):
+  ```
+  cd open-api-gm
+  uvicorn server:app --reload --host 0.0.0.0 --port 8000
+  ```
+- Open `index.html` in a browser (or run your local web runner). The client polls `/events` and posts to `/step`.
+- Endpoints:
+  - `POST /step` — advance the game with `{session_id, action?, choice?, chain?}`.
+  - `POST /events` — drain buffered events for a session.
+  - `POST /emit` — push an arbitrary event payload into a session (testing).
+  - `GET /character` — fetch the current/default character payload.
+
+### CLI (blocking)
+- Requires `OPENAI_API_KEY` env or `open-api-gm/apiKey` file.
+- Run:
+  ```
+  cd open-api-gm
+  python play.py
+  ```
 
 API key loading order: environment variable `OPENAI_API_KEY`, then `open-api-gm/apiKey` file. Narrator calls use `gpt-5-nano`.

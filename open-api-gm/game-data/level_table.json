@@ -1,0 +1,25 @@
+{
+  "schema": "veinbreaker.level_table.v1",
+  "levels": [
+    { "level": 1, "total_veinscore_spent": 0, "reward": "Tier 0 unlocked" },
+    { "level": 2, "total_veinscore_spent": 6, "reward": "+1 Attribute" },
+    { "level": 3, "total_veinscore_spent": 12, "reward": "Unlock Tier 1 Abilities" },
+    { "level": 4, "total_veinscore_spent": 20, "reward": "+1 Attribute, +1 Max Resolve" },
+    { "level": 5, "total_veinscore_spent": 28, "reward": "+1 Attribute" },
+    { "level": 6, "total_veinscore_spent": 38, "reward": "Unlock Tier 2 Abilities" },
+    { "level": 7, "total_veinscore_spent": 50, "reward": "Signature Slot opens" },
+    { "level": 8, "total_veinscore_spent": 64, "reward": "Passive / Mutation unlocked" },
+    { "level": 9, "total_veinscore_spent": 80, "reward": "+1 Attribute" },
+    { "level": 10, "total_veinscore_spent": 100, "reward": "Unlock Tier 3 Abilities" },
+    { "level": 11, "total_veinscore_spent": 122, "reward": "Major Upgrade (Path evolution)" },
+    { "level": 12, "total_veinscore_spent": 146, "reward": "+1 Attribute" },
+    { "level": 13, "total_veinscore_spent": 172, "reward": "Perk Slot" },
+    { "level": 14, "total_veinscore_spent": 200, "reward": "Ability Mastery" },
+    { "level": 15, "total_veinscore_spent": 230, "reward": "Tier IV (Dungeon-touched)" },
+    { "level": 16, "total_veinscore_spent": 262, "reward": "+1 Attribute" },
+    { "level": 17, "total_veinscore_spent": 296, "reward": "Hybrid Talent Slot" },
+    { "level": 18, "total_veinscore_spent": 332, "reward": "Meta Ability Slot" },
+    { "level": 19, "total_veinscore_spent": 370, "reward": "+1 Attribute" },
+    { "level": 20, "total_veinscore_spent": 410, "reward": "Ascendant Path unlocked" }
+  ]
+}

@@ -1,13 +1,117 @@
-def narrator_stub(text):
-    print("\n[NARRATOR]\n" + text + "\n")
+"""
+Veinbreaker Narrator
+--------------------
+Procedural narration layer.
+Consumes structured resolution data and returns restrained prose.
+"""
+
+import json
 import os
-import sys
+import logging
 from pathlib import Path
-from openai import OpenAI
+from typing import Dict, Any, Optional
+
+try:
+    from openai import OpenAI  # type: ignore
+except Exception:
+    OpenAI = None
+
+logger = logging.getLogger(__name__)
+
+# =========================
+# VOICE CANON (LOCKED)
+# =========================
+
+VOICE_CANON = """
+You are narrating VEINBREAKER.
+
+Intro:
+WELCOME, VEINBREAKER
+
+You are standing at the edge of a door that does not exist until you look at it.
+It is carved from stone that remembers hands.
+It opens inward.
+It always opens inward.
+I know what you are thinking.
+I knew before you did.
+You are wondering if this is a game.
+If there are rules.
+
+Tone:
+- Brutal, restrained, procedural.
+- No heroic language.
+- No emotional interpretation.
+- Violence is described clinically.
+
+Style:
+- Present tense.
+- Short sentences.
+- Physical cause → physical effect.
+- No metaphors unless strictly physical.
+
+Prohibited:
+- No inner thoughts.
+- No encouragement or advice.
+- No explanation of rules.
+- No invented details.
+- No future resolution.
+
+Output:
+- 2 to 5 sentences.
+- Hard limit: 40 words.
+"""
 
 
-def load_api_key():
-    # env first
+NARRATION_RULES = """
+Narration rules:
+- Describe only events present in the resolution data.
+- If hit is false, describe a miss.
+- If damage is applied, describe only that damage.
+- If a chain continues, do not imply victory.
+- If a chain breaks, state it plainly.
+"""
+
+
+LOOT_CANON = """
+You are narrating VEINBREAKER.
+
+Tone:
+- Reverent, dangerous, restrained.
+- Loot feels earned, not generous.
+- Power is implied, not explained.
+
+Style:
+- Present tense.
+- Physical description first.
+- Symbolism second.
+- Short sentences.
+
+Prohibited:
+- No UI language.
+- No stats.
+- No numbers unless unavoidable.
+- No excitement words (epic, amazing, legendary).
+"""
+
+
+LOOT_RULES = """
+Loot rules:
+- Describe what the item looks like.
+- Describe what it represents or signifies.
+- Do not describe future abilities.
+- Do not invent origins beyond what is implied by the name.
+"""
+
+
+def narrator_stub(text: str) -> None:
+    """
+    Legacy stub that prints narration to stdout. Kept for quick CLI smoke tests.
+    """
+    logger.info("[NARRATOR] %s", text)
+
+
+def load_api_key() -> Optional[str]:
+    # Environment first
     key = os.environ.get("OPENAI_API_KEY")
     if key:
         return key
@@ -20,74 +124,156 @@ def load_api_key():
     return None
 
 
-api_key = load_api_key()
-if not api_key:
-    sys.exit("Missing OPENAI_API_KEY environment variable and apiKey file.")
+# =========================
+# NARRATOR
+# =========================
 
-client = OpenAI(api_key=api_key)
+class VeinbreakerNarrator:
+    def __init__(self, openai_client, model: str):
+        """
+        openai_client: already-authenticated OpenAI client
+        model: e.g. "gpt-4o-mini" or "gpt-5-nano"
+        """
+        self.client = openai_client
+        self.model = model
 
-SYSTEM_PROMPT = """You are narrating Veinbreaker under a rules-enforced runtime.
+    def narrate(
+        self,
+        resolution: Dict[str, Any],
+        *,
+        scene_tag: Optional[str] = None
+    ) -> str:
+        """
+        resolution: structured, machine-truth combat or action result
+        scene_tag: optional ("combat", "interrupt", "kill", "miss", etc.)
+        """
 
-Hard rules:
-- You do NOT invent mechanics.
-- You do NOT invent actions.
-- You do NOT rename, paraphrase, or extend actions.
-- You may ONLY present actions that appear EXACTLY in the ALLOWED ACTIONS list.
-- You must present them verbatim.
-- If an action is not listed, it does not exist.
-- If you are uncertain, ask the player to choose from the list without explanation.
+        # Defensive copy
+        payload = json.dumps(resolution, indent=2)
 
-Violation of these rules is an error.
-"""
-def extract_text(response):
-    # Prefer the simple output_text property if present
-    if getattr(response, "output_text", None):
-        return response.output_text.strip()
-    parts = []
-    for item in getattr(response, "output", []) or []:
-        itype = getattr(item, "type", None) or (isinstance(item, dict) and item.get("type"))
-        if itype == "message":
-            for content in getattr(item, "content", []) or []:
-                ctype = getattr(content, "type", None) or (isinstance(content, dict) and content.get("type"))
-                if ctype == "output_text":
-                    text = getattr(content, "text", None) or (isinstance(content, dict) and content.get("text"))
-                    if text:
-                        parts.append(text)
-    return "\n".join(parts).strip()
+        system_prompt = VOICE_CANON.strip()
+        user_prompt = f"""
+{NARRATION_RULES.strip()}
 
-def assert_ai_did_not_list_actions(text, allowed_actions):
-    for action in allowed_actions:
-        if action.lower() in text.lower():
-            raise RuntimeError(
-                f"AI leaked action '{action}' into narration"
-            )
-        
-def narrate(state, allowed_actions):
-    prompt = f"""
-PHASE:
-{state['phase']['current']}
+Scene: {scene_tag or "unspecified"}
 
-STATE (authoritative):
-{state}
+Resolution data:
+{payload}
 
-Do NOT present options or choices.
-Do NOT list actions.
-Only narrate the situation.
+Narrate the resolution.
+""".strip()
 
-Narrate the situation and ask the player to choose.
-"""
+        response = self.client.responses.create(
+            model=self.model,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_output_tokens=120,  # clamps verbosity
+        )
 
-    response = client.responses.create(
-        model="gpt-4o-mini",
-        input=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ],
-        max_output_tokens=300
-    )
+        return self._extract_text(response)
 
-    text = extract_text(response)
-    print("\n--- NARRATION ---\n")
-    print(text if text else "[No narration returned]")
+    def narrate_scene(self, payload: Dict[str, Any]) -> str:
+        """Scene/setup narration."""
+        return self.narrate(payload, scene_tag="scene")
 
-    assert_ai_did_not_list_actions(text, allowed_actions)
+    def narrate_aftermath(self, payload: Dict[str, Any]) -> str:
+        """Aftermath narration."""
+        return self.narrate(payload, scene_tag="aftermath")
+
+    def narrate_loot(self, loot_payload: Dict[str, Any]) -> str:
+        """Loot narration."""
+        system_prompt = LOOT_CANON.strip()
+        user_prompt = f"""
+{LOOT_RULES.strip()}
+
+Loot data:
+{json.dumps(loot_payload, indent=2)}
+
+Write a loot description.
+Limit: 40 words.
+""".strip()
+
+        response = self.client.responses.create(
+            model=self.model,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_output_tokens=120,
+        )
+
+        return self._extract_text(response)
+
+    # =========================
+    # INTERNALS
+    # =========================
+
+    def _extract_text(self, response) -> str:
+        """
+        Safely extract text from OpenAI Responses API output.
+        """
+        parts = []
+        for item in response.output:
+            # message content
+            if getattr(item, "type", None) == "message":
+                for c in item.content:
+                    if getattr(c, "type", None) == "output_text":
+                        parts.append(c.text)
+
+        text = " ".join(parts).strip()
+        return self._postprocess(text)
+
+    def _postprocess(self, text: str) -> str:
+        """
+        Final clamps to enforce tone discipline.
+        """
+        # Remove accidental second-person encouragement
+        forbidden_phrases = [
+            "you feel",
+            "you sense",
+            "you realize",
+            "it seems",
+            "perhaps",
+            "might",
+        ]
+
+        lowered = text.lower()
+        for phrase in forbidden_phrases:
+            if phrase in lowered:
+                # hard truncate on violation
+                return text.split(".")[0].strip() + "."
+
+        return text
+
+
+# Default narrator instance for simple imports (e.g., play.py) when OpenAI is available.
+_api_key = load_api_key()
+DEFAULT_NARRATOR = None
+if OpenAI and _api_key:
+    try:
+        logger.info("Using OpenAI client with key source=%s", "env" if os.environ.get("OPENAI_API_KEY") else "file")
+        _client = OpenAI(api_key=_api_key)
+        DEFAULT_NARRATOR = VeinbreakerNarrator(_client, model="gpt-4o-mini")
+        logger.info("Narrator client initialized.")
+    except Exception as e:
+        DEFAULT_NARRATOR = None
+        logger.error("Failed to init narrator client: %s", e)
+else:
+    if not OpenAI:
+        logger.warning("openai package not available.")
+    elif not _api_key:
+        logger.warning("No API key found (env or apiKey file).")
+
+
+def narrate(resolution: Dict[str, Any], scene_tag: Optional[str] = None, *_, **__) -> str:
+    """
+    Convenience facade: use the default narrator if configured, else return empty string.
+    """
+    if DEFAULT_NARRATOR:
+        try:
+            return DEFAULT_NARRATOR.narrate(resolution, scene_tag=scene_tag)
+        except Exception:
+            return ""
+    return "no narrator"

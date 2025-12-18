@@ -1,0 +1,14 @@
+{
+  "schema_version": "hazard.v1",
+  "id": "hazard.bloodslick",
+  "name": "Bloodslick Stone",
+
+  "effects": [
+    {
+      "type": "movement_penalty",
+      "value": 1
+    }
+  ],
+
+  "tags": ["slippery", "persistent"]
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "veinbreaker.veinscore_loot.v1",
+  "items": [
+    {
+      "name": "Faint Vein Sigil",
+      "veinscore": 1,
+      "tier": 1,
+      "visual": "Hairline glyph, dull glow",
+      "id": "veinscore.faint_vein_sigil"
+    },
+    {
+      "name": "True Vein Sigil",
+      "veinscore": 10,
+      "tier": 2,
+      "visual": "Etched rune, slow pulse",
+      "id": "veinscore.true_vein_sigil"
+    },
+    {
+      "name": "Sovereign Vein Sigil",
+      "veinscore": 25,
+      "tier": 3,
+      "visual": "Multi-layered sigil, warm heartbeat",
+      "id": "veinscore.sovereign_vein_sigil"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 {
+  "schema_version": "abilities.v2.conditions",
   "poolByPath": {
     "stonepulse": "martial",
     "canticle": "faith",
@@ -247,6 +248,49 @@
         "momentum": 1
       },
       "resolution": "stance"
+    },
+    {
+      "path": "stonepulse",
+      "tier": 2,
+      "name": "Overdrive Slash",
+      "type": "attack",
+      "cost": 2,
+      "cooldown": 3,
+      "effect": "1d6 + str bonus. If momentum >=2 +1d4 ",
+      "dice": "1d6",
+      "stat": "str",
+      "effects": {
+        "on_hit": [
+          {
+            "type": "damage",
+            "dice": "1d6",
+            "stat": "str"
+          }
+        ]
+      },
+      "conditional_effects": [
+        {
+          "when": {
+            "type": "resource",
+            "resource": "momentum",
+            "op": ">=",
+            "value": 2
+          },
+          "apply": {
+            "on_hit": [
+              {
+                "type": "damage",
+                "dice": "1d4"
+              },
+              {
+                "type": "resource_delta",
+                "resource": "momentum",
+                "delta": -1
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "path": "stonepulse",

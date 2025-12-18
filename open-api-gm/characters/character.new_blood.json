@@ -1,0 +1,24 @@
+{
+  "id": "character.new_blood",
+  "name": "New Blood",
+  "path": "canticle",
+  "tier": 1,
+  "attributes": {
+    "POW": 8,
+    "AGI": 8,
+    "MND": 8,
+    "SPR": 10
+  },
+  "abilities": [
+    "core.basic_strike",
+    "core.basic_guard",
+    "core.focus_action",
+    "core.shift",
+    "canticle.gleam_strike",
+    "canticle.oathbound_guard",
+    "canticle.hymn_of_embers",
+    "canticle.radiant_glide",
+    "resolve_basic.disengage",
+    "spellforged.charge_bolt"
+  ]
+}

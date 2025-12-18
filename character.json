@@ -1,0 +1,170 @@
+{
+  "path": "canticle",
+  "tier": 1,
+  "abilities": [
+    {
+      "id": "core.basic_strike",
+      "name": "Basic Strike",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "attack"
+      ],
+      "effect": "Make a basic attack for 1d4 + stat. On hit gain +1 Heat. Applies -1 Balance penalty.",
+      "stat": "weapon",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "id": "core.basic_guard",
+      "name": "Basic Guard",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "defense",
+        "momentum"
+      ],
+      "effect": "Reduce incoming damage by 1d4. STR modifier applies to the Defense roll. If damage is reduced to 0, gain +1 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "id": "core.focus_action",
+      "name": "Focus Action",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 0,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "utility",
+        "momentum"
+      ],
+      "effect": "Gain +1 Attack to your next attack this turn and +1 Momentum.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "id": "core.shift",
+      "name": "Shift",
+      "path": "core",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "free",
+      "dice": "1d4",
+      "tags": [
+        "core",
+        "movement"
+      ],
+      "effect": "Move 1 zone. Improve Balance by +1 if negative. DEX modifier applies to the Defense roll during this movement.",
+      "stat": "DEX",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "id": "resolve_basic.disengage",
+      "name": "Disengage",
+      "path": "resolve_basic",
+      "tier": 0,
+      "cooldown": 0,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": null,
+      "dice": "1d4",
+      "tags": [
+        "resolve",
+        "movement",
+        "defense_window"
+      ],
+      "effect": "End your current chain immediately. No further actions may be taken this chain.",
+      "stat": null,
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    },
+    {
+      "id": "stonepulse.pulse_strike",
+      "name": "Pulse Strike",
+      "path": "stonepulse",
+      "tier": 1,
+      "cooldown": 0,
+      "base_cooldown": 1,
+      "cost": 1,
+      "resource": "resolve",
+      "pool": "martial",
+      "dice": "1d4",
+      "tags": [
+        "stonepulse",
+        "attack",
+        "momentum"
+      ],
+      "effect": "1d4 + STR; on hit gain +1 to next melee roll this round; gain +1 Momentum if you currently have 0 Momentum.",
+      "stat": "STR",
+      "addStatToAttackRoll": true,
+      "addStatToDamage": true
+    }
+  
+  ],
+  "stats": {
+    "POW": 10,
+    "AGI": 10,
+    "MND": 10,
+    "SPR": 10
+  },
+  "resources": {
+    "hp": 20,
+    "resolve": 5,
+    "resolve_cap": 5,
+    "momentum": 0,
+    "heat": 0,
+    "balance": 0,
+    "idf": 0
+  },
+  "attributes": {
+    "POW": 10,
+    "AGI": 10,
+    "MND": 10,
+    "SPR": 10
+  },
+  "pools": {
+    "martial": 5,
+    "shadow": 5,
+    "magic": 5,
+    "faith": 5
+  },
+  "marks": {
+    "blood": 0,
+    "duns": 0
+  },
+  "chain": {
+    "declared": false,
+    "abilities": [],
+    "resolve_spent": 0,
+    "stable": false,
+    "invalidated": false
+  },
+  "veinscore": 10
+}

@@ -122,25 +122,15 @@ The difference between AV and DV determines the outcome.
 
 ## **6.4 BALANCE SHIFT PER ACTION**
 
-Each action in your declared chain modifies Balance.
 
-### Typical Balance Costs:
-
-| Action Type         | Balance Change                 |
-| ------------------- | ------------------------------ |
-| **Light Attack**    | –1                             |
-| **Heavy Attack**    | –2                             |
-| **Movement Action** | +1 (or halve negative Balance) |
-| **Utility**         | 0 or varies                    |
-| **Tier Abilities**  | –1 to –3 depending on power    |
-
-### ✔ Balance can go *deep negative*.
-
-The deeper the negative, the more reckless your rhythm.
-
-### ✔ Positive Balance (from Perfect Defense) helps early attacks.
-
-Positive Balance only applies **after** the first action.
+On each link resolution
+Outcome	Heat	Balance	Momentum
+Hit (links 1–2)	+1	+1	+1
+Miss (links 1–2)	0	−1	−1
+Hit (link ≥3)	+2	+2	+2
+Hit (link ≥5)	Snap to +5 max		
+Interrupt (any)	Momentum halved		
+Interrupt	Chain ends (always)
 
 ```
 [DUNGEON COMMENT]

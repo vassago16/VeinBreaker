@@ -1,0 +1,46 @@
+{
+  "schema_version": "scene.v1",
+  "id": "scene.01.04",
+  "title": "Safe Room",
+
+  "environment": {
+    "id": "env.safe.room"
+  },
+
+  "encounter": {
+  "monsters": [
+    
+  ],
+  "traps": [
+    { }
+  ],
+  "hazards": [
+  ]
+},
+
+
+  "loot_table": [
+    "loot.vein_fragment.t1"
+  ],
+
+  "events": [
+    {
+      "id": "event.loot_builds",
+      "trigger": { "type": "on_scene_start" },
+      "conditions": [],
+      "effects": [
+        {
+          "type": "emit_ui_event",
+          "event": {
+            "type": "narration",
+            "text": "You have found a safe haven"
+          }
+        }
+      ]
+    }
+  ],
+
+  "completion_conditions": [
+    { "type": "all_enemies_defeated" }
+  ]
+}

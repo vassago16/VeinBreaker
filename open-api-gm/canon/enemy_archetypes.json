@@ -1,116 +1,635 @@
 {
   "schema": "veinbreaker.enemy_archetypes.v1",
-
   "archetypes": [
     {
-      "id": "brute",
-      "description": "Slow, oppressive pressure that punishes overcommitment.",
-      "role": "pressure",
-      "behavior": {
-        "preferredTargets": ["highest_heat", "negative_balance"],
-        "engagementStyle": "direct",
-        "movementBias": "advance",
-        "riskTolerance": "high"
-      },
-      "interruptProfile": {
-        "maxPerRound": 1,
-        "preferredTriggers": ["overcommit", "negative_balance"],
-        "interruptStyle": "heavy",
-        "telegraph": "obvious"
-      },
-      "pressureEffects": [
-        "force_balance_negative",
-        "deny_positioning"
-      ],
-      "aiPriorities": [
-        "close_distance",
-        "force_long_chains",
-        "punish_greed"
-      ]
+      "id": "archetype.aberrant",
+      "description": "Adaptive, mutates as Blood Marks rise.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "adaptive",
+            "windows": [
+              {
+                "after_action_index": [
+                  2,
+                  3,
+                  4
+                ],
+                "trigger_if": {
+                  "blood_mark_gte": 3
+                },
+                "weight": 0.7,
+                "notes": "At higher Blood Marks, the creature becomes more reactive."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": true,
+              "repeat_count_gte": 2,
+              "bias": 0.25
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 5,
+              "bias": 0.25
+            },
+            "punish_movement": {
+              "enabled": true,
+              "bias": 0.25
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "If players get too clean, mutate into anti-defense tech."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": []
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "vulnerable_3",
+              "stagger_2",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          },
+          "mutations": {
+            "on_blood_mark_gte": [
+              {
+                "marks": 1,
+                "gain": "extra_interrupt_window"
+              },
+              {
+                "marks": 3,
+                "gain": "new_move"
+              },
+              {
+                "marks": 5,
+                "gain": "arena_pressure"
+              }
+            ]
+          }
+        },
+        "ai": {
+          "archetype": "aberrant",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.read_the_room"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "blood_mark_gte": 3
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.mutation_response"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.base_pattern"
+              }
+            ]
+          }
+        },
+        "mutation_engine": {
+          "enabled": true,
+          "triggers": [
+            {
+              "when": {
+                "blood_mark_increase": true
+              },
+              "do": [
+                {
+                  "type": "gain_move",
+                  "pool": "mutation.moves.tiered"
+                },
+                {
+                  "type": "gain_trait",
+                  "pool": "mutation.traits.tiered"
+                }
+              ],
+              "notes": "Every Blood Mark gained during/after encounters can add a new tool."
+            }
+          ],
+          "constraints": {
+            "max_new_moves_per_encounter": 1,
+            "max_new_traits_per_encounter": 1
+          }
+        }
+      }
     },
-
     {
-      "id": "stalker",
-      "description": "Exploits movement, isolation, and momentary lapses.",
-      "role": "execution",
-      "behavior": {
-        "preferredTargets": ["isolated", "moving", "low_momentum"],
-        "engagementStyle": "hit_and_fade",
-        "movementBias": "flank",
-        "riskTolerance": "medium"
-      },
-      "interruptProfile": {
-        "maxPerRound": 1,
-        "preferredTriggers": ["movement_during_chain", "miss"],
-        "interruptStyle": "precise",
-        "telegraph": "subtle"
-      },
-      "pressureEffects": [
-        "threaten_interrupts",
-        "force_reposition"
-      ],
-      "aiPriorities": [
-        "wait_for_mistake",
-        "interrupt_movement",
-        "separate_targets"
-      ]
+      "id": "archetype.aggressor",
+      "description": "Pushes interrupts early and punishes misses.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "early",
+            "windows": [
+              {
+                "after_action_index": [
+                  2
+                ],
+                "trigger_if": {
+                  "player_missed_last_action": true
+                },
+                "weight": 0.85,
+                "notes": "Skitter is extra mean about misses."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 5,
+              "bias": 0.25
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "If players perfect-defend a lot, Aggressor starts feinting / swapping targets."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                {
+                  "type": "off_balance",
+                  "chance": 0.2,
+                  "on": "hit",
+                  "notes": "Keeps the player from stabilizing."
+                }
+              ],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": [
+                {
+                  "type": "heat_bait",
+                  "notes": "Encourages players to spike Heat for risky damage."
+                }
+              ]
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.2,
+                  "on": "player_miss",
+                  "notes": "Aggressor gains advantage positioning when you whiff."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "hp_le_25",
+              "vulnerable_3"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "aggressor",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.opening_burst"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "player_missed_last_action": true
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.punish_miss"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.pressure_strike"
+              }
+            ]
+          }
+        }
+      }
     },
-
     {
-      "id": "controller",
-      "description": "Shapes the battlefield and constrains player options.",
-      "role": "control",
-      "behavior": {
-        "preferredTargets": ["high_momentum", "grouped"],
-        "engagementStyle": "zone_control",
-        "movementBias": "hold",
-        "riskTolerance": "low"
-      },
-      "interruptProfile": {
-        "maxPerRound": 1,
-        "preferredTriggers": ["negative_balance"],
-        "interruptStyle": "disruptive",
-        "telegraph": "ritualized"
-      },
-      "pressureEffects": [
-        "add_hazards",
-        "limit_safe_spaces"
-      ],
-      "aiPriorities": [
-        "control_space",
-        "force_bad_choices",
-        "deny_resets"
-      ]
+      "id": "archetype.bully",
+      "description": "Movement-punishing bruiser.",
+      "defaults": {
+        "rhythm_profile": {
+          "pressure": {
+            "punish_movement": {
+              "enabled": true,
+              "bias": 0.35
+            }
+          }
+        }
+      }
     },
-
     {
-      "id": "harrier",
-      "description": "Constant harassment that tests defensive discipline.",
-      "role": "tempo",
-      "behavior": {
-        "preferredTargets": ["low_resolve", "recently_defended"],
-        "engagementStyle": "poke_and_pressure",
-        "movementBias": "circulate",
-        "riskTolerance": "medium"
-      },
-      "interruptProfile": {
-        "maxPerRound": 1,
-        "preferredTriggers": ["any_exposure"],
-        "interruptStyle": "frequent",
-        "telegraph": "erratic"
-      },
-      "pressureEffects": [
-        "drain_resolve",
-        "force_defense_spend"
-      ],
-      "aiPriorities": [
-        "force_reactions",
-        "bleed_resources",
-        "break_focus"
-      ]
+      "id": "archetype.controller",
+      "description": "Shapes flow and reacts to player Heat.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "windows": [
+              {
+                "after_action_index": [
+                  2,
+                  3
+                ],
+                "trigger_if": {
+                  "player_heat_gte": 3
+                },
+                "weight": 0.7
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "archetype.defender",
+      "description": "Turtles and punishes repeats.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "mid",
+            "windows": [
+              {
+                "after_action_index": [
+                  2
+                ],
+                "trigger_if": {
+                  "repeat_count_gte": 2
+                },
+                "weight": 0.9,
+                "notes": "Punishes repeating the same action."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 4,
+              "critical_interrupt_on_margin_gte": 8
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": true,
+              "repeat_count_gte": 2,
+              "bias": 0.45
+            },
+            "punish_long_chains": {
+              "enabled": false
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": false
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.25,
+                  "on": "player_repeat",
+                  "notes": "Defender 'reads' predictable strings."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "stagger_2",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "defender",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.raise_guard"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "repeat_count_gte": 2
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.punish_repeat"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.guard_counter"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "archetype.juggernaut",
+      "description": "Slow, heavy, punishes very long chains.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "very_late",
+            "windows": [
+              {
+                "after_action_index": [
+                  5,
+                  6
+                ],
+                "trigger_if": {
+                  "chain_length_gte": 5
+                },
+                "weight": 0.9,
+                "notes": "Very punishing to long chains."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 4,
+              "critical_interrupt_on_margin_gte": 9
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": true,
+              "chain_length_gte": 6,
+              "bias": 0.55
+            },
+            "punish_movement": {
+              "enabled": false
+            },
+            "reward_perfect_defense": {
+              "enabled": true,
+              "notes": "Perfect defense should feel like 'turning the truck'."
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [
+                {
+                  "type": "off_balance",
+                  "chance": 0.3,
+                  "on": "hit",
+                  "notes": "Big hits shake stance."
+                }
+              ],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": []
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "stagger_2",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 1,
+              "notes": "Harder to finish cleanly even when Primed."
+            }
+          }
+        },
+        "ai": {
+          "archetype": "juggernaut",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.telegraphed_swing"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "chain_length_gte": 6
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.crush_punish"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.heavy_slam"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "archetype.stalker",
+      "description": "Exploits movement and late interrupts.",
+      "defaults": {
+        "rhythm_profile": {
+          "interrupt": {
+            "budget_per_round": 1,
+            "reserve_per_player_turn": 0,
+            "timing_bias": "late",
+            "windows": [
+              {
+                "after_action_index": [
+                  2,
+                  3
+                ],
+                "trigger_if": {
+                  "player_moved": true
+                },
+                "weight": 0.85,
+                "notes": "Highly reactive to movement."
+              }
+            ],
+            "margin_rules": {
+              "break_chain_on_margin_gte": 3,
+              "critical_interrupt_on_margin_gte": 7
+            }
+          },
+          "pressure": {
+            "punish_repeats": {
+              "enabled": false
+            },
+            "punish_long_chains": {
+              "enabled": false
+            },
+            "punish_movement": {
+              "enabled": true,
+              "bias": 0.45
+            },
+            "reward_perfect_defense": {
+              "enabled": false
+            }
+          },
+          "state_interactions": {
+            "balance": {
+              "inflicts": [],
+              "resists": []
+            },
+            "heat": {
+              "punish_heat": [],
+              "bait_heat": []
+            },
+            "momentum": {
+              "suppresses": [],
+              "feeds": [
+                {
+                  "type": "momentum_feed",
+                  "chance": 0.2,
+                  "on": "player_moved",
+                  "notes": "Stalker keeps pace / sticks close."
+                }
+              ]
+            },
+            "resolve": {
+              "drain": []
+            }
+          },
+          "primed_and_execute": {
+            "primed_conditions_used": [
+              "vulnerable_3",
+              "hp_le_25"
+            ],
+            "execute_resistance": {
+              "dv_bonus_if_primed": 0
+            }
+          }
+        },
+        "ai": {
+          "archetype": "stalker",
+          "behavior_script": {
+            "opening": [
+              {
+                "type": "move",
+                "ref": "move.mark_prey"
+              }
+            ],
+            "default_loop": [
+              {
+                "type": "conditional",
+                "if": {
+                  "player_moved": true
+                },
+                "then": [
+                  {
+                    "type": "move",
+                    "ref": "move.hamstring"
+                  }
+                ]
+              },
+              {
+                "type": "move",
+                "ref": "move.bleed_cut"
+              }
+            ]
+          }
+        }
+      }
     }
   ],
-
   "globalRules": {
     "archetypesDoNotOverrideInvariants": true,
     "archetypesCannotGrantExtraInterrupts": true,

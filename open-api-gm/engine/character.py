@@ -37,7 +37,7 @@ def build_runtime_ability(ability, pool_map=None):
         "path": ability.get("path"),
         "tier": ability.get("tier", 0),
         "cooldown": ability.get("cooldown", 0) or 0,
-        "base_cooldown": ability.get("cooldown", 0) or 0,
+        "base_cooldown": ability.get("base_cooldown", 0) or 0,
         "cost": ability.get("cost", 0),
         "resource": ability.get("resource", "resolve"),
         "pool": pool,
@@ -87,7 +87,6 @@ def create_character(
     resolve_lookup = {a["name"]: a for a in resolve_data}
     validate(resolve_data, "Resolve abilities missing from canon")
 
-    core_resolves = [a for a in resolve_data if a.get("core")]
     validate(resolve_basic_choice is None or resolve_basic_choice in resolve_lookup, "Invalid resolve ability")
 
     # Tier 1 picks (can mix paths)
@@ -107,11 +106,7 @@ def create_character(
     for ability in core_abilities:
         runtime_abilities.append(build_runtime_ability(ability, pool_map))
 
-    # auto-add core resolve basics
-    for ability in core_resolves:
-        runtime_abilities.append(build_runtime_ability(ability, pool_map))
-
-    # selected resolve (may be non-core; skip if duplicate)
+    # selected resolve (skip if duplicate)
     if resolve_basic_choice:
         chosen_resolve = resolve_lookup[resolve_basic_choice]
         if chosen_resolve["name"] not in {a["name"] for a in runtime_abilities}:

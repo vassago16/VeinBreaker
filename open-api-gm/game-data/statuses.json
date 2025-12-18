@@ -1,0 +1,18 @@
+{
+  "schema_version": "status.v1",
+  "statuses": [
+    {
+      "id": "status.arcane_ward",
+      "name": "Arcane Ward",
+      "tags": ["shield", "arcane"],
+      "effects": [
+        {
+          "type": "shield",
+          "value": 1,
+          "duration_rounds": 1
+        }
+      ],
+      "notes": "Reduces the next incoming damage by 1. Intended to last up to 1 combat round."
+    }
+  ]
+}

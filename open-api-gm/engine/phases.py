@@ -19,8 +19,12 @@ def allowed_actions(state, phase_machine):
     return [a for a in actions if a != "narrate"]
 
 def tick_cooldowns(state):
+    current_round = state.get("phase", {}).get("round")
     for member in state.get("party", {}).get("members", []):
         for ability in member.get("abilities", []):
             cd = ability.get("cooldown", 0)
             if cd > 0:
-                ability["cooldown"] = max(0, cd - 1)
+                new_cd = max(0, cd - 1)
+                ability["cooldown"] = new_cd
+                if current_round is not None:
+                    ability["cooldown_round"] = current_round + new_cd if new_cd > 0 else current_round

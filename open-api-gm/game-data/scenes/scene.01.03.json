@@ -1,0 +1,46 @@
+{
+  "schema_version": "scene.v1",
+  "id": "scene.01.03",
+  "title": "env.goblin.camp",
+
+  "environment": {
+    "id": "env.goblin.camp"
+  },
+
+  "encounter": {
+  "monsters": [
+    { "id": "enemy.goblin.shieldbearer", "count": 2 }
+  ],
+  "traps": [
+    { }
+  ],
+  "hazards": [
+  ]
+},
+
+
+  "loot_table": [
+    "loot.vein_fragment.t1"
+  ],
+
+  "events": [
+    {
+      "id": "event.pressure_builds",
+      "trigger": { "type": "on_scene_start" },
+      "conditions": [],
+      "effects": [
+        {
+          "type": "emit_ui_event",
+          "event": {
+            "type": "narration",
+            "text": "The Goblins smell you. They lick their lips."
+          }
+        }
+      ]
+    }
+  ],
+
+  "completion_conditions": [
+    { "type": "all_enemies_defeated" }
+  ]
+}

@@ -41,5 +41,27 @@
         "punish_long_chains": { "enabled": true, "chain_length_gte": 4, "bias": 0.5 }
       }
     }
+  },
+
+  "interrupt_windows": [
+  {
+    "when": "before_link",
+    "if": { "type": "chain_index_at_least", "value": 1 },
+    "chance": 0.35,
+    "priority": 10
+  },
+  {
+    "when": "after_link",
+    "if": {
+      "type": "and",
+      "preds": [
+        { "type": "link_type_is", "value": "attack" },
+        { "type": "defender_resource_at_least", "resource": "rp", "value": 1 }
+      ]
+    },
+    "chance": 0.50,
+    "priority": 20
   }
+]
+
 }

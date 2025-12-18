@@ -9,8 +9,14 @@ def pick_enemy(state):
     pc = state.get("party", {}).get("members", [None])[0]
     tier = pc.get("tier", 1) if pc else 1
     candidates = [e for e in bestiary if e.get("tier") == tier]
+    multi_move = [e for e in candidates if len(e.get("moves", [])) > 1]
+    if multi_move:
+        candidates = multi_move
     if not candidates:
         candidates = bestiary
+        multi_move = [e for e in candidates if len(e.get("moves", [])) > 1]
+        if multi_move:
+            candidates = multi_move
     enemy_def = random.choice(candidates)
     # flatten to runtime enemy
     stat_block = enemy_def.get("stat_block", {}) or {}
@@ -25,10 +31,22 @@ def pick_enemy(state):
         "id": enemy_def.get("id", "enemy"),
         "name": enemy_def.get("name", "Enemy"),
         "hp": hp,
+        "hp_max": hp,
+        "dv_base": defense.get("dv_base", 0),
         "idf": defense.get("idf", 0),
         "momentum": 0,
         "attack_mod": enemy_def.get("attack_mod", 0),
         "tier": enemy_def.get("tier", tier),
+        "role": enemy_def.get("role"),
+        "rarity": enemy_def.get("rarity"),
+        "tags": enemy_def.get("tags", []),
+        "stat_block": stat_block,
+        "damage_profile": stat_block.get("damage_profile", {}) if isinstance(stat_block, dict) else {},
+        "moves": enemy_def.get("moves", []),
+        "lore": enemy_def.get("lore", {}),
+        "archetype_id": enemy_def.get("archetype_id"),
+        "resolved_archetype": enemy_def.get("resolved_archetype", {}),
+        "definition": enemy_def,
     }
 
 

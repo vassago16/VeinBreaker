@@ -1,2 +1,4 @@
 def validate(condition, message):
-    return condition, message
+    if not condition:
+        raise ValueError(message)
+    return True
