@@ -82,7 +82,7 @@ def on_chain_declared(state):
 
     
 
-def declare_chain(state, character, ability_names, resolve_spent=0, stabilize=False):
+def declare_chain(state, character, ability_names, resolve_spent=0, stabilize=False, execute=False):
     """
     Declares a chain. This is the ONLY legal way to do so.
     """
@@ -115,7 +115,8 @@ def declare_chain(state, character, ability_names, resolve_spent=0, stabilize=Fa
         "declared": True,
         "abilities": list(ability_names),
         "resolve_spent": total_resolve_cost,
-        "invalidated": False
+        "invalidated": False,
+        "execute": bool(execute),
     }
 
     return True, character["chain"]

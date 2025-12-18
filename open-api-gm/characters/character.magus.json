@@ -1,0 +1,23 @@
+{
+  "id": "character.magus",
+  "name": "magus",
+  "path": "spellforged",
+  "tier": 1,
+  "attributes": {
+    "POW": 8,
+    "AGI": 8,
+    "MND": 10,
+    "SPR": 8
+  },
+  "abilities": [
+    "core.basic_strike",
+    "core.basic_guard",
+    "core.focus_action",
+    "core.shift",
+    "spellforged.charge_bolt",
+    "spellforged.warding_pulse",
+    "spellforged.arcane_channel",
+    "spellforged.arcane_step",
+    "resolve_basic.disengage"
+  ]
+}

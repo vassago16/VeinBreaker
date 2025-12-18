@@ -363,16 +363,323 @@ footer {
     font-size: 11px;
   }
 
-  .ability-row .tags {
-    margin-top: 4px;
-    font-size: 10px;
-    color: var(--dim);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
+	  .ability-row .tags {
+	    margin-top: 4px;
+	    font-size: 10px;
+	    color: var(--dim);
+	    text-transform: uppercase;
+	    letter-spacing: 1px;
+	  }
 
-@keyframes chain-heartbeat {
-  0% {
+	  /* ===== SAFE ROOM OVERLAY ===== */
+
+	  .safe-room-overlay {
+	    position: fixed;
+	    inset: 0;
+	    z-index: 1900;
+	    background: rgba(0, 0, 0, 0.78);
+	    display: flex;
+	    align-items: center;
+	    justify-content: center;
+	  }
+
+	  .safe-room-overlay.hidden {
+	    display: none;
+	  }
+
+	  .safe-room-modal {
+	    width: min(860px, 92vw);
+	    max-height: 86vh;
+	    overflow: hidden;
+	    border: 1px solid rgba(158, 43, 37, 0.35);
+	    background: #0b0c0e;
+	    box-shadow: 0 0 0 1px rgba(158, 43, 37, 0.12), 0 18px 80px rgba(0, 0, 0, 0.6);
+	    display: flex;
+	    flex-direction: column;
+	  }
+
+	  .safe-room-header {
+	    display: flex;
+	    justify-content: space-between;
+	    align-items: baseline;
+	    padding: 12px 14px;
+	    border-bottom: 1px solid var(--line);
+	    letter-spacing: 2px;
+	    color: var(--fg);
+	  }
+
+	  .safe-room-header .vein {
+	    color: var(--dim);
+	    font-size: 12px;
+	  }
+
+	  .safe-room-body {
+	    padding: 12px 14px;
+	    overflow-y: auto;
+	  }
+
+	  .safe-room-character {
+	    color: var(--dim);
+	    font-size: 12px;
+	    margin-bottom: 12px;
+	    border: 1px solid var(--line);
+	    background: #101113;
+	    padding: 10px 12px;
+	  }
+
+	  .safe-room-shop .panel-title {
+	    font-size: 11px;
+	    letter-spacing: 2px;
+	    color: var(--dim);
+	    margin-bottom: 8px;
+	  }
+
+	  .safe-room-progression .panel-title {
+	    font-size: 11px;
+	    letter-spacing: 2px;
+	    color: var(--dim);
+	    margin-bottom: 8px;
+	  }
+
+	  .safe-room-progression-text {
+	    border: 1px solid var(--line);
+	    background: #101113;
+	    padding: 10px 12px;
+	    color: var(--dim);
+	    font-size: 12px;
+	    line-height: 1.35;
+	  }
+
+	  .safe-room-rest-result {
+	    margin-top: 8px;
+	    border: 1px solid rgba(158, 43, 37, 0.35);
+	    background: rgba(158, 43, 37, 0.08);
+	    padding: 10px 12px;
+	    color: var(--fg);
+	    font-size: 12px;
+	    line-height: 1.35;
+	  }
+
+	  .safe-room-rest-result.hidden {
+	    display: none;
+	  }
+
+	  /* ===== CHARACTER CREATE (reuses safe-room overlay) ===== */
+
+	  .character-create-panel.hidden {
+	    display: none;
+	  }
+
+	  .character-create-field {
+	    margin-top: 10px;
+	    border: 1px solid var(--line);
+	    background: #101113;
+	    padding: 10px 12px;
+	  }
+
+	  .character-create-field .label {
+	    font-size: 10px;
+	    letter-spacing: 2px;
+	    color: var(--dim);
+	    margin-bottom: 6px;
+	  }
+
+	  .character-create-input {
+	    width: 100%;
+	    background: #0b0c0e;
+	    border: 1px solid rgba(158, 43, 37, 0.35);
+	    color: var(--fg);
+	    padding: 8px 10px;
+	    outline: none;
+	  }
+
+	  .character-create-buttons {
+	    display: flex;
+	    flex-wrap: wrap;
+	    gap: 8px;
+	    margin: 10px 0 14px;
+	  }
+
+	  .safe-room-offer {
+	    border: 1px solid var(--line);
+	    background: #101113;
+	    padding: 10px 12px;
+	    margin-bottom: 8px;
+	  }
+
+	  .safe-room-offer .row {
+	    display: flex;
+	    justify-content: space-between;
+	    gap: 12px;
+	    align-items: baseline;
+	  }
+
+	  .safe-room-offer .name {
+	    color: var(--fg);
+	  }
+
+	  .safe-room-offer .meta {
+	    color: var(--dim);
+	    font-size: 12px;
+	    white-space: nowrap;
+	  }
+
+	  .safe-room-offer .desc {
+	    margin-top: 6px;
+	    color: var(--dim);
+	    font-size: 12px;
+	    line-height: 1.35;
+	  }
+
+	  .safe-room-offer button {
+	    margin-top: 10px;
+	    background: none;
+	    border: 1px solid rgba(158, 43, 37, 0.55);
+	    color: var(--fg);
+	    padding: 6px 10px;
+	    cursor: pointer;
+	  }
+
+	  .safe-room-offer button:disabled {
+	    opacity: 0.45;
+	    cursor: not-allowed;
+	  }
+
+	  .safe-room-actions {
+	    display: flex;
+	    justify-content: space-between;
+	    gap: 10px;
+	    padding: 12px 14px;
+	    border-top: 1px solid var(--line);
+	    background: #0b0c0e;
+	    flex-shrink: 0;
+	  }
+
+	  .safe-room-actions button.secondary {
+	    border-color: var(--line);
+	    color: var(--dim);
+	  }
+
+	  /* ===== ENEMY BADGES ===== */
+
+	  .monster-badges {
+	    display: flex;
+	    align-items: center;
+	    gap: 8px;
+	  }
+
+	  .enemy-badge {
+	    border: 1px solid rgba(229, 75, 75, 0.65);
+	    color: #e54b4b;
+	    background: rgba(229, 75, 75, 0.08);
+	    padding: 3px 8px;
+	    font-size: 10px;
+	    letter-spacing: 0.25em;
+	    text-transform: uppercase;
+	  }
+
+	  .enemy-badge.hidden {
+	    display: none;
+	  }
+
+	  /* ===== START MENU (slide-up) ===== */
+
+	  .start-menu {
+	    position: fixed;
+	    left: 0;
+	    right: 0;
+	    bottom: 0;
+	    z-index: 1950;
+	    display: flex;
+	    justify-content: center;
+	    pointer-events: none;
+	  }
+
+	  .start-menu.hidden {
+	    display: none;
+	  }
+
+	  .start-sheet {
+	    width: min(720px, 94vw);
+	    border: 1px solid rgba(158, 43, 37, 0.35);
+	    background: #0b0c0e;
+	    box-shadow: 0 0 0 1px rgba(158, 43, 37, 0.12), 0 18px 80px rgba(0, 0, 0, 0.6);
+	    transform: translateY(110%);
+	    transition: transform 0.22s ease-out;
+	    padding: 14px 16px;
+	    pointer-events: auto;
+	  }
+
+	  .start-menu.active .start-sheet {
+	    transform: translateY(0);
+	  }
+
+	  .start-title {
+	    letter-spacing: 3px;
+	    font-size: 12px;
+	    color: var(--fg);
+	    margin-bottom: 6px;
+	  }
+
+	  .start-sub {
+	    color: var(--dim);
+	    font-size: 12px;
+	    margin-bottom: 12px;
+	  }
+
+	  .start-actions {
+	    display: flex;
+	    gap: 10px;
+	    flex-wrap: wrap;
+	  }
+
+	  .start-actions button {
+	    background: none;
+	    border: 1px solid rgba(158, 43, 37, 0.55);
+	    color: var(--fg);
+	    padding: 8px 10px;
+	    cursor: pointer;
+	  }
+
+	  .start-actions button.secondary {
+	    border-color: var(--line);
+	    color: var(--dim);
+	  }
+
+	  .load-character-panel {
+	    margin-top: 12px;
+	    padding-top: 12px;
+	    border-top: 1px solid var(--line);
+	  }
+
+	  .load-character-panel.hidden {
+	    display: none;
+	  }
+
+	  #character-list {
+	    display: flex;
+	    flex-direction: column;
+	    gap: 8px;
+	  }
+
+	  .character-row {
+	    border: 1px solid var(--line);
+	    background: #101113;
+	    padding: 8px 10px;
+	    display: flex;
+	    justify-content: space-between;
+	    gap: 10px;
+	    cursor: pointer;
+	  }
+
+	  .character-row .meta {
+	    color: var(--dim);
+	    font-size: 12px;
+	    white-space: nowrap;
+	  }
+
+		@keyframes chain-heartbeat {
+		  0% {
     box-shadow:
       0 0 0 0 rgba(158, 43, 37, 0.12),
       inset 0 0 0 0 rgba(158, 43, 37, 0.08);
@@ -766,6 +1073,71 @@ footer {
   color: var(--fg);
 }
 
+/* ===== EXECUTE WINDOW ===== */
+
+#execute-window {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42vh;
+  background: linear-gradient(to top, #0b0c0e, #0f1114);
+  border-top: 2px solid var(--accent);
+  z-index: 1150;
+  transform: translateY(100%);
+  transition: transform 0.22s ease-out;
+}
+
+#execute-window.active {
+  transform: translateY(0);
+}
+
+#execute-window.hidden {
+  display: none;
+}
+
+.execute-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  letter-spacing: 2px;
+  font-size: 11px;
+  color: var(--fg);
+  border-bottom: 1px solid var(--line);
+}
+
+.execute-body {
+  padding: 12px 14px;
+  color: var(--fg);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.execute-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  text-align: right;
+}
+
+.execute-footer button {
+  background: none;
+  border: 1px solid rgba(158, 43, 37, 0.55);
+  color: var(--fg);
+  padding: 6px 12px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.execute-footer button.secondary {
+  border-color: var(--line);
+  color: var(--dim);
+}
+
+.execute-footer button:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
 /* ===== INTERRUPTED OVERLAY ===== */
 .interrupt-overlay {
   position: fixed;
@@ -1104,6 +1476,46 @@ footer {
   100% { transform: translateX(0); }
 }
 
+/* ===== RP (CHAIN BUILDER) ===== */
+.rp-panel {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-panel.hidden {
+  display: none;
+}
+
+.rp-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: #b0b8c2;
+}
+
+.rp-pips {
+  display: flex;
+  gap: 4px;
+}
+
+.rp-pip {
+  width: 8px;
+  height: 8px;
+  background: #3a3f45;
+  border-radius: 1px;
+}
+
+.rp-pip.active {
+  background: rgba(158, 43, 37, 0.9);
+}
+
+.rp-text {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--dim);
+}
+
   /* ===== Narration Container ===== */
 
     #narration-wrapper {
@@ -1218,6 +1630,9 @@ footer {
       <div class="monster-top">
         <div class="monster-name" id="enemy-name">ENEMY</div>
         <div class="monster-meta" id="enemy-meta"></div>
+        <div class="monster-badges">
+          <span id="enemy-primed" class="enemy-badge hidden">PRIMED</span>
+        </div>
       </div>
 
       <div class="monster-meters">
@@ -1313,10 +1728,18 @@ footer {
         <div id="balance-pips" class="balance-pips"></div>
       </div>
 
-      <div class="chain-actions">
-        <button id="chain-commit" onclick="submitChain()">COMMIT CHAIN</button>
-        <button class="secondary" onclick="clearChain()">CLEAR</button>
+      <!-- RP (shown during chain build) -->
+      <div id="rp-panel" class="rp-panel hidden">
+        <span class="rp-label">RP</span>
+        <div id="rp-pips" class="rp-pips"></div>
+        <div id="rp-text" class="rp-text">0/0</div>
       </div>
+
+	      <div class="chain-actions">
+	        <button id="chain-commit" onclick="submitChain()">COMMIT CHAIN</button>
+	        <button id="chain-execute" class="secondary hidden" onclick="toggleExecute()">EXECUTE</button>
+	        <button class="secondary" onclick="clearChain()">CLEAR</button>
+	      </div>
 
       <div class="chain-hint" id="chain-hint">Tip: click a filled slot to remove it.</div>
     </div>
@@ -1337,6 +1760,18 @@ footer {
   </div>
 </div>
 
+<!-- EXECUTE WINDOW -->
+<div id="execute-window" class="execute-window hidden" aria-live="polite">
+  <div class="execute-header">
+    <span>EXECUTION WINDOW</span>
+  </div>
+  <div id="execute-body" class="execute-body"></div>
+  <div class="execute-footer">
+    <button class="secondary" onclick="executeNo()">NO — LET IT BLEED</button>
+    <button onclick="executeYes()">YES — TAKE THE MARK</button>
+  </div>
+</div>
+
 <!-- INTERRUPTED OVERLAY -->
 <div id="interrupt-overlay" class="interrupt-overlay hidden">
   <div class="interrupt-text">INTERRUPTED</div>
@@ -1348,9 +1783,9 @@ footer {
   <button class="result-continue" onclick="continueAfterCombat()">CONTINUE</button>
 </div>
 
-<!-- LOOT OVERLAY -->
-<div id="loot-overlay" class="loot-overlay hidden" aria-hidden="true">
-  <div class="loot-modal">
+	<!-- LOOT OVERLAY -->
+	<div id="loot-overlay" class="loot-overlay hidden" aria-hidden="true">
+	  <div class="loot-modal">
     <div class="loot-title">
       <div class="loot-h">SPOILS</div>
       <div class="loot-sub" id="loot-sub">Claim what the Dungeon allows.</div>
@@ -1362,15 +1797,83 @@ footer {
       <button id="loot-take-all" onclick="takeAllLoot()">TAKE ALL</button>
       <button class="secondary" onclick="continueFromLoot()">CONTINUE</button>
     </div>
-  </div>
-</div>
+	  </div>
+	</div>
 
-<script>
-const API = "http://localhost:8000/step"; // adjust if needed
-const EVENTS_API = "http://localhost:8000/events";
-const CHARACTER_API = "http://localhost:8000/character";
-const sessionId = crypto.randomUUID();
-document.body.classList.add("chain-pulse");
+	<!-- SAFE ROOM OVERLAY -->
+	<div id="safe-room-overlay" class="safe-room-overlay hidden" aria-hidden="true">
+	  <div class="safe-room-modal">
+	    <div class="safe-room-header">
+	      <div class="title">SAFE ROOM</div>
+	      <div class="vein">VEIN <span id="safe-room-vein">0</span></div>
+	    </div>
+
+	    <div class="safe-room-body">
+	      <div class="safe-room-character" id="safe-room-character"></div>
+
+	      <section class="safe-room-progression">
+	        <div class="panel-title">PROGRESSION</div>
+	        <div id="safe-room-progression" class="safe-room-progression-text"></div>
+	        <div id="safe-room-rest-result" class="safe-room-rest-result hidden"></div>
+	      </section>
+
+	      <section id="character-create-panel" class="character-create-panel hidden">
+	        <div class="panel-title">NEW CHARACTER</div>
+	        <div class="character-create-field">
+	          <div class="label">NAME</div>
+	          <input id="character-create-name" class="character-create-input" type="text" value="New Blood" />
+	        </div>
+
+	        <div class="panel-title">PATH</div>
+	        <div id="character-create-paths" class="character-create-buttons"></div>
+
+	        <div class="panel-title">RESOLVE ABILITY (PICK 1)</div>
+	        <div id="character-create-rp" class="character-create-buttons"></div>
+	      </section>
+
+	      <section class="safe-room-shop">
+	        <div class="panel-title">AVAILABLE UPGRADES</div>
+	        <div id="safe-room-offers"></div>
+	      </section>
+	    </div>
+
+	    <div class="safe-room-actions">
+	      <button id="safe-room-rest" onclick="safeRoomRest()">STOP &amp; REST</button>
+	      <button class="secondary" id="safe-room-continue" onclick="safeRoomContinue()">CONTINUE</button>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- START MENU (slide-up) -->
+	<div id="start-menu" class="start-menu hidden" aria-hidden="true">
+	  <div class="start-sheet">
+	    <div class="start-title">BEGIN</div>
+	    <div class="start-sub">Choose how you enter the vein.</div>
+
+	    <div class="start-actions">
+	      <button onclick="startNewCharacter()">START NEW CHARACTER</button>
+	      <button class="secondary" onclick="openLoadCharacter()">LOAD CHARACTER</button>
+	      <button onclick="startWithDefault()">START WITH DEFAULT</button>
+	    </div>
+
+	    <div id="load-character-panel" class="load-character-panel hidden" aria-hidden="true">
+	      <div class="panel-title">AVAILABLE PROFILES</div>
+	      <div id="character-list"></div>
+	      <div class="load-actions">
+	        <button class="secondary" onclick="closeLoadCharacter()">BACK</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	<script>
+	const API = "http://localhost:8000/step"; // adjust if needed
+	const EVENTS_API = "http://localhost:8000/events";
+	const CHARACTER_API = "http://localhost:8000/character";
+	const CHARACTERS_API = "http://localhost:8000/characters";
+	const SELECT_CHARACTER_API = "http://localhost:8000/character/select";
+	const sessionId = crypto.randomUUID();
+	document.body.classList.add("chain-pulse");
 
 const log = document.getElementById("log");
 const combatLog = document.getElementById("combat-log");
@@ -1391,6 +1894,9 @@ let hasUnreadSignals = false;
 let characterState = null;
 let enemyState = null;
 let abilityById = new Map();
+let pendingCombatResult = null;
+let combatResultDelayUntil = 0;
+let combatResultDelayTimer = null;
 const HEAT_CAP = 8;
 const MOMENTUM_MAX = 8;
 
@@ -1409,19 +1915,303 @@ function clearChoices() {
 }
 
 async function sendStep(payload) {
-  const res = await fetch(API, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ session_id: sessionId, ...payload })
-  });
+  try {
+    const body = { session_id: sessionId, ...payload };
+    console.debug("[sendStep]", body);
 
-  const events = await res.json();
-  handleEvents(events);
+    const res = await fetch(API, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
+    }
+
+    const events = await res.json();
+    handleEvents(events);
+    return events;
+  } catch (err) {
+    console.error("sendStep failed", err);
+    addEntry(`sendStep failed: ${err?.message || err}`, "error");
+    return [];
+  }
 }
 
 async function sendChoice(index) {
   clearChoices();
   await sendStep({ choice: index });
+}
+
+function openSafeRoomScreen(ev) {
+  const overlay = document.getElementById("safe-room-overlay");
+  const veinEl = document.getElementById("safe-room-vein");
+  const chEl = document.getElementById("safe-room-character");
+  const progEl = document.getElementById("safe-room-progression");
+  const restEl = document.getElementById("safe-room-rest-result");
+  const offersEl = document.getElementById("safe-room-offers");
+  if (!overlay || !veinEl || !chEl || !offersEl || !progEl || !restEl) return;
+
+  // Ensure other overlays don't steal focus.
+  closeChainBuilder();
+  clearChoices();
+
+  window.__safeRoomMode = ev?.mode || "safe_room";
+  window.__characterCreateStage = ev?.stage || null;
+
+  const veinscore = Number(ev?.character?.veinscore ?? 0);
+  veinEl.textContent = String(veinscore);
+
+  const cname = ev?.character?.name ?? "—";
+  const ctier = ev?.character?.tier ?? "—";
+  chEl.textContent = `${cname} · Tier ${ctier}`;
+
+  const spent = Number(ev?.character?.veins_spent_total ?? ev?.progression?.veins_spent_total ?? 0);
+  const nextTier = ev?.progression?.next_tier ?? null;
+  const nextAt = ev?.progression?.next_unlock_at ?? null;
+  const remaining = ev?.progression?.remaining ?? null;
+  if (nextTier && nextAt != null) {
+    progEl.textContent = `Vein spent total: ${spent} · Next tier (T${nextTier}) unlocks at ${nextAt} (need ${remaining}).`;
+  } else {
+    progEl.textContent = `Vein spent total: ${spent} · Max tier unlocked.`;
+  }
+
+  const rest = ev?.rest_result ?? null;
+  if (rest && rest.hp && rest.rp) {
+    const hp = rest.hp;
+    const rp = rest.rp;
+    const pools = rest.pools || {};
+    const poolBits = Object.keys(pools).map(k => `${k} ${pools[k].before}→${pools[k].after}`).join(" · ");
+    restEl.textContent = `REST RESULTS — HP ${hp.before}→${hp.after}/${hp.max} · RP ${rp.before}→${rp.after}/${rp.cap}` + (poolBits ? ` · ${poolBits}` : "");
+    restEl.classList.remove("hidden");
+  } else {
+    restEl.classList.add("hidden");
+  restEl.textContent = "";
+  }
+
+  offersEl.innerHTML = "";
+  const offers = ev?.shop?.offers || [];
+  offers.forEach(off => {
+    const div = document.createElement("div");
+    div.className = "safe-room-offer";
+    const cost = Number(off.cost ?? 1);
+    const canAfford = veinscore >= cost;
+
+    div.innerHTML = `
+      <div class="row">
+        <div class="name">${off.name}</div>
+        <div class="meta">T${off.tier ?? "?"} · ${off.path ?? ""} · COST ${cost}</div>
+      </div>
+      ${off.effect ? `<div class="desc">${off.effect}</div>` : ""}
+      <button ${canAfford ? "" : "disabled"}>BUY</button>
+    `;
+
+    const btn = div.querySelector("button");
+    if (btn) {
+      const act = (window.__safeRoomMode === "character_create") ? "character_create_buy" : "safe_room_buy";
+      btn.onclick = () => sendStep({ action: act, ability: off.id });
+    }
+    offersEl.appendChild(div);
+  });
+
+  // Character creation extras (reuses the safe room overlay).
+  const cc = document.getElementById("character-create-panel");
+  const nameInput = document.getElementById("character-create-name");
+  const pathsEl = document.getElementById("character-create-paths");
+  const rpEl = document.getElementById("character-create-rp");
+  const restBtn = document.getElementById("safe-room-rest");
+  const contBtn = document.getElementById("safe-room-continue");
+
+  if (cc && nameInput && pathsEl && rpEl && restBtn && contBtn) {
+    const isCC = window.__safeRoomMode === "character_create";
+    cc.classList.toggle("hidden", !isCC);
+
+    if (isCC) {
+      // Re-label buttons for creation.
+      restBtn.classList.add("hidden");
+      contBtn.textContent = "BEGIN";
+
+      nameInput.value = String(ev?.character?.name ?? "New Blood");
+
+      const stage = window.__characterCreateStage || "choose_path";
+      const create = ev?.create || {};
+      const paths = create.paths || [];
+      const rps = create.rp_abilities || [];
+
+      pathsEl.innerHTML = "";
+      rpEl.innerHTML = "";
+
+      paths.forEach(p => {
+        const b = document.createElement("button");
+        b.className = "choice";
+        b.textContent = p.label || p.id;
+        b.onclick = () => sendStep({ action: "character_create_path", path: p.id });
+        pathsEl.appendChild(b);
+      });
+
+      if (stage === "choose_rp" || stage === "shop") {
+        rps.forEach(a => {
+          const b = document.createElement("button");
+          b.className = "choice secondary";
+          b.textContent = a.name || a.id;
+          b.onclick = () => sendStep({ action: "character_create_rp", rp_ability: a.id });
+          rpEl.appendChild(b);
+        });
+      }
+
+      contBtn.disabled = stage !== "shop";
+      contBtn.onclick = async () => {
+        const nm = String(nameInput.value || "").trim();
+        await sendStep({ action: "character_create_finish", name: nm });
+        closeSafeRoomScreen();
+      };
+    } else {
+      restBtn.classList.remove("hidden");
+      contBtn.disabled = false;
+      contBtn.textContent = "CONTINUE";
+    }
+  }
+
+  overlay.classList.remove("hidden");
+  overlay.setAttribute("aria-hidden", "false");
+}
+
+function closeSafeRoomScreen() {
+  const overlay = document.getElementById("safe-room-overlay");
+  if (!overlay) return;
+  overlay.classList.add("hidden");
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+async function safeRoomRest() {
+  const mode = window.__safeRoomMode || "safe_room";
+  if (mode === "safe_room") {
+    await sendStep({ action: "safe_room_rest" });
+  }
+}
+
+async function safeRoomContinue() {
+  closeSafeRoomScreen();
+  const mode = window.__safeRoomMode || "safe_room";
+  if (mode === "safe_room") {
+    await sendStep({ action: "safe_room_continue" });
+  }
+}
+
+function openStartMenu() {
+  const menu = document.getElementById("start-menu");
+  if (!menu) return;
+  menu.classList.remove("hidden");
+  menu.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => menu.classList.add("active"));
+}
+
+function closeStartMenu() {
+  const menu = document.getElementById("start-menu");
+  if (!menu) return;
+  menu.classList.remove("active");
+  setTimeout(() => {
+    menu.classList.add("hidden");
+    menu.setAttribute("aria-hidden", "true");
+  }, 220);
+}
+
+async function startNewCharacter() {
+  closeStartMenu();
+  await sendStep({ action: "new_character_begin" });
+}
+
+async function openLoadCharacter() {
+  const panel = document.getElementById("load-character-panel");
+  const list = document.getElementById("character-list");
+  if (!panel || !list) return;
+  panel.classList.remove("hidden");
+  panel.setAttribute("aria-hidden", "false");
+  list.innerHTML = "Loading...";
+
+  try {
+    const res = await fetch(CHARACTERS_API);
+    const chars = await res.json();
+    list.innerHTML = "";
+
+    (chars || []).forEach(c => {
+      const row = document.createElement("div");
+      row.className = "character-row";
+      row.innerHTML = `
+        <div class="name">${c.name ?? c.id}</div>
+        <div class="meta">${c.path ?? ""} · T${c.tier ?? "?"}</div>
+      `;
+      row.onclick = async () => {
+        await fetch(SELECT_CHARACTER_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ character_id: c.id })
+        });
+        await startGame();
+      };
+      list.appendChild(row);
+    });
+
+    if (!chars || !chars.length) {
+      list.innerHTML = "<div class='entry system'>No profiles found.</div>";
+    }
+  } catch (e) {
+    console.error("load characters failed", e);
+    list.innerHTML = "<div class='entry error'>Failed to load profiles.</div>";
+  }
+}
+
+function closeLoadCharacter() {
+  const panel = document.getElementById("load-character-panel");
+  if (!panel) return;
+  panel.classList.add("hidden");
+  panel.setAttribute("aria-hidden", "true");
+}
+
+async function startWithDefault() {
+  await startGame();
+}
+
+async function startGame() {
+  closeLoadCharacter();
+  closeStartMenu();
+
+  // Kick the backend session.
+  await sendStep({ action: "start" });
+
+  // Seed the character panel catalog from /character (abilities + ids).
+  try {
+    const res = await fetch(CHARACTER_API);
+    const ch = await res.json();
+    characterState = ch;
+    abilityById = new Map();
+    if (Array.isArray(ch?.abilities)) {
+      ch.abilities.forEach(ab => {
+        if (!ab) return;
+        const id = ab.id || ab.name;
+        if (!id) return;
+        abilityById.set(id, { ...ab, id });
+      });
+    }
+    updateCharacterUI(characterState);
+    renderAbilitiesPanel(characterState);
+  } catch (e) {
+    console.error("Failed to fetch /character", e);
+  }
+}
+
+async function loadIntroText() {
+  try {
+    const res = await fetch("ui/introtext.md");
+    if (!res.ok) return;
+    const md = await res.text();
+    const blocks = md.split(/\r?\n\r?\n/).map(s => s.trim()).filter(Boolean);
+    blocks.forEach(b => appendNarration(b));
+  } catch {
+    // ignore
+  }
 }
 
 function clearNarration() {
@@ -1623,6 +2413,71 @@ async function skipInterrupt() {
   await sendStep({ action: "interrupt_skip" });
 }
 
+// EXECUTE WINDOW UI
+let executeResizeBound = false;
+
+function positionExecuteWindow() {
+  const win = document.getElementById("execute-window");
+  const main = document.getElementById("main");
+  if (!win || !main) return;
+  const rect = main.getBoundingClientRect();
+  win.style.left = `${Math.round(rect.left)}px`;
+  win.style.width = `${Math.round(rect.width)}px`;
+  win.style.right = "auto";
+}
+
+function bindExecuteResize() {
+  if (executeResizeBound) return;
+  executeResizeBound = true;
+  window.addEventListener("resize", () => {
+    const win = document.getElementById("execute-window");
+    if (!win) return;
+    if (!win.classList.contains("hidden")) {
+      positionExecuteWindow();
+    }
+  });
+}
+
+function openExecuteWindow(text, enemyName) {
+  clearChoices();
+  try { closeChainBuilder(); } catch (e) { /* ignore */ }
+
+  const win = document.getElementById("execute-window");
+  const body = document.getElementById("execute-body");
+  if (!win || !body) return;
+
+  bindExecuteResize();
+  positionExecuteWindow();
+  try { flashInterrupt(); } catch (e) { /* ignore */ }
+
+  const who = enemyName ? String(enemyName) : "The target";
+  body.textContent = text || `${who} is primed. Execute?`;
+
+  win.classList.remove("hidden");
+  win.classList.add("active");
+  requestAnimationFrame(() => win.classList.add("active"));
+}
+
+function closeExecuteWindow() {
+  const win = document.getElementById("execute-window");
+  if (!win) return;
+  win.classList.remove("active");
+  setTimeout(() => win.classList.add("hidden"), 220);
+  win.style.left = "";
+  win.style.right = "";
+  win.style.width = "";
+}
+
+async function executeYes() {
+  closeExecuteWindow();
+  await sendStep({ action: "execute_yes" });
+}
+
+async function executeNo() {
+  closeExecuteWindow();
+  await sendStep({ action: "execute_no" });
+}
+
 function showCombatResult(result) {
   const overlay = document.getElementById("combat-result-overlay");
   const text = document.getElementById("combat-result-text");
@@ -1660,6 +2515,7 @@ function renderEnemyCard(enemy) {
 
   const nameEl = document.getElementById("enemy-name");
   const metaEl = document.getElementById("enemy-meta");
+  const primedEl = document.getElementById("enemy-primed");
   if (nameEl) nameEl.textContent = (enemy.name || "ENEMY").toUpperCase();
 
   const parts = [];
@@ -1668,6 +2524,7 @@ function renderEnemyCard(enemy) {
   if (enemy.dv_base !== undefined && enemy.dv_base !== null) parts.push(`DV ${enemy.dv_base}`);
   if (enemy.idf !== undefined && enemy.idf !== null) parts.push(`IDF ${enemy.idf}`);
   if (metaEl) metaEl.textContent = parts.join(" · ");
+  if (primedEl) primedEl.classList.toggle("hidden", !enemy.primed);
 
   const hp = enemy.hp || {};
   const hpCur = Number(hp.current ?? hp.hp ?? 0);
@@ -1860,6 +2717,35 @@ function clearBalance() {
   panel.classList.add("hidden");
 }
 
+function updateRPPanel() {
+  const panel = document.getElementById("rp-panel");
+  const host = document.getElementById("rp-pips");
+  const text = document.getElementById("rp-text");
+  if (!panel || !host || !text) return;
+
+  const rp = characterState?.rp;
+  const cur = (typeof rp === "object" && rp) ? Number(rp.current ?? 0) : Number(rp ?? 0);
+  const cap = (typeof rp === "object" && rp) ? Number(rp.cap ?? cur) : Number(cur);
+
+  host.innerHTML = "";
+  panel.classList.remove("hidden");
+  text.textContent = `${cur}/${cap}`;
+
+  const total = Math.max(0, Math.min(12, cap)); // keep it sane visually
+  for (let i = 0; i < total; i++) {
+    const pip = document.createElement("div");
+    pip.className = "rp-pip";
+    if (i < cur) pip.classList.add("active");
+    host.appendChild(pip);
+  }
+}
+
+function clearRPPanel() {
+  const panel = document.getElementById("rp-panel");
+  if (!panel) return;
+  panel.classList.add("hidden");
+}
+
 function renderAbilitiesPanel(character) {
   const host = document.getElementById("abilities-list");
   host.innerHTML = "";
@@ -1969,8 +2855,28 @@ function handleEvents(events) {
       case "enemy_update":
         applyEnemyUpdate(ev.enemy);
         break;
+      case "safe_room_enter":
+        openSafeRoomScreen(ev);
+        break;
       case "combat_result":
-        showCombatResult(ev.result);
+        {
+          const r = String(ev.result || "").toLowerCase();
+          const now = Date.now();
+          const delayActive = r !== "defeat" && combatResultDelayUntil && now < combatResultDelayUntil;
+
+          if (delayActive) {
+            pendingCombatResult = ev.result;
+            if (combatResultDelayTimer) clearTimeout(combatResultDelayTimer);
+            combatResultDelayTimer = setTimeout(() => {
+              showCombatResult(pendingCombatResult);
+              pendingCombatResult = null;
+              combatResultDelayUntil = 0;
+              combatResultDelayTimer = null;
+            }, Math.max(0, combatResultDelayUntil - Date.now()));
+          } else {
+            showCombatResult(ev.result);
+          }
+        }
         break;
       case "loot_screen":
         openLootScreen(ev.items || [], ev.summary);
@@ -1994,6 +2900,44 @@ function handleEvents(events) {
         flashInterrupt();
         openInterruptWindow(ev.abilities, ev.timeout ?? null);
         break;
+      case "execute_window":
+        openExecuteWindow(ev.text, ev.enemy);
+        break;
+      case "execution_failed":
+        {
+          const label = ev.catastrophic ? "EXECUTION SHATTERED" : "EXECUTION FAILED";
+          showInterruptOverlay(1800, label);
+          logCombat(ev.text || label, "damage");
+        }
+        break;
+      case "enemy_executed":
+        {
+          const label = ev.enemy ? `${String(ev.enemy).toUpperCase()} EXECUTED` : (ev.text || "ENEMY EXECUTED");
+          showInterruptOverlay(1000, label);
+          combatResultDelayUntil = Date.now() + 1000;
+
+          if (pendingCombatResult) {
+            if (combatResultDelayTimer) clearTimeout(combatResultDelayTimer);
+            combatResultDelayTimer = setTimeout(() => {
+              showCombatResult(pendingCombatResult);
+              pendingCombatResult = null;
+              combatResultDelayUntil = 0;
+              combatResultDelayTimer = null;
+            }, 1000);
+          }
+        }
+        break;
+      case "execution_available":
+        executionAvailable = true;
+        updateExecuteUI();
+        break;
+      case "visceral_attack":
+        {
+          const label = "VISCERAL ATTACK";
+          showInterruptOverlay(1800, label);
+          if (ev.text) logCombat(ev.text, "attack");
+        }
+        break;
       case "declare_chain":
         chainAbilities = ev.abilities || [];
         maxChainLength = Math.max(ev.maxLength ?? 6, 6);
@@ -2002,6 +2946,9 @@ function handleEvents(events) {
           maxEl.textContent = String(maxChainLength);
         }
         chain = [];
+        executionAvailable = false;
+        executionRequested = false;
+        updateExecuteUI();
         renderAbilities(chainAbilities);
         renderChain();
         renderChainRules(ev.chainRules);
@@ -2049,36 +2996,13 @@ function applyCharacterUpdate(delta) {
 
   updateCharacterUI(characterState);
   renderAbilitiesPanel(characterState);
+  updateRPPanel();
 }
 
-// initial kick
-fetch(API, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    session_id: sessionId,
-    action: "start"
-  })
-})
-  .then(res => res.json())
-  .then(handleEvents);
-
-fetch(CHARACTER_API)
-  .then(res => res.json())
-  .then(ch => {
-    characterState = ch;
-    abilityById = new Map();
-    if (Array.isArray(ch?.abilities)) {
-      ch.abilities.forEach(ab => {
-        if (!ab) return;
-        const id = ab.id || ab.name;
-        if (!id) return;
-        abilityById.set(id, { ...ab, id });
-      });
-    }
-    updateCharacterUI(characterState);
-    renderAbilitiesPanel(characterState);
-  });
+// initial boot: show intro + start menu (do not start the backend yet)
+loadIntroText().finally(() => {
+  openStartMenu();
+});
 
 async function pollEvents() {
   try {
@@ -2099,22 +3023,29 @@ async function pollEvents() {
 
 setInterval(pollEvents, 12000000);
 
-// CHAIN BUILDER STATE AND HELPERS
-let chainAbilities = []; // from backend event
-let chain = [];
-let maxChainLength = 6;
+	// CHAIN BUILDER STATE AND HELPERS
+	let chainAbilities = []; // from backend event
+	let chain = [];
+	let maxChainLength = 6;
+	let executionAvailable = false;
+	let executionRequested = false;
 
-function openChainBuilder() {
-  clearChoices();
-  document.body.classList.add("chain-active");
-  document.body.classList.add("chain-pulse-active");
-  const ov = document.getElementById("chain-overlay");
-  ov.classList.remove("hidden");
-  ov.setAttribute("aria-hidden", "false");
-}
+	function openChainBuilder() {
+	  clearChoices();
+	  document.body.classList.add("chain-active");
+	  document.body.classList.add("chain-pulse-active");
+	  const ov = document.getElementById("chain-overlay");
+	  ov.classList.remove("hidden");
+	  ov.setAttribute("aria-hidden", "false");
+	  // Declare-chain UI should show RP (not Balance) while drafting.
+	  try { clearBalance(); } catch (e) { /* ignore */ }
+	  updateRPPanel();
+	  executionRequested = false;
+	  updateExecuteUI();
+	}
 
-function closeChainBuilder() {
-  const ov = document.getElementById("chain-overlay");
+	function closeChainBuilder() {
+	  const ov = document.getElementById("chain-overlay");
 
   // 1. MOVE FOCUS FIRST
   const narration = document.getElementById("narration");
@@ -2126,27 +3057,64 @@ function closeChainBuilder() {
   }
 
   // 2. THEN hide visually + semantically
-  document.body.classList.remove("chain-active");
-  document.body.classList.remove("chain-pulse-active");
-  ov.classList.add("hidden");
-  ov.setAttribute("aria-hidden", "true");
+	  document.body.classList.remove("chain-active");
+	  document.body.classList.remove("chain-pulse-active");
+	  ov.classList.add("hidden");
+	  ov.setAttribute("aria-hidden", "true");
+	  clearRPPanel();
+	  executionRequested = false;
+	  updateExecuteUI();
+	}
+
+function updateExecuteUI() {
+  const btn = document.getElementById("chain-execute");
+  if (!btn) return;
+  if (!executionAvailable) {
+    btn.classList.add("hidden");
+    btn.textContent = "EXECUTE";
+    return;
+  }
+  btn.classList.remove("hidden");
+
+  const rpCur = (typeof characterState?.rp === "object" && characterState?.rp) ? (characterState.rp.current ?? 0) : (characterState?.rp ?? 0);
+  const hasRp = Number(rpCur) >= 1;
+  const hasAttack = (chain || []).some(a => String(a?.type || "").toLowerCase() === "attack");
+  btn.disabled = !(hasRp && hasAttack);
+
+  if (!btn.disabled && executionRequested) {
+    btn.textContent = "EXECUTE ✓";
+    return;
+  }
+  if (btn.disabled) {
+    executionRequested = false;
+  }
+  btn.textContent = executionRequested ? "EXECUTE ✓" : "EXECUTE";
 }
+
+	function toggleExecute() {
+	  if (!executionAvailable) return;
+	  executionRequested = !executionRequested;
+	  updateExecuteUI();
+	}
 
 
 function clearChain() {
   chain = [];
   renderChain();
+  updateExecuteUI();
 }
 
 function removeFromChain(i) {
   chain.splice(i, 1);
   renderChain();
+  updateExecuteUI();
 }
 
 function addToChain(ability) {
   if (chain.length >= maxChainLength) return;
   chain.push(ability);
   renderChain();
+  updateExecuteUI();
 }
 
 function abilityIsUsable(ab) {
@@ -2228,7 +3196,8 @@ async function submitChain() {
   log.innerHTML = "";
   await sendStep({
     action: "declare_chain",
-    chain: ids
+    chain: ids,
+    execute: executionRequested ? true : undefined
   });
 }
 

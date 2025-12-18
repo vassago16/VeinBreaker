@@ -1,7 +1,7 @@
 {
   "schema_version": "scene.v1",
-  "id": "scene.01.03",
-  "title": "Vein Narrows",
+  "id": "scene.01.04",
+  "title": "Safe Room",
 
   "environment": {
     "id": "env.safe.room"

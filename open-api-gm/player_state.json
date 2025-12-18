@@ -1,44 +1,64 @@
 {
-  "character_id": "character.new_blood",
+  "character_id": "character.hym_of_blood",
   "resources": {
-    "hp": 28,
+    "hp": 20,
     "hp_max": 28,
-    "resolve": 5,
+    "resolve": 2,
     "resolve_cap": 5,
     "idf": 0
   },
   "pools": {
-    "martial": 7,
-    "shadow": 7,
-    "magic": 7,
-    "faith": 4
+    "martial": 4,
+    "shadow": 4,
+    "magic": 4,
+    "faith": 5
   },
   "marks": {
     "blood": 0,
-    "duns": 0
+    "duns": 1
   },
-  "veinscore": 10,
+  "veinscore": 12,
+  "veins_spent_total": 1,
   "cooldowns": {
     "core.basic_strike": {
-      "cooldown": 0
+      "cooldown": 0,
+      "base_cooldown": 0
     },
     "core.basic_guard": {
-      "cooldown": 0
+      "cooldown": 0,
+      "base_cooldown": 0
     },
     "core.focus_action": {
-      "cooldown": 0
+      "cooldown": 0,
+      "base_cooldown": 0
     },
     "core.shift": {
-      "cooldown": 0
+      "cooldown": 0,
+      "base_cooldown": 0
     },
-    "resolve_basic.disengage": {
-      "cooldown": 0
+    "canticle.gleam_strike": {
+      "cooldown": 0,
+      "base_cooldown": 1
     },
-    "stonepulse.pulse_strike": {
-      "cooldown": 0
+    "canticle.oathbound_guard": {
+      "cooldown": 0,
+      "base_cooldown": 1
     },
-    "spellforged.arcane_step": {
-      "cooldown": 0
+    "canticle.hymn_of_embers": {
+      "cooldown": 0,
+      "base_cooldown": 1
+    },
+    "canticle.radiant_glide": {
+      "cooldown": 0,
+      "base_cooldown": 1
+    },
+    "resolve_basic.balance_surge": {
+      "cooldown": 0,
+      "base_cooldown": 1
+    },
+    "spellforged.arcane_channel": {
+      "cooldown": 0,
+      "base_cooldown": 1
     }
   }
 }

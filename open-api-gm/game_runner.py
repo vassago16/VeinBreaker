@@ -28,10 +28,10 @@ class Game:
         """
         import play
 
+        # Web/UI is step-driven: do not auto-run `start_game()` on first request.
+        # The client decides whether to `action: start` or enter character creation.
         if not self.started:
             self.started = True
-            play.start_game(self.context)
-            return
 
         play.game_step(self.context, player_input)
 
