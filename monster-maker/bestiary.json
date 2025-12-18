@@ -32,7 +32,7 @@
       },
       "stat_block": {
         "hp": {
-          "max": 10
+          "max": 2
         },
         "defense": {
           "dv_base": 10,

@@ -26,8 +26,8 @@
         "notes_gm": "Teaches chain discipline."
       },
       "stat_block": {
-        "hp": { "max": 10 },
-        "defense": { "dv_base": 10, "idf": 0 },
+        "hp": { "max": 5 },
+        "defense": { "dv_base": 5, "idf": 0 },
         "damage_profile": {
           "baseline": { "dice": "1d4", "flat": -1 },
           "spike": { "dice": "1d4", "flat": 0 }

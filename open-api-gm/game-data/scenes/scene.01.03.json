@@ -1,6 +1,6 @@
 {
   "schema_version": "scene.v1",
-  "id": "scene.01.02",
+  "id": "scene.01.03",
   "title": "Vein Narrows",
 
   "environment": {
@@ -9,13 +9,12 @@
 
   "encounter": {
   "monsters": [
-    { "id": "enemy.brumklin.lurker", "count": 2 }
+    { "id": "enemy.goblin.shieldbearer", "count": 2 }
   ],
   "traps": [
-    { "id": "trap.hematite_spike", "count": 1 }
+    { }
   ],
   "hazards": [
-    "hazard.bloodslick"
   ]
 },
 
@@ -34,7 +33,7 @@
           "type": "emit_ui_event",
           "event": {
             "type": "narration",
-            "text": "The vein tightens around you. Every step pulls wet stone closer."
+            "text": "The Goblins smell you. They lick their lips."
           }
         }
       ]

@@ -6,7 +6,7 @@ import pdb
 import random
 
 
-from engine.chain_resolution_engine import ChainResolutionEngine
+from engine.chain_resolution_engine import ChainResolutionEngine, ChainResult
 from engine.interrupt_policy import EnemyWindowPolicy, PlayerPromptPolicy
 
 
@@ -421,9 +421,16 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         chain_names = list(enemy.get("chain", {}).get("abilities", []))
 
     if not chain_names:
-        ui.system("No chain declared.")
-        state["phase"]["current"] = "chain_declaration"
-        return True
+        # A chain of length 0 is a deliberate choice (brace/endure).
+        if isinstance(aggressor.get("chain"), dict) and aggressor["chain"].get("declared"):
+            emit_combat_log(ui, f"{aggressor.get('name','Combatant')} declares an empty chain.", "system")
+            result = ChainResult("completed", "empty_chain", 0)
+            # Treat as resolved without running the engine; proceed to the same cleanup/swap logic.
+            state.pop("suppress_chain_interrupt", None)
+        else:
+            ui.system("No chain declared.")
+            state["phase"]["current"] = "chain_declaration"
+            return True
 
     # ─────────────────────────────────────────
     # Interrupt policy selection (DEFENDER-based)
@@ -438,16 +445,21 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
     # ─────────────────────────────────────────
     # Chain Resolution Engine
     # ─────────────────────────────────────────
-    cre = ChainResolutionEngine(
-        roll_fn=roll,
-        resolve_action_step_fn=resolve_action_step,
-        apply_action_effects_fn=apply_action_effects,
-        interrupt_policy=interrupt_policy,
-        emit_log_fn=emit_combat_log,
-        interrupt_apply_fn=apply_interrupt,
-    )
+    cre = None
+    if not chain_names:
+        # result was created above for empty-chain and we skip engine resolution.
+        pass
+    else:
+        cre = ChainResolutionEngine(
+            roll_fn=roll,
+            resolve_action_step_fn=resolve_action_step,
+            apply_action_effects_fn=apply_action_effects,
+            interrupt_policy=interrupt_policy,
+            emit_log_fn=emit_combat_log,
+            interrupt_apply_fn=apply_interrupt,
+        )
 
-    ui.system(f"{aggressor.get('name','Combatant')} resolves a chain...")
+        ui.system(f"{aggressor.get('name','Combatant')} resolves a chain...")
 
     # ── Combat log round/chain banners (helps readability) ─────────────────────
     try:
@@ -470,15 +482,16 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
     except Exception:
         pass
 
-    result = cre.resolve_chain(
-        state=state,
-        ui=ui,
-        aggressor=aggressor,
-        defender=defender,
-        chain_ability_names=chain_names,
-        defender_group=enemies if defender is enemy else [player],
-        dv_mode="per_chain",
-    )
+    if cre is not None:
+        result = cre.resolve_chain(
+            state=state,
+            ui=ui,
+            aggressor=aggressor,
+            defender=defender,
+            chain_ability_names=chain_names,
+            defender_group=enemies if defender is enemy else [player],
+            dv_mode="per_chain",
+        )
 
     if getattr(result, "status", None) == "awaiting":
         # Pause and wait for next /step to resolve the player's interrupt decision.
@@ -903,6 +916,27 @@ def build_victory_loot(game_data: dict, enemy: dict | None = None) -> list[dict]
     Minimal loot generator for the web loot overlay.
     Picks a few items from game-data/loot.json by tier, falling back gracefully.
     """
+    # Prefer scene-authored loot_table (IDs pointing at game-data/loot/<id>.json).
+    scene = None
+    try:
+        scene = enemy.get("_scene") if isinstance(enemy, dict) else None
+    except Exception:
+        scene = None
+
+    # In practice we keep the scene on state; callers should pass enemy only for tier fallback.
+    # So we accept an optional state-like dict via game_data["__scene"] as a pragmatic bridge.
+    if isinstance((game_data or {}).get("__scene"), dict):
+        scene = game_data["__scene"]
+
+    if isinstance(scene, dict) and isinstance(scene.get("loot_table"), list) and scene["loot_table"]:
+        items: list[dict] = []
+        for loot_id in scene["loot_table"]:
+            if not isinstance(loot_id, str):
+                continue
+            items.append(resolve_loot_item(loot_id))
+        return [it for it in items if isinstance(it, dict) and it]
+
+    # Fallback: pick a couple items from the compiled loot table by tier.
     loot_all = (game_data or {}).get("loot", [])
     if not isinstance(loot_all, list) or not loot_all:
         return []
@@ -946,12 +980,141 @@ def apply_loot_to_player(state: dict, items: list[dict]) -> None:
         for eff in it.get("effects", []) or []:
             if not isinstance(eff, dict):
                 continue
-            if eff.get("type") == "grant_veinscore":
+            if eff.get("type") in {"grant_veinscore", "add_veinscore"}:
                 try:
-                    delta = int(eff.get("value") or 0)
+                    delta = int(eff.get("value") or eff.get("amount") or 0)
                 except Exception:
                     delta = 0
                 res["veinscore"] = int(res.get("veinscore", 0) or 0) + delta
+
+
+def apply_dun_mark_and_restore(state: dict) -> None:
+    party = state.get("party", {}) if isinstance(state.get("party"), dict) else {}
+    members = party.get("members", []) if isinstance(party.get("members"), list) else []
+    if not members or not isinstance(members[0], dict):
+        return
+    player = members[0]
+
+    # Mark
+    marks = player.get("marks")
+    if not isinstance(marks, dict):
+        marks = {}
+        player["marks"] = marks
+    marks["duns"] = int(marks.get("duns", 0) or 0) + 1
+
+    # Restore HP to max
+    res = player.get("resources")
+    if not isinstance(res, dict):
+        res = {}
+        player["resources"] = res
+    hp_max = res.get("hp_max") or res.get("max_hp") or res.get("maxHp")
+    if hp_max is None:
+        hp_val = player.get("hp")
+        if isinstance(hp_val, dict):
+            hp_max = hp_val.get("max")
+        else:
+            hp_max = player.get("hp_max") or player.get("max_hp") or player.get("maxHp")
+    try:
+        hp_max = int(hp_max or 0)
+    except Exception:
+        hp_max = 0
+    if hp_max <= 0:
+        hp_max = int(res.get("hp", 0) or 28)
+    res["hp"] = hp_max
+    res["hp_max"] = hp_max
+    # Keep dict hp mirror if present
+    if isinstance(player.get("hp"), dict):
+        player["hp"]["current"] = hp_max
+        player["hp"]["max"] = int(player["hp"].get("max") or hp_max)
+
+
+def resolve_loot_item(loot_id: str) -> dict:
+    path = Path(__file__).parent / "game-data" / "loot" / f"{loot_id}.json"
+    data = _read_json(path)
+    if isinstance(data, dict) and data:
+        data.setdefault("id", loot_id)
+        return data
+    return {"id": loot_id, "name": loot_id}
+
+
+def resolve_narration_template(prompt_id: str) -> str | None:
+    """
+    Reads game-data/narrations.json which may be a single object or a list of objects.
+    """
+    path = Path(__file__).parent / "game-data" / "narrations.json"
+    data = _read_json(path)
+    if isinstance(data, dict) and data.get("id") == prompt_id:
+        return data.get("template")
+    if isinstance(data, dict) and isinstance(data.get("items"), list):
+        for it in data["items"]:
+            if isinstance(it, dict) and it.get("id") == prompt_id:
+                return it.get("template")
+    if isinstance(data, list):
+        for it in data:
+            if isinstance(it, dict) and it.get("id") == prompt_id:
+                return it.get("template")
+    return None
+
+
+def scene_conditions_pass(conditions: list, state: dict) -> bool:
+    if not conditions:
+        return True
+    metrics = state.get("scene_metrics", {}) if isinstance(state.get("scene_metrics"), dict) else {}
+    for cond in conditions:
+        if not isinstance(cond, dict):
+            continue
+        ctype = cond.get("type")
+        if ctype == "player_no_damage":
+            if int(metrics.get("damage_taken", 0) or 0) != 0:
+                return False
+    return True
+
+
+def apply_scene_complete_events(ctx: dict) -> dict:
+    """
+    Applies on_scene_complete events and returns a reward summary payload:
+      {"narration": str|None, "achievements": [..]}
+    """
+    state = ctx["state"]
+    scene = state.get("scene") if isinstance(state.get("scene"), dict) else {}
+    if not isinstance(scene, dict):
+        return {}
+    rewards: dict = {"achievements": []}
+
+    events = scene.get("events", []) if isinstance(scene.get("events"), list) else []
+    for ev in events:
+        if not isinstance(ev, dict):
+            continue
+        trig = ev.get("trigger", {}) if isinstance(ev.get("trigger"), dict) else {}
+        if trig.get("type") != "on_scene_complete":
+            continue
+        if not scene_conditions_pass(ev.get("conditions", []) or [], state):
+            continue
+        for eff in ev.get("effects", []) or []:
+            if not isinstance(eff, dict):
+                continue
+            et = eff.get("type")
+            if et == "award_achievement":
+                aid = eff.get("id")
+                if aid:
+                    rewards["achievements"].append(aid)
+            if et == "narration_prompt":
+                pid = eff.get("id")
+                if pid:
+                    txt = resolve_narration_template(pid)
+                    if txt:
+                        rewards["narration"] = txt
+
+    # Persist achievements to state
+    if rewards.get("achievements"):
+        state.setdefault("achievements", [])
+        if isinstance(state["achievements"], list):
+            for a in rewards["achievements"]:
+                if a not in state["achievements"]:
+                    state["achievements"].append(a)
+
+    state["scene_rewards"] = rewards
+    return rewards
 
 def format_status_summary(entity):
     statuses = entity.get("statuses", {}) or {}
@@ -1050,11 +1213,21 @@ def load_game_data():
             data["level_table"] = json.loads(level_table_path.read_text(encoding="utf-8")).get("levels", [])
         except Exception:
             data["level_table"] = []
+    statuses_path = root / "statuses.json"
+    if statuses_path.exists():
+        try:
+            sj = json.loads(statuses_path.read_text(encoding="utf-8"))
+            statuses = sj.get("statuses", []) if isinstance(sj, dict) else []
+            data["statuses"] = statuses if isinstance(statuses, list) else []
+        except Exception:
+            data["statuses"] = []
     bestiary = []
     bestiary_path = root / "bestiary.json"
     if bestiary_path.exists():
         try:
             bj = json.loads(bestiary_path.read_text(encoding="utf-8"))
+            if isinstance(bj, dict) and isinstance(bj.get("meta"), dict):
+                data["bestiary_meta"] = bj["meta"]
             bestiary.extend(bj.get("enemies", []))
         except Exception:
             pass
@@ -1087,7 +1260,287 @@ def load_game_data():
 
     data["archetypes"] = archetypes
     data["bestiary"] = [resolve_enemy_archetype(e) for e in bestiary]
+    # Hybrid overlay: build a fast ID lookup where later entries override earlier ones.
+    enemy_by_id = {}
+    for e in data["bestiary"]:
+        if not isinstance(e, dict):
+            continue
+        eid = e.get("id")
+        if not eid:
+            continue
+        enemy_by_id[eid] = e
+    data["enemy_by_id"] = enemy_by_id
     return data
+
+
+DEFAULT_SCRIPT_PATH = Path(__file__).parent / "game-data" / "scripts" / "script.echoes.json"
+
+
+def load_script(path: Path | None = None) -> dict:
+    path = path or DEFAULT_SCRIPT_PATH
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def script_scene_ids(script: dict) -> list[str]:
+    acts = script.get("acts", []) if isinstance(script, dict) else []
+    if not isinstance(acts, list):
+        return []
+    # Sort by "order" if present, otherwise keep file order.
+    def _order(a):
+        try:
+            return int(a.get("order", 0) or 0)
+        except Exception:
+            return 0
+    ordered = sorted([a for a in acts if isinstance(a, dict)], key=_order)
+    scene_ids: list[str] = []
+    for act in ordered:
+        for s in act.get("scenes", []) or []:
+            if isinstance(s, dict) and "$ref" in s:
+                scene_ids.append(str(s["$ref"]))
+            elif isinstance(s, str):
+                scene_ids.append(s)
+    # De-dupe while preserving order.
+    out: list[str] = []
+    seen = set()
+    for sid in scene_ids:
+        if sid in seen:
+            continue
+        seen.add(sid)
+        out.append(sid)
+    return out
+
+
+def ensure_campaign(state: dict, game_data: dict) -> None:
+    """
+    Initializes a simple linear campaign (script.echoes.json) into state["campaign"].
+    """
+    if isinstance(state.get("campaign"), dict) and state["campaign"].get("scene_ids"):
+        return
+    script = load_script()
+    scene_ids = script_scene_ids(script)
+    state["campaign"] = {
+        "script_id": script.get("id", "script.echoes"),
+        "scene_ids": scene_ids,
+        "index": 0,
+    }
+
+
+def _read_json(path: Path) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def load_scene(scene_id: str) -> dict:
+    path = Path(__file__).parent / "game-data" / "scenes" / f"{scene_id}.json"
+    return _read_json(path)
+
+
+def resolve_trap(trap_id: str) -> dict:
+    path = Path(__file__).parent / "game-data" / "traps" / f"{trap_id}.json"
+    data = _read_json(path)
+    return data or {"id": trap_id}
+
+
+def resolve_hazard(hazard_id: str) -> dict:
+    path = Path(__file__).parent / "game-data" / "hazards" / f"{hazard_id}.json"
+    data = _read_json(path)
+    return data or {"id": hazard_id}
+
+
+def resolve_environment(env_id: str) -> dict:
+    path = Path(__file__).parent / "game-data" / "environments" / f"{env_id}.json"
+    data = _read_json(path)
+    return data or {"id": env_id}
+
+
+def _prime_enemy_for_combat(enemy: dict) -> dict:
+    """
+    Ensure an enemy object has runtime fields expected by the combat loop (hp/dv/idf).
+    """
+    if not isinstance(enemy, dict):
+        return {}
+    stat_block = enemy.get("stat_block") or {}
+    defense = stat_block.get("defense", {}) if isinstance(stat_block, dict) else {}
+
+    # HP
+    hp_max = None
+    hp_min = None
+    hp_variance_pct = None
+    try:
+        hp_def = (stat_block.get("hp", {}) or {}) if isinstance(stat_block, dict) else {}
+        hp_max = hp_def.get("max")
+        hp_min = hp_def.get("min")
+        hp_variance_pct = hp_def.get("variance_pct", hp_def.get("variance"))
+    except Exception:
+        hp_max = None
+    if hp_max is None:
+        hp_val = enemy.get("hp")
+        if isinstance(hp_val, dict):
+            hp_max = hp_val.get("max")
+        else:
+            hp_max = enemy.get("hp_max") or enemy.get("max_hp") or enemy.get("maxHp")
+    try:
+        hp_max = int(hp_max or 0)
+    except Exception:
+        hp_max = 0
+    if hp_max <= 0:
+        hp_max = 10
+
+    # Optional per-spawn HP randomization.
+    # - Prefer explicit hp.min/hp.max if provided in the data.
+    # - Otherwise allow a variance percentage around hp.max (±variance).
+    rng = enemy.get("_spawn_rng") if hasattr(enemy, "get") else None
+    if rng is None and isinstance(enemy, dict):
+        rng = enemy.get("_rng")
+    if rng is None:
+        rng = random
+
+    try:
+        hp_base_max = int(hp_max)
+        hp_spawn_min = None
+        hp_spawn_max = None
+        if hp_min is not None:
+            hp_spawn_min = int(hp_min)
+            hp_spawn_max = int(hp_base_max)
+        else:
+            v = hp_variance_pct
+            if v is None:
+                v = float(enemy.get("_hp_variance_pct", 0.0) or 0.0)
+            v = max(0.0, float(v))
+            if v > 0.0:
+                hp_spawn_min = max(1, int(round(hp_base_max * (1.0 - v))))
+                hp_spawn_max = max(1, int(round(hp_base_max * (1.0 + v))))
+
+        if hp_spawn_min is not None and hp_spawn_max is not None:
+            if hp_spawn_min > hp_spawn_max:
+                hp_spawn_min, hp_spawn_max = hp_spawn_max, hp_spawn_min
+            hp_spawn_max = int(rng.randint(int(hp_spawn_min), int(hp_spawn_max)))
+        else:
+            hp_spawn_max = int(hp_base_max)
+    except Exception:
+        hp_base_max = int(hp_max)
+        hp_spawn_max = int(hp_base_max)
+
+    enemy["_hp_base_max"] = hp_base_max
+    enemy["hp"] = {"current": hp_spawn_max, "max": hp_spawn_max}
+
+    # Defense
+    if enemy.get("dv_base") is None:
+        enemy["dv_base"] = defense.get("dv_base", 10)
+    if enemy.get("idf") is None:
+        enemy["idf"] = defense.get("idf", 0)
+
+    return enemy
+
+
+def enter_scene_into_state(ctx: dict, scene_id: str) -> bool:
+    """
+    Loads a scene and populates state with encounter content (enemies/traps/hazards/env).
+    Returns True if loaded.
+    """
+    state = ctx["state"]
+    ui = ctx["ui"]
+    game_data = ctx["game_data"]
+
+    scene = load_scene(scene_id)
+    if not scene or scene.get("id") != scene_id:
+        ui.error(f"Missing scene: {scene_id}")
+        return False
+
+    state["scene_id"] = scene_id
+    state["scene"] = scene
+    state.pop("scene_rewards", None)
+    state["scene_complete"] = False
+    state["active_combatant"] = "player"
+
+    # Initialize per-scene metrics
+    metrics_def = scene.get("metrics", {}) if isinstance(scene.get("metrics"), dict) else {}
+    track = metrics_def.get("track", []) if isinstance(metrics_def.get("track"), list) else []
+    scene_metrics: dict = {}
+    for k in track:
+        if isinstance(k, str):
+            scene_metrics[k] = 0
+    # Always track damage_taken for scene conditions.
+    scene_metrics.setdefault("damage_taken", 0)
+    state["scene_metrics"] = scene_metrics
+
+    env_id = ((scene.get("environment") or {}) if isinstance(scene.get("environment"), dict) else {}).get("id")
+    if env_id:
+        state["environment"] = resolve_environment(str(env_id))
+
+    encounter = scene.get("encounter", {}) if isinstance(scene.get("encounter"), dict) else {}
+    monsters = encounter.get("monsters", []) if isinstance(encounter.get("monsters"), list) else []
+    traps = encounter.get("traps", []) if isinstance(encounter.get("traps"), list) else []
+    hazards = encounter.get("hazards", []) if isinstance(encounter.get("hazards"), list) else []
+
+    # Enemies: resolve by id using hybrid overlay bestiary.
+    enemy_by_id = (game_data or {}).get("enemy_by_id", {})
+    meta = (game_data or {}).get("bestiary_meta", {}) if isinstance((game_data or {}).get("bestiary_meta"), dict) else {}
+    hp_rules = (meta.get("system_rules", {}) or {}).get("enemy_hp", {}) if isinstance((meta.get("system_rules", {}) or {}).get("enemy_hp", {}), dict) else {}
+    try:
+        default_hp_variance = float(hp_rules.get("variance_pct", 0.0) or 0.0)
+    except Exception:
+        default_hp_variance = 0.0
+    enemies = []
+    spawn_idx = 0
+    for m in monsters:
+        if not isinstance(m, dict):
+            continue
+        mid = m.get("id")
+        if not mid:
+            continue
+        try:
+            count = int(m.get("count", 1) or 1)
+        except Exception:
+            count = 1
+        template = enemy_by_id.get(mid) if isinstance(enemy_by_id, dict) else None
+        if not isinstance(template, dict):
+            template = {"id": mid, "name": mid}
+        for _ in range(max(1, count)):
+            inst = deepcopy(template)
+            # Per-spawn deterministic RNG (uses Random's stable string seeding for str inputs).
+            seed = state.get("seed")
+            r = random.Random()
+            r.seed(f"{seed}|{scene_id}|{mid}|{spawn_idx}")
+            inst["_spawn_rng"] = r
+            inst["_hp_variance_pct"] = default_hp_variance
+            enemies.append(_prime_enemy_for_combat(inst))
+            spawn_idx += 1
+    state["enemies"] = enemies
+
+    # Traps/hazards: per-file
+    state["traps"] = []
+    for t in traps:
+        if not isinstance(t, dict) or not t.get("id"):
+            continue
+        try:
+            count = int(t.get("count", 1) or 1)
+        except Exception:
+            count = 1
+        for _ in range(max(1, count)):
+            state["traps"].append(resolve_trap(str(t["id"])))
+
+    state["hazards"] = []
+    for h in hazards:
+        if isinstance(h, str):
+            state["hazards"].append(resolve_hazard(h))
+        elif isinstance(h, dict) and h.get("id"):
+            state["hazards"].append(resolve_hazard(str(h["id"])))
+
+    # UI surface: scene title + prime enemy HUD + choice to enter encounter.
+    title = scene.get("title", scene_id)
+    ui.scene(f"{title}")
+    if enemies:
+        emit_enemy_update(ui, state, enemies[0])
+    if not getattr(ui, "is_blocking", True):
+        ui.choice("Enter encounter?", ["enter_encounter"])
+        state["awaiting"] = {"type": "player_choice", "options": ["enter_encounter"]}
+    return True
 
 def select_loot(game_data, enemy):
     """
@@ -1217,6 +1670,7 @@ def compute_damage_reduction(target):
 
 def initial_state():
     return {
+        "seed": random.randint(1, 2**31 - 1),
         'phase': {
             'current': 'out_of_combat',
             'round': 0,
@@ -1424,7 +1878,15 @@ def handle_start_action(ctx, requested_action):
     state = ctx["state"]
     ui = ctx["ui"]
     if requested_action == "start" and not getattr(ui, "is_blocking", True):
-        reopen_chain_builder(state, ui, max_len=3)
+        ensure_campaign(state, ctx.get("game_data", {}))
+        camp = state.get("campaign", {}) if isinstance(state.get("campaign"), dict) else {}
+        scene_ids = camp.get("scene_ids", []) if isinstance(camp.get("scene_ids"), list) else []
+        idx = int(camp.get("index", 0) or 0)
+        if scene_ids and 0 <= idx < len(scene_ids):
+            enter_scene_into_state(ctx, scene_ids[idx])
+        else:
+            # Fallback to legacy flow if no script/scenes are available.
+            reopen_chain_builder(state, ui, max_len=3)
         return True
     return None
 
@@ -1435,14 +1897,32 @@ def handle_declare_chain_action(ctx, player_input, requested_action):
         return None
 
     chain_ids = player_input.get("chain") or []
+    # Player is explicitly declaring a chain; ensure turn ownership is correct for the upcoming resolution.
+    state["active_combatant"] = "player"
     awaiting = state.pop("awaiting", None) if state.get("awaiting", {}).get("type") == "chain_builder" else None
     usable = awaiting.get("options") if awaiting else usable_ability_objects(state)
     names = []
+    missing = []
     for cid in chain_ids:
         ab = next((a for a in usable if a.get("id") == cid or a.get("name") == cid), None)
         if ab and ab.get("name"):
             names.append(ab["name"])
+        else:
+            missing.append(cid)
+    # If the client sent IDs but none of them resolved, do NOT treat it as an empty-chain "pass".
+    if missing:
+        ui.error(f"Unknown abilities selected: {', '.join(str(m) for m in missing)}")
+        reopen_chain_builder(state, ui, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+        return True
     character = state["party"]["members"][0]
+    # Keep legacy character.resources and encounter combat meters in sync before and after declaration.
+    # Source of truth for RP is encounter combat meters when present.
+    res = character.setdefault("resources", {})
+    if "encounter" in state and character.get("_combat_key"):
+        rp_cur = combat_get(state, character, "rp", int(res.get("resolve", 0) or 0))
+        rp_cap = combat_get(state, character, "rp_cap", int(res.get("resolve_cap", rp_cur) or rp_cur))
+        res["resolve"] = int(rp_cur)
+        res["resolve_cap"] = int(rp_cap)
     ok, resp = declare_chain(
         state,
         character,
@@ -1455,6 +1935,32 @@ def handle_declare_chain_action(ctx, player_input, requested_action):
         emit_event(ui, {"type": "chain_rejected", "reason": resp})
         reopen_chain_builder(state, ui, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
         return True
+    if "encounter" in state and character.get("_combat_key"):
+        combat_set(state, character, "rp", int(res.get("resolve", 0) or 0))
+        combat_set(state, character, "rp_cap", int(res.get("resolve_cap", combat_get(state, character, "rp_cap", 0)) or 0))
+        # Push the RP change immediately in web mode (RP is spent at declaration time).
+        if not getattr(ui, "is_blocking", True):
+            hp_cur = res.get("hp")
+            hp_max = res.get("hp_max", res.get("max_hp", res.get("maxHp", hp_cur)))
+            emit_character_update(ui, {
+                "name": character.get("name"),
+                "hp": {"current": hp_cur, "max": hp_max},
+                "rp": combat_get(state, character, "rp", int(res.get("resolve", 0) or 0)),
+                "rp_cap": combat_get(state, character, "rp_cap", int(res.get("resolve_cap", 0) or 0)),
+                "veinscore": res.get("veinscore", 0),
+                "abilities": character.get("abilities", []),
+                "meters": {
+                    "momentum": combat_get(state, character, "momentum", int(res.get("momentum", 0) or 0)),
+                    "balance": combat_get(state, character, "balance", int(res.get("balance", 0) or 0)),
+                    "heat": combat_get(state, character, "heat", int(res.get("heat", 0) or 0)),
+                },
+            })
+    try:
+        metrics = state.get("scene_metrics", {})
+        if isinstance(metrics, dict):
+            metrics["chains_declared"] = int(metrics.get("chains_declared", 0) or 0) + 1
+    except Exception:
+        pass
     for ability in character.get("abilities", []):
         if ability.get("name") in names:
             cd = ability.get("base_cooldown", ability.get("cooldown", 0) or 0)
@@ -1586,22 +2092,94 @@ def game_step(ctx, player_input):
                 state.pop("encounter", None)
                 emit_combat_state(ui, False)
                 ui.system("Continuing...")
+                # Advance to next scripted scene (if any) and prompt to enter.
+                try:
+                    ensure_campaign(state, ctx.get("game_data", {}))
+                    camp = state.get("campaign", {}) if isinstance(state.get("campaign"), dict) else {}
+                    scene_ids = camp.get("scene_ids", []) if isinstance(camp.get("scene_ids"), list) else []
+                    idx = int(camp.get("index", 0) or 0) + 1
+                    if scene_ids and 0 <= idx < len(scene_ids):
+                        camp["index"] = idx
+                        state["campaign"] = camp
+                        enter_scene_into_state(ctx, scene_ids[idx])
+                        return True
+                except Exception:
+                    pass
                 if not getattr(ui, "is_blocking", True):
                     return game_step(ctx, {"action": "tick"})
                 return True
 
             # Re-emit loot screen if the UI polls/refreshes.
             items = state.get("loot_pending_items", [])
-            emit_event(ui, {"type": "loot_screen", "items": items if isinstance(items, list) else [], "summary": "Victory spoils."})
+            summary = "Victory spoils."
+            rewards = state.get("scene_rewards", {}) if isinstance(state.get("scene_rewards"), dict) else {}
+            if rewards.get("narration"):
+                summary = str(rewards["narration"])
+            emit_event(ui, {"type": "loot_screen", "items": items if isinstance(items, list) else [], "summary": summary})
+            return True
+
+        if requested_action == "defeat_continue":
+            # No loot on defeat; apply Dun mark, restore HP, and restart the current encounter.
+            apply_dun_mark_and_restore(state)
+
+            # Reset combat state and restart encounter in the same scene (no campaign advance).
+            state["combat_over"] = False
+            state.pop("awaiting", None)
+            state["loot_pending"] = False
+            state.pop("loot_pending_items", None)
+            state["scene_complete"] = False
+            emit_combat_state(ui, False)
+
+            # Reload the current scene to reset enemies/traps/hazards, then auto-enter encounter.
+            scene_id = state.get("scene_id")
+            if isinstance(scene_id, str) and scene_id:
+                enter_scene_into_state(ctx, scene_id)
+
+            # Auto-enter encounter and open chain builder immediately.
+            state["phase"]["current"] = "chain_declaration"
+            state["active_combatant"] = "player"
+            emit_combat_state(ui, True)
+            if state.get("enemies"):
+                emit_enemy_update(ui, state, state["enemies"][0])
+            try:
+                player = state.get("party", {}).get("members", [None])[0]
+                enemy = state.get("enemies", [None])[0] if state.get("enemies") else None
+                if player and enemy:
+                    register_participant(state, key="player", entity=player, side="player")
+                    register_participant(state, key="enemy0", entity=enemy, side="enemy")
+            except Exception:
+                pass
+
+            if not ctx.get("combat"):
+                ctx["combat"] = Combat(ctx, handle_chain_declaration, handle_chain_resolution, usable_ability_objects)
+            ctx["combat"].start()
+
+            ui.system("A Dun mark burns cold. You re-awaken.")
             return True
 
         if requested_action == "combat_loot":
             player = state.get("party", {}).get("members", [None])[0]
             enemy = state.get("enemies", [None])[0] if state.get("enemies") else None
-            items = build_victory_loot(game_data, enemy=enemy)
+            # Apply scene-complete events once on victory so loot can show the reward summary.
+            try:
+                scene = state.get("scene") if isinstance(state.get("scene"), dict) else None
+                if scene and state.get("scene_complete") and not state.get("scene_rewards"):
+                    apply_scene_complete_events(ctx)
+            except Exception:
+                pass
+
+            gd = dict(game_data or {})
+            if isinstance(state.get("scene"), dict):
+                gd["__scene"] = state["scene"]
+
+            items = build_victory_loot(gd, enemy=enemy)
             state["loot_pending"] = True
             state["loot_pending_items"] = items
-            emit_event(ui, {"type": "loot_screen", "items": items, "summary": "Victory spoils."})
+            summary = "Victory spoils."
+            rewards = state.get("scene_rewards", {}) if isinstance(state.get("scene_rewards"), dict) else {}
+            if rewards.get("narration"):
+                summary = str(rewards["narration"])
+            emit_event(ui, {"type": "loot_screen", "items": items, "summary": summary})
             return True
 
         if requested_action == "combat_continue":
@@ -1620,6 +2198,28 @@ def game_step(ctx, player_input):
         player_dead = _hp(player) <= 0 if player else False
         enemy_dead = _hp(enemy) <= 0 if enemy else False
         result = "defeat" if player_dead else "victory" if enemy_dead else "ended"
+        state["scene_complete"] = bool(enemy_dead)
+
+        if enemy_dead:
+            try:
+                scene = state.get("scene") if isinstance(state.get("scene"), dict) else None
+                if isinstance(scene, dict):
+                    scene_flags = scene.get("flags")
+                    if not isinstance(scene_flags, dict):
+                        scene_flags = {}
+                        scene["flags"] = scene_flags
+                    scene_flags["all_enemies_defeated"] = True
+            except Exception:
+                pass
+            try:
+                apply_scene_complete_events(ctx)
+            except Exception:
+                pass
+        if player_dead:
+            try:
+                ui.system("A Dun mark burns cold. You will re-awaken.")
+            except Exception:
+                pass
 
         emit_combat_state(ui, False)
         state["phase"]["current"] = "out_of_combat"
@@ -1692,6 +2292,7 @@ def game_step(ctx, player_input):
             player = state.get("party", {}).get("members", [None])[0]
             if choice == "enter_encounter" and player and enemy:
                 try:
+                    state["active_combatant"] = "player"
                     register_participant(state, key="player", entity=player, side="player")
                     register_participant(state, key="enemy0", entity=enemy, side="enemy")
                 except Exception:

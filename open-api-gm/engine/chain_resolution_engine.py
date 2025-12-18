@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional
 from engine.interrupt_policy import InterruptPolicy
 from engine.interrupt_windows import InterruptContext
 from engine.stats import stat_mod
-from engine.combat_state import combat_get, combat_set
+from engine.combat_state import combat_add, combat_get, combat_set, status_add
 from ui.events import emit_event, emit_resource_update
 
 
@@ -148,35 +148,96 @@ class ChainResolutionEngine:
         if isinstance(aggressor, dict) and aggressor.get("_combat_key"):
             combat_set(state, aggressor, "balance", 0)
 
-        # Roll attack ONCE per chain
-        attack_d20 = int(self.roll("1d20"))
+        def _lookup_action(name_or_id: str) -> Optional[Dict[str, Any]]:
+            a = next(
+                (x for x in aggressor.get("abilities", []) if x.get("name") == name_or_id or x.get("id") == name_or_id),
+                None,
+            )
+            if a:
+                return a
+            m = next(
+                (x for x in aggressor.get("moves", []) if x.get("name") == name_or_id or x.get("id") == name_or_id),
+                None,
+            )
+            return m
+
+        # Only roll if we have at least one non-movement link in this chain.
+        needs_roll = False
+        for n in chain_ability_names:
+            action = _lookup_action(n)
+            if not isinstance(action, dict):
+                continue
+            if (action.get("type") or "").lower() != "movement" and (action.get("resolution") or "").lower() != "movement":
+                needs_roll = True
+                break
+
         balance = combat_get(state, aggressor, "balance", _get_resource(aggressor, "balance", 0))
         heat = combat_get(state, aggressor, "heat", _get_resource(aggressor, "heat", 0))
         atk_tb = int(((aggressor.get("temp_bonuses") or {}).get("attack", 0)) or 0)
-        attack_total = int(attack_d20 + balance + heat + atk_tb)
+
+        # Roll attack ONCE per chain (movement-only chains do not roll).
+        attack_d20 = int(self.roll("1d20")) if needs_roll else 0
+        attack_total = int(attack_d20 + balance + heat + atk_tb) if needs_roll else 0
 
         if self.emit_log:
-            self.emit_log(
-                ui,
-                f"Aggressor d20: {attack_d20} (balance {balance}, heat {heat}, atk_bonus {atk_tb}) → attack_total {attack_total}",
-                "roll",
-            )
+            if needs_roll:
+                self.emit_log(
+                    ui,
+                    f"Aggressor d20: {attack_d20} (balance {balance}, heat {heat}, atk_bonus {atk_tb}) → attack_total {attack_total}",
+                    "roll",
+                )
 
         idx = 0
         while idx < len(chain_ability_names):
             name_or_id = chain_ability_names[idx]
-            ability = next(
-                (a for a in aggressor.get("abilities", []) if a.get("name") == name_or_id or a.get("id") == name_or_id),
-                None,
-            )
-            if not ability:
-                ability = next(
-                    (m for m in aggressor.get("moves", []) if m.get("name") == name_or_id or m.get("id") == name_or_id),
-                    None,
-                )
+            ability = _lookup_action(name_or_id)
             if not ability:
                 if self.emit_log:
                     self.emit_log(ui, f"Unknown action: {name_or_id}", "system")
+                idx += 1
+                continue
+
+            # Movement links: do not roll; apply resource/status deltas and continue.
+            if (ability.get("type") or "").lower() == "movement" or (ability.get("resolution") or "").lower() == "movement":
+                ab_name = ability.get("name") or ability.get("id") or name_or_id
+                delta = ability.get("resourceDelta") if isinstance(ability.get("resourceDelta"), dict) else {}
+                mom_delta = int(delta.get("momentum", 1) or 0) if isinstance(delta, dict) else 1
+                if mom_delta:
+                    combat_add(state, aggressor, "momentum", mom_delta)
+                # Status application (Arcane Ward and future statuses)
+                applied_statuses = []
+                effects = ability.get("effects", {}) if isinstance(ability.get("effects"), dict) else {}
+                on_use = effects.get("on_use", []) if isinstance(effects.get("on_use"), list) else []
+                for eff in on_use:
+                    if not isinstance(eff, dict):
+                        continue
+                    if eff.get("type") == "status":
+                        sname = eff.get("status") or eff.get("id")
+                        if not sname:
+                            continue
+                        stacks = int(eff.get("stacks", 1) or 1)
+                        # Hardcoded starter: Arcane Ward -> shield 1 for 1 round
+                        shield = 1 if str(sname).strip().lower() in {"arcane ward", "arcane_ward"} else 0
+                        status_add(state, aggressor, status=str(sname), stacks=stacks, duration_rounds=1, shield=shield)
+                        applied_statuses.append(str(sname))
+
+                if self.emit_log:
+                    bits = []
+                    if mom_delta:
+                        bits.append(f"+momentum {mom_delta}")
+                    if applied_statuses:
+                        bits.append("status " + ", ".join(applied_statuses))
+                    suffix = (" (" + "; ".join(bits) + ")") if bits else ""
+                    self.emit_log(ui, f"Link {idx + 1}:{ab_name} (movement){suffix}", "system")
+                try:
+                    emit_resource_update(
+                        ui,
+                        momentum=combat_get(state, aggressor, "momentum", _get_resource(aggressor, "momentum", 0)),
+                        balance=combat_get(state, aggressor, "balance", _get_resource(aggressor, "balance", 0)),
+                        heat=combat_get(state, aggressor, "heat", _get_resource(aggressor, "heat", 0)),
+                    )
+                except Exception:
+                    pass
                 idx += 1
                 continue
 
@@ -259,6 +320,16 @@ class ChainResolutionEngine:
             if after_hp < 0:
                 _set_hp(defender, 0)
                 after_hp = 0
+
+            # Scene metrics: track player damage taken.
+            try:
+                if isinstance(state, dict) and isinstance(defender, dict) and defender.get("_combat_key") == "player":
+                    if after_hp < before_hp:
+                        metrics = state.setdefault("scene_metrics", {})
+                        if isinstance(metrics, dict):
+                            metrics["damage_taken"] = int(metrics.get("damage_taken", 0) or 0) + int(before_hp - after_hp)
+            except Exception:
+                pass
 
             # Enemy HUD card: update enemy meters + HP each link.
             try:
@@ -361,6 +432,23 @@ class ChainResolutionEngine:
             ui.system("Interrupt fails.")
             return False
 
+        # Counter reward: if the PLAYER interrupts an ENEMY chain, grant +1 RP (clamped to cap).
+        try:
+            if isinstance(defender, dict) and isinstance(aggressor, dict):
+                if defender.get("_combat_key") == "player" and aggressor.get("_combat_key") == "enemy":
+                    rp_cap = combat_get(state, defender, "rp_cap", 0)
+                    rp_cur = combat_get(state, defender, "rp", 0)
+                    rp_new = rp_cur + 1
+                    if int(rp_cap or 0) > 0:
+                        rp_new = min(int(rp_cap), int(rp_new))
+                    combat_set(state, defender, "rp", int(rp_new))
+                    # UI: push an immediate rp update for the character panel.
+                    emit_event(ui, {"type": "character_update", "character": {"rp": {"current": int(rp_new), "cap": int(rp_cap or 0)}}})
+                    if self.emit_log:
+                        self.emit_log(ui, f"Counter reward: +1 RP ({int(rp_new)}/{int(rp_cap or 0)})", "system")
+        except Exception:
+            pass
+
         # UI signal: successful interrupt (flash + INTERRUPTED overlay)
         try:
             emit_event(ui, {"type": "interrupt"})
@@ -373,9 +461,18 @@ class ChainResolutionEngine:
 
         dmg = max(0, int(self.roll("1d4")))
         if dmg > 0:
-            _set_hp(aggressor, max(0, _get_hp(aggressor) - dmg))
+            before_hp = _get_hp(aggressor)
+            _set_hp(aggressor, max(0, before_hp - dmg))
             state["_last_damage"] = {"amount": dmg, "source": "interrupt", "by": defender.get("name")}
             ui.system(f"INTERRUPT hits for {dmg}.")
+            # Scene metrics: track player damage taken from interrupts.
+            try:
+                if isinstance(state, dict) and isinstance(aggressor, dict) and aggressor.get("_combat_key") == "player":
+                    metrics = state.setdefault("scene_metrics", {})
+                    if isinstance(metrics, dict):
+                        metrics["damage_taken"] = int(metrics.get("damage_taken", 0) or 0) + int(dmg)
+            except Exception:
+                pass
             if self.emit_log:
                 hp_now = _get_hp(aggressor)
                 max_hp = _get_hp_max(aggressor)

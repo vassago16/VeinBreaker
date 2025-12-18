@@ -1503,9 +1503,14 @@ function triggerInterruptFlash() {
   }, 180);
 }
 
-function showInterruptOverlay(duration = 1500) {
+function showInterruptOverlay(duration = 1500, text = "INTERRUPTED") {
   const overlay = document.getElementById("interrupt-overlay");
   if (!overlay) return;
+
+  const textEl = overlay.querySelector(".interrupt-text");
+  if (textEl && text) {
+    textEl.textContent = text;
+  }
 
   overlay.classList.remove("hidden");
   overlay.offsetHeight; // force reflow so transition fires
@@ -1614,12 +1619,17 @@ function showCombatResult(result) {
   if (!overlay || !text) return;
 
   const r = (result || "").toLowerCase();
+  window.__lastCombatResult = r;
   if (r === "defeat") {
-    text.textContent = "DEFEATED";
+    text.textContent = "BLOOD MARK (DUN)";
     overlay.classList.add("defeat");
+    const btn = overlay.querySelector(".result-continue");
+    if (btn) btn.textContent = "RE-AWAKEN";
   } else {
     text.textContent = "VICTORY";
     overlay.classList.remove("defeat");
+    const btn = overlay.querySelector(".result-continue");
+    if (btn) btn.textContent = "CONTINUE";
   }
 
   overlay.classList.remove("hidden");
@@ -1690,7 +1700,12 @@ async function continueAfterCombat() {
     overlay.classList.remove("active");
     setTimeout(() => overlay.classList.add("hidden"), 200);
   }
-  await sendStep({ action: "combat_loot" });
+  const r = (window.__lastCombatResult || "").toLowerCase();
+  if (r === "defeat") {
+    await sendStep({ action: "defeat_continue" });
+  } else {
+    await sendStep({ action: "combat_loot" });
+  }
 }
 
 function openLootScreen(items, summaryText) {
@@ -1710,12 +1725,13 @@ function openLootScreen(items, summaryText) {
     const row = document.createElement("div");
     row.className = "loot-item";
     const rarity = (it.rarity || "common").toUpperCase();
+    const desc = it.description || it.narration || "";
     row.innerHTML = `
       <div class="loot-item-top">
         <div class="loot-item-name">${it.name || it.id || "Unknown"}</div>
         <div class="loot-item-rarity">${rarity}</div>
       </div>
-      ${it.description ? `<div class="loot-item-desc">${it.description}</div>` : ""}
+      ${desc ? `<div class="loot-item-desc">${desc}</div>` : ""}
     `;
     host.appendChild(row);
   });
@@ -1754,16 +1770,17 @@ function updateCharacterUI(char) {
   }
   if (char.rp !== undefined) {
     const rpCur = (typeof char.rp === "object" && char.rp) ? (char.rp.current ?? 0) : char.rp;
-    charRp.textContent = rpCur;
+    const rpCap = (typeof char.rp === "object" && char.rp) ? char.rp.cap : undefined;
+    charRp.textContent = (rpCap !== undefined && rpCap !== null) ? `${rpCur}/${rpCap}` : String(rpCur);
   }
   if (char.veinscore !== undefined) {
     charVeinscore.textContent = char.veinscore;
   }
   if (char.attributes) {
-    statStr.textContent = char.attributes.str ?? "–";
-    statDex.textContent = char.attributes.dex ?? "–";
-    statInt.textContent = char.attributes.int ?? "–";
-    statWil.textContent = char.attributes.wil ?? "–";
+    statStr.textContent = char.attributes.str ?? "—";
+    statDex.textContent = char.attributes.dex ?? "—";
+    statInt.textContent = char.attributes.int ?? "—";
+    statWil.textContent = char.attributes.wil ?? "—";
   }
   renderAbilitiesPanel(char);
 }
@@ -1908,9 +1925,14 @@ function handleEvents(events) {
         break;
       case "resource_update":
       case "resources_update":
+        if (!characterState) characterState = {};
+        if (!characterState.meters) characterState.meters = {};
         if (ev.heat !== undefined) updateHeat(ev.heat);
         if (ev.momentum !== undefined) updateMomentum(ev.momentum, !!ev.shocked);
         if (ev.balance !== undefined) updateBalance(ev.balance);
+        if (ev.heat !== undefined) characterState.meters.heat = Number(ev.heat);
+        if (ev.momentum !== undefined) characterState.meters.momentum = Number(ev.momentum);
+        if (ev.balance !== undefined) characterState.meters.balance = Number(ev.balance);
         break;
       case "balance_update":
         if (ev.balance !== undefined) updateBalance(ev.balance);
@@ -1950,8 +1972,13 @@ function handleEvents(events) {
         }
         break;
       case "chain_interrupted":
-        showInterruptOverlay(1500);
-        logCombat(ev.text || "Chain interrupted!", "interrupt");
+        {
+          const msg = ev.text || "Chain interrupted!";
+          // If the enemy chain was interrupted (player countered), use a shorter label.
+          const label = msg.toLowerCase().includes("enemy chain") ? "COUNTERED" : "INTERRUPTED";
+          showInterruptOverlay(1500, label);
+          logCombat(msg, "interrupt");
+        }
         break;
       case "interrupt_window":
         flashInterrupt();
@@ -1993,6 +2020,12 @@ function applyCharacterUpdate(delta) {
   if (delta.hp !== undefined) characterState.hp = delta.hp;
   if (delta.rp !== undefined) characterState.rp = delta.rp;
   if (delta.veinscore !== undefined) characterState.veinscore = delta.veinscore;
+  if (delta.meters && typeof delta.meters === "object") {
+    characterState.meters = { ...(characterState.meters || {}), ...delta.meters };
+    if (delta.meters.heat !== undefined) updateHeat(delta.meters.heat);
+    if (delta.meters.momentum !== undefined) updateMomentum(delta.meters.momentum);
+    if (delta.meters.balance !== undefined) updateBalance(delta.meters.balance);
+  }
 
   if (Array.isArray(delta.abilities)) {
     delta.abilities.forEach(a => {

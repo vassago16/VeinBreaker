@@ -1338,7 +1338,7 @@
       "type": "movement",
       "cost": 1,
       "cooldown": 1,
-      "effect": "Gain Arcane Ward 1 (reduce next incoming dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
+      "effect": "Gain Arcane Ward 1 (reduce dmg by 1); if you cast a spell this round, Arcane Ward becomes 2; gain +1 Momentum.",
       "tags": [
         "spellforged",
         "movement",

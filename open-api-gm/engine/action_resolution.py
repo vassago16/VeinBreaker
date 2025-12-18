@@ -2,7 +2,7 @@ import random
 from engine.stats import stat_mod
 from engine.status import apply_status_effects
 from engine.utilities import compare
-from engine.combat_state import combat_add, combat_get, combat_set
+from engine.combat_state import combat_add, combat_get, combat_set, consume_shield, shield_value
 
 try:
     from game_context import NARRATOR
@@ -333,6 +333,12 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         if dmg_entry and isinstance(dmg_entry, dict):
             dmg_extra_flat = dmg_entry.get("flat", 0) or 0
         dmg_total = ability_damage_total(character, ability, damage_roll) + heat_bonus + dmg_extra_flat
+        # Status shields (starter): Arcane Ward reduces next incoming damage by 1.
+        shield_used = 0
+        if isinstance(enemy, dict) and enemy.get("_combat_key") and dmg_total > 0:
+            if shield_value(state, enemy) > 0:
+                shield_used = consume_shield(state, enemy, 1)
+                dmg_total = max(0, int(dmg_total) - int(shield_used))
         damage_applied = dmg_total
         hp_now = _get_hp_val(enemy)
         _set_hp_val(enemy, hp_now - dmg_total)
@@ -378,6 +384,7 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         "damage_applied": damage_applied,
         "to_hit": to_hit,
         "heat_bonus": heat_bonus if 'heat_bonus' in locals() else 0,
+        "shield_used": shield_used if 'shield_used' in locals() else 0,
         "heat": combat_get(state, character, "heat", resources.get("heat", 0)),
         "balance": combat_get(state, character, "balance", resources.get("balance", 0)),
         "resolve": resources.get("resolve", 0),

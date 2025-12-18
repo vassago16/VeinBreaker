@@ -24,6 +24,7 @@ class Combat:
     def start(self):
         state = self.ctx["state"]
         ui = self.ctx["ui"]
+        state["active_combatant"] = "player"
         state["phase"]["current"] = "chain_declaration"
         state["phase"]["round_started"] = False
         state.pop("awaiting", None)

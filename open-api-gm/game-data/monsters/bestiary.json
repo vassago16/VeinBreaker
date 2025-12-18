@@ -5,6 +5,9 @@
       "resolve": {
         "regen_per_turn": 2
       },
+      "enemy_hp": {
+        "variance_pct": 0.2
+      },
       "interrupt_margin": {
         "break_chain_on_margin_gte": 5,
         "critical_interrupt_on_margin_gte": 10
@@ -35,7 +38,7 @@
           "max": 10
         },
         "defense": {
-          "dv_base": 10,
+          "dv_base": 5,
           "idf": 0
         },
         "damage_profile": {
@@ -248,7 +251,7 @@
       },
       "stat_block": {
         "hp": {
-          "max": 9
+          "max": 3
         },
         "defense": {
           "dv_base": 11,

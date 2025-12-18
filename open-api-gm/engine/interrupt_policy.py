@@ -107,8 +107,38 @@ class EnemyWindowPolicy:
     def decide(self, when: str, ctx: InterruptContext, state: Optional[Dict[str, Any]] = None, ui: Optional[UIProtocol] = None) -> InterruptDecision:
         defender = ctx.defender or {}
         resolved = defender.get("resolved_archetype", {}) or {}
+        rules = (resolved.get("rhythm_profile", {}) or {}).get("interrupt", {}) or {}
+
+        # Optional per-round interrupt budget (data-driven).
+        # If set, the defender can only ATTEMPT this many interrupts per round.
+        budget = 0
+        try:
+            budget = int(rules.get("budget_per_round", 0) or 0)
+        except Exception:
+            budget = 0
+        if budget > 0 and isinstance(state, dict):
+            try:
+                round_no = int((state.get("phase", {}) or {}).get("round") or 0)
+            except Exception:
+                round_no = 0
+            bucket = state.setdefault("_interrupt_budget", {"round": round_no, "by_id": {}})
+            if not isinstance(bucket, dict):
+                bucket = {"round": round_no, "by_id": {}}
+                state["_interrupt_budget"] = bucket
+            if int(bucket.get("round", -1)) != round_no:
+                bucket["round"] = round_no
+                bucket["by_id"] = {}
+            by_id = bucket.get("by_id")
+            if not isinstance(by_id, dict):
+                by_id = {}
+                bucket["by_id"] = by_id
+            did = defender.get("id") or defender.get("name") or "defender"
+            used = int(by_id.get(did, 0) or 0)
+            if used >= budget:
+                return InterruptDecision("no_interrupt", window={"source": "budget_exhausted"})
+
         windows = (
-            (resolved.get("rhythm_profile", {}) or {}).get("interrupt", {}) or {}
+            rules
         ).get("windows") or defender.get("interrupt_windows") or defender.get("ai", {}).get("interrupt_windows") or []
 
         w = None
@@ -119,7 +149,16 @@ class EnemyWindowPolicy:
                 if w:
                     chance = float(w.get("chance", 0.0))
                     roll = self.rng.random()
-                    return InterruptDecision("attempt" if roll < chance else "no_interrupt", window=w)
+                    if roll < chance:
+                        if budget > 0 and isinstance(state, dict):
+                            did = defender.get("id") or defender.get("name") or "defender"
+                            bucket = state.get("_interrupt_budget", {})
+                            if isinstance(bucket, dict):
+                                by_id = bucket.get("by_id")
+                                if isinstance(by_id, dict):
+                                    by_id[did] = int(by_id.get(did, 0) or 0) + 1
+                        return InterruptDecision("attempt", window=w)
+                    return InterruptDecision("no_interrupt", window=w)
             else:
                 # Legacy schema: {"after_action_index":[...],"trigger_if":{...},"weight":...}
                 if state:
@@ -129,9 +168,25 @@ class EnemyWindowPolicy:
                         if _legacy_window_allows_interrupt(cand, when, ctx, state):
                             weight = float(cand.get("weight", 1.0))
                             roll = self.rng.random()
-                            return InterruptDecision("attempt" if roll < weight else "no_interrupt", window=cand)
+                            if roll < weight:
+                                if budget > 0 and isinstance(state, dict):
+                                    did = defender.get("id") or defender.get("name") or "defender"
+                                    bucket = state.get("_interrupt_budget", {})
+                                    if isinstance(bucket, dict):
+                                        by_id = bucket.get("by_id")
+                                        if isinstance(by_id, dict):
+                                            by_id[did] = int(by_id.get(did, 0) or 0) + 1
+                                return InterruptDecision("attempt", window=cand)
+                            return InterruptDecision("no_interrupt", window=cand)
 
         if state and _default_window_open(when, ctx, state):
+            if budget > 0 and isinstance(state, dict):
+                did = defender.get("id") or defender.get("name") or "defender"
+                bucket = state.get("_interrupt_budget", {})
+                if isinstance(bucket, dict):
+                    by_id = bucket.get("by_id")
+                    if isinstance(by_id, dict):
+                        by_id[did] = int(by_id.get(did, 0) or 0) + 1
             return InterruptDecision("attempt", window={"source": "default"})
 
         return InterruptDecision("no_interrupt")

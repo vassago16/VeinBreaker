@@ -70,14 +70,33 @@ def emit_interrupt(ui) -> None:
 
 
 def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
-    hp = character.get("hp") if isinstance(character, dict) else None
-    rp = character.get("rp") if isinstance(character, dict) else None
-    rp_cap = character.get("rp_cap") if isinstance(character, dict) else None
-    veinscore = character.get("veinscore") if isinstance(character, dict) else None
-    meters = character.get("meters") if isinstance(character, dict) else None
+    if not isinstance(character, dict):
+        character = {}
+
+    resources = character.get("resources", {}) if isinstance(character.get("resources"), dict) else {}
+
+    hp = character.get("hp")
+    if hp is None:
+        hp_cur = resources.get("hp")
+        hp_max = resources.get("hp_max", resources.get("max_hp", resources.get("maxHp", hp_cur)))
+        if hp_cur is not None:
+            hp = {"current": hp_cur, "max": hp_max if hp_max is not None else hp_cur}
+
+    rp = character.get("rp")
+    if rp is None:
+        rp = resources.get("resolve")
+    rp_cap = character.get("rp_cap")
+    if rp_cap is None:
+        rp_cap = resources.get("resolve_cap")
+
+    veinscore = character.get("veinscore")
+    if veinscore is None:
+        veinscore = resources.get("veinscore")
+
+    meters = character.get("meters")
 
     # Compact ability payload: id + cooldown only (UI keeps a catalog from /character).
-    abilities_full = (character.get("abilities") if isinstance(character, dict) else None) or []
+    abilities_full = character.get("abilities") or []
     abilities = []
     if isinstance(abilities_full, list):
         for ab in abilities_full:
