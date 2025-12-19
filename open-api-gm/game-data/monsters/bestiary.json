@@ -35,7 +35,7 @@
       },
       "stat_block": {
         "hp": {
-          "max": 10
+          "max": 6
         },
         "defense": {
           "dv_base": 5,
@@ -254,7 +254,7 @@
           "max": 3
         },
         "defense": {
-          "dv_base": 11,
+          "dv_base": 6,
           "idf": 0
         },
         "damage_profile": {
@@ -583,7 +583,7 @@
           "max": 18
         },
         "defense": {
-          "dv_base": 11,
+          "dv_base": 7,
           "idf": 0
         },
         "damage_profile": {
@@ -751,7 +751,7 @@
           "max": 10
         },
         "defense": {
-          "dv_base": 10,
+          "dv_base": 8,
           "idf": 0
         },
         "damage_profile": {

@@ -1,24 +1,26 @@
 {
   "id": "character.new_blood",
   "name": "New Blood",
-  "path": "canticle",
+  "path": "stonepulse",
   "tier": 1,
   "attributes": {
-    "POW": 8,
+    "POW": 10,
     "AGI": 8,
     "MND": 8,
-    "SPR": 10
+    "SPR": 8
   },
   "abilities": [
     "core.basic_strike",
     "core.basic_guard",
     "core.focus_action",
     "core.shift",
-    "canticle.gleam_strike",
-    "canticle.oathbound_guard",
-    "canticle.hymn_of_embers",
+    "stonepulse.pulse_strike",
+    "stonepulse.stoneguard_step",
+    "stonepulse.stonepulse_rhythm",
+    "stonepulse.stonepulse_step",
+    "resolve_basic.momentum_anchor",
     "canticle.radiant_glide",
-    "resolve_basic.disengage",
-    "spellforged.charge_bolt"
+    "canticle.hymn_of_embers",
+    "canticle.gleam_strike"
   ]
 }

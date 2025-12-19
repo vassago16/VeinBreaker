@@ -735,7 +735,7 @@ class ChainResolutionEngine:
                 if key.startswith("enemy"):
                     statuses = defender.get("statuses", {}) if isinstance(defender.get("statuses"), dict) else {}
                     bleed = statuses.get("bleed") if isinstance(statuses, dict) else None
-                    bleed_payload = None
+                    bleed_payload: dict | None = None
                     if isinstance(bleed, dict):
                         stacks = int(bleed.get("stacks", 0) or 0)
                         duration = int(bleed.get("duration", 0) or 0)
@@ -745,23 +745,25 @@ class ChainResolutionEngine:
                         stacks = int(bleed or 0)
                         if stacks > 0:
                             bleed_payload = {"bleed": {"stacks": stacks, "duration": 0}}
-                    emit_event(
-                        ui,
-                        {
-                            "type": "enemy_update",
-                            "enemy": {
-                                "name": defender.get("name", defender.get("id", "Enemy")),
-                                "tier": defender.get("tier"),
-                                "role": defender.get("role"),
-                                "dv_base": dv_base,
-                                "idf": _get_idf(defender),
-                                "hp": {"current": int(after_hp), "max": int(_get_hp_max(defender) or after_hp)},
-                                "execution_threshold_pct": _get_execution_threshold_pct(defender),
-                                "primed": _is_primed(state, defender),
-                                "heat": combat_get(state, defender, "heat", _get_resource(defender, "heat", 0)),
-                                "momentum": combat_get(state, defender, "momentum", _get_resource(defender, "momentum", 0)),
-                                "balance": combat_get(state, defender, "balance", _get_resource(defender, "balance", 0)),
-                                "statuses": bleed_payload,
+                        emit_event(
+                            ui,
+                            {
+                                "type": "enemy_update",
+                                "enemy": {
+                                    "name": defender.get("name", defender.get("id", "Enemy")),
+                                    "tier": defender.get("tier"),
+                                    "role": defender.get("role"),
+                                    "dv_base": dv_base,
+                                    "idf": _get_idf(defender),
+                                    "hp": {"current": int(after_hp), "max": int(_get_hp_max(defender) or after_hp)},
+                                    "execution_threshold_pct": _get_execution_threshold_pct(defender),
+                                    "primed": _is_primed(state, defender),
+                                    "heat": combat_get(state, defender, "heat", _get_resource(defender, "heat", 0)),
+                                    "momentum": combat_get(state, defender, "momentum", _get_resource(defender, "momentum", 0)),
+                                    "balance": combat_get(state, defender, "balance", _get_resource(defender, "balance", 0)),
+                                    "radiance": int(_get_resource(defender, "radiance", 0) or 0),
+                                # Always include statuses so the UI can clear badges when stacks hit 0.
+                                "statuses": bleed_payload or {},
                             },
                         },
                     )

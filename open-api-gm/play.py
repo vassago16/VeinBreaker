@@ -1103,6 +1103,12 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         # A chain of length 0 is a deliberate choice (brace/endure).
         if isinstance(aggressor.get("chain"), dict) and aggressor["chain"].get("declared"):
             emit_combat_log(ui, f"{aggressor.get('name','Combatant')} declares an empty chain.", "system")
+            # Keep enemy HUD authoritative even on empty chains (no engine resolution pass).
+            try:
+                if not getattr(ui, "is_blocking", True) and enemies:
+                    emit_enemy_update(ui, state, enemies[0])
+            except Exception:
+                pass
             result = ChainResult("completed", "empty_chain", 0)
             # Treat as resolved without running the engine; proceed to the same cleanup/swap logic.
             state.pop("suppress_chain_interrupt", None)
@@ -1228,6 +1234,35 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         f"(links resolved: {result.links_resolved})"
     )
 
+    # If chain resolution ended combat, emit the result immediately for web UI.
+    try:
+        if state.get("combat_over") and not getattr(ui, "is_blocking", True):
+            from ui.events import emit_event
+
+            def _hp(entity):
+                if not isinstance(entity, dict):
+                    return 0
+                hp_val = entity.get("hp")
+                if isinstance(hp_val, dict):
+                    return int(hp_val.get("current", hp_val.get("hp", 0)) or 0)
+                if isinstance(entity.get("resources"), dict) and entity["resources"].get("hp") is not None:
+                    return int(entity["resources"].get("hp") or 0)
+                return int(hp_val or 0)
+
+            player_dead = _hp(player) <= 0 if player else False
+            enemy_dead = _hp(enemy) <= 0 if enemy else False
+            result_label = "defeat" if player_dead else "victory" if enemy_dead else "ended"
+            state["scene_complete"] = bool(enemy_dead)
+
+            emit_combat_state(ui, False)
+            state["phase"]["current"] = "out_of_combat"
+            state.pop("awaiting", None)
+            ui.system("Combat over.")
+            emit_event(ui, {"type": "combat_result", "result": result_label})
+            return True
+    except Exception:
+        pass
+
     # ─────────────────────────────────────────
     # Cleanup
     # ─────────────────────────────────────────
@@ -1251,9 +1286,68 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         # End-of-round status tick (Bleed etc.).
         try:
             from engine.status import tick_statuses
+            def _hp(entity):
+                if not isinstance(entity, dict):
+                    return 0
+                hp_val = entity.get("hp")
+                if isinstance(hp_val, dict):
+                    return int(hp_val.get("current", hp_val.get("hp", 0)) or 0)
+                if isinstance(entity.get("resources"), dict) and entity["resources"].get("hp") is not None:
+                    return int(entity["resources"].get("hp") or 0)
+                return int(hp_val or 0)
+
+            def _bleed_stacks(entity):
+                if not isinstance(entity, dict):
+                    return 0
+                st = entity.get("statuses", {})
+                if not isinstance(st, dict):
+                    return 0
+                bleed = st.get("bleed")
+                if isinstance(bleed, dict):
+                    return int(bleed.get("stacks", 0) or 0)
+                if isinstance(bleed, (int, float)):
+                    return int(bleed or 0)
+                return 0
+
             for en in state.get("enemies", []):
-                tick_statuses(en)
-            tick_statuses(player)
+                before_hp = _hp(en)
+                before_bleed = _bleed_stacks(en)
+                summary = tick_statuses(en) or {}
+                dmg = int(summary.get("damage", 0) or 0) if isinstance(summary, dict) else 0
+                if dmg > 0:
+                    emit_combat_log(ui, f"{en.get('name', 'Enemy')} takes {dmg} damage from statuses.", "damage")
+                if before_bleed > 0:
+                    # Bleed always decays by 1 on tick (our rule), so surface it for clarity.
+                    emit_combat_log(ui, f"{en.get('name', 'Enemy')} Bleed decays: {before_bleed} → {max(0, before_bleed - 1)}", "system")
+                after_hp = _hp(en)
+                if after_hp <= 0 and before_hp > 0:
+                    emit_combat_log(ui, f"{en.get('name', 'Enemy')} falls.", "system")
+
+            # Player status tick (usually just for completeness).
+            if isinstance(player, dict):
+                before_hp = _hp(player)
+                summary = tick_statuses(player) or {}
+                dmg = int(summary.get("damage", 0) or 0) if isinstance(summary, dict) else 0
+                if dmg > 0:
+                    emit_combat_log(ui, f"{player.get('name', 'Player')} takes {dmg} damage from statuses.", "damage")
+                after_hp = _hp(player)
+                if after_hp <= 0 and before_hp > 0:
+                    emit_combat_log(ui, f"{player.get('name', 'Player')} is brought to 0 HP.", "system")
+            # End-of-round Radiance decay: -1 per round (clamped), persists as a resource.
+            try:
+                # Player
+                if isinstance(player.get("resources"), dict):
+                    r = int(player["resources"].get("radiance", 0) or 0)
+                    if r > 0:
+                        player["resources"]["radiance"] = r - 1
+                # Enemies (if they ever receive radiance effects)
+                for en in state.get("enemies", []):
+                    if isinstance(en, dict) and isinstance(en.get("resources"), dict):
+                        r = int(en["resources"].get("radiance", 0) or 0)
+                        if r > 0:
+                            en["resources"]["radiance"] = r - 1
+            except Exception:
+                pass
             # Refresh HUDs after end-of-round damage/decay.
             if not getattr(ui, "is_blocking", True):
                 try:
@@ -1265,6 +1359,27 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
                         emit_enemy_update(ui, state, state["enemies"][0])
                 except Exception:
                     pass
+
+            # If an end-of-round status tick killed someone, mark combat over so the next /step renders the result.
+            try:
+                player_dead = _hp(player) <= 0 if player else False
+                enemy0 = state.get("enemies", [None])[0] if state.get("enemies") else None
+                enemy_dead = _hp(enemy0) <= 0 if enemy0 else False
+                if player_dead or enemy_dead:
+                    state["combat_over"] = True
+                    # For web UI, emit result immediately so the player isn't stranded waiting for another /step.
+                    if not getattr(ui, "is_blocking", True):
+                        from ui.events import emit_event
+                        result = "defeat" if player_dead else "victory" if enemy_dead else "ended"
+                        state["scene_complete"] = bool(enemy_dead)
+                        emit_combat_state(ui, False)
+                        state["phase"]["current"] = "out_of_combat"
+                        state.pop("awaiting", None)
+                        ui.system("Combat over.")
+                        emit_event(ui, {"type": "combat_result", "result": result})
+                        return True
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -1300,6 +1415,12 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
         return True
 
     enemy = enemies[0]
+    # Ensure the enemy HUD is current before we show the interrupt UI.
+    try:
+        if not getattr(ui, "is_blocking", True):
+            emit_enemy_update(ui, state, enemy)
+    except Exception:
+        pass
 
     awaiting = state.get("awaiting", {})
     if awaiting.get("type") == "enemy_interrupt":
@@ -1623,20 +1744,49 @@ def emit_enemy_update(ui, state, enemy) -> None:
             "momentum": combat_get(state, enemy, "momentum", 0),
             "balance": combat_get(state, enemy, "balance", 0),
         }
+        # Primed + execution threshold are part of the enemy HUD (separate from any execution UI affordance).
+        try:
+            from engine.combat_state import status_get
+
+            def _sid(name: str) -> str:
+                s = "".join(ch.lower() if ch.isalnum() else "_" for ch in (name or "").strip())
+                s = "_".join([p for p in s.split("_") if p])
+                return f"status.{s}" if s else "status.unknown"
+
+            thresh = float(enemy.get("execution_threshold_pct", 0.25) or 0.25)
+            hp_cur_i = int(payload["hp"]["current"] or 0)
+            hp_max_i = int(payload["hp"]["max"] or hp_cur_i or 0)
+            primed_hp = bool(hp_max_i and hp_cur_i <= int(round(hp_max_i * thresh)))
+            vulnerable = int((status_get(state, enemy, _sid("Vulnerable")) or {}).get("stacks", 0) or 0)
+            stagger = int((status_get(state, enemy, _sid("Stagger")) or {}).get("stacks", 0) or 0)
+            primed_flag = int((status_get(state, enemy, _sid("Primed")) or {}).get("stacks", 0) or 0) >= 1
+            payload["execution_threshold_pct"] = thresh
+            payload["primed"] = bool(primed_hp or vulnerable >= 3 or stagger >= 2 or primed_flag)
+        except Exception:
+            pass
+        try:
+            res = enemy.get("resources", {}) if isinstance(enemy.get("resources"), dict) else {}
+            if isinstance(res, dict) and res.get("radiance") is not None:
+                payload["radiance"] = int(res.get("radiance", 0) or 0)
+        except Exception:
+            pass
         try:
             statuses = enemy.get("statuses", {}) if isinstance(enemy.get("statuses"), dict) else {}
             bleed = statuses.get("bleed")
+            status_payload: dict = {}
             if isinstance(bleed, dict):
                 stacks = int(bleed.get("stacks", 0) or 0)
                 duration = int(bleed.get("duration", 0) or 0)
                 if stacks > 0:
-                    payload["statuses"] = {"bleed": {"stacks": stacks, "duration": duration}}
+                    status_payload["bleed"] = {"stacks": stacks, "duration": duration}
             elif isinstance(bleed, (int, float)):
                 stacks = int(bleed or 0)
                 if stacks > 0:
-                    payload["statuses"] = {"bleed": {"stacks": stacks, "duration": 0}}
+                    status_payload["bleed"] = {"stacks": stacks, "duration": 0}
+            # Always include statuses so the UI can clear badges when stacks hit 0.
+            payload["statuses"] = status_payload
         except Exception:
-            pass
+            payload["statuses"] = {}
         emit_event(ui, {"type": "enemy_update", "enemy": payload})
     except Exception:
         pass
@@ -1962,11 +2112,14 @@ def load_game_data():
             data["statuses"] = statuses if isinstance(statuses, list) else []
         except Exception:
             data["statuses"] = []
-    bestiary = []
-    bestiary_path = root / "bestiary.json"
-    if bestiary_path.exists():
+    bestiary: list[dict] = []
+    # Bestiary source (prefer the newer monsters/ folder bestiary when present).
+    bestiary_path = root / "monsters" / "bestiary.json"
+    fallback_bestiary_path = root / "bestiary.json"
+    chosen_bestiary_path = bestiary_path if bestiary_path.exists() else fallback_bestiary_path
+    if chosen_bestiary_path.exists():
         try:
-            bj = json.loads(bestiary_path.read_text(encoding="utf-8"))
+            bj = json.loads(chosen_bestiary_path.read_text(encoding="utf-8"))
             if isinstance(bj, dict) and isinstance(bj.get("meta"), dict):
                 data["bestiary_meta"] = bj["meta"]
             bestiary.extend(bj.get("enemies", []))
@@ -1975,6 +2128,9 @@ def load_game_data():
     beasts_dir = root / "beasts"
     if beasts_dir.exists():
         for bf in beasts_dir.glob("*.json"):
+            # Legacy aggregate file (kept for reference); avoid duplicate/conflicting entries.
+            if bf.name.lower() == "oldbestiary.json":
+                continue
             try:
                 bdata = json.loads(bf.read_text(encoding="utf-8"))
                 if isinstance(bdata, dict) and "enemies" in bdata:

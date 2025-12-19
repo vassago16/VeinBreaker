@@ -190,7 +190,7 @@
     },
     {
       "id": "enemy.brumklin.lurker",
-      "name": "Brumklin Lurker",
+      "name": "Brumklin Lurk er",
       "archetype_id": "archetype.stalker",
       "tier": 1,
       "role": "stalker",
@@ -210,7 +210,7 @@
           "max": 9
         },
         "defense": {
-          "dv_base": 11,
+          "dv_base": 5,
           "idf": 0
         },
         "damage_profile": {

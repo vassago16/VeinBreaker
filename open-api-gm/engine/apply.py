@@ -2,7 +2,12 @@ import random
 
 
 def pick_enemy(state):
-    bestiary = state.get("game_data", {}).get("bestiary", [])
+    game_data = state.get("game_data", {}) if isinstance(state.get("game_data", {}), dict) else {}
+    enemy_by_id = game_data.get("enemy_by_id") if isinstance(game_data, dict) else None
+    if isinstance(enemy_by_id, dict) and enemy_by_id:
+        bestiary = list(enemy_by_id.values())
+    else:
+        bestiary = game_data.get("bestiary", [])
     if not bestiary:
         return None
     # match tier to first party member
@@ -27,12 +32,15 @@ def pick_enemy(state):
         or 10
     )
     defense = stat_block.get("defense", {}) or {}
+    try:
+        hp = int(hp or 0)
+    except Exception:
+        hp = 10
     return {
         "id": enemy_def.get("id", "enemy"),
         "name": enemy_def.get("name", "Enemy"),
-        "hp": hp,
-        "hp_max": hp,
-        "dv_base": defense.get("dv_base", 0),
+        "hp": {"current": hp, "max": hp},
+        "dv_base": defense.get("dv_base", 10),
         "idf": defense.get("idf", 0),
         "momentum": 0,
         "attack_mod": enemy_def.get("attack_mod", 0),

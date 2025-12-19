@@ -93,6 +93,8 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
     if veinscore is None:
         veinscore = resources.get("veinscore")
 
+    radiance = resources.get("radiance")
+
     meters = character.get("meters")
 
     # Compact ability payload: id + cooldown only (UI keeps a catalog from /character).
@@ -113,6 +115,7 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
             "hp": hp,
             "rp": {"current": rp, "cap": rp_cap} if rp_cap is not None else rp,
             "veinscore": veinscore,
+            "radiance": radiance,
             "abilities": abilities,
             "meters": meters,
         }

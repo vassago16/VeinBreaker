@@ -587,6 +587,28 @@ footer {
 	    color: #ff6a6a;
 	    background: rgba(255, 106, 106, 0.08);
 	  }
+	  
+	  .enemy-badge.radiance {
+	    border-color: rgba(255, 183, 71, 0.7);
+	    color: #ffb347;
+	    background: rgba(255, 179, 71, 0.08);
+	  }
+	  
+	  /* ===== PLAYER BADGES ===== */
+	  .player-badge {
+	    margin-top: 10px;
+	    border: 1px solid rgba(255, 183, 71, 0.55);
+	    color: #ffb347;
+	    background: rgba(255, 179, 71, 0.08);
+	    padding: 4px 8px;
+	    font-size: 10px;
+	    letter-spacing: 0.25em;
+	    text-transform: uppercase;
+	  }
+	  
+	  .player-badge.hidden {
+	    display: none;
+	  }
 
 	  /* ===== START MENU (slide-up) ===== */
 
@@ -1624,6 +1646,9 @@ footer {
       </div>
     </div>
 
+    <!-- RADIANCE -->
+    <div id="player-radiance" class="player-badge hidden">RADIANCE 0</div>
+
     <section id="abilities-panel">
       <div class="panel-title">ABILITIES</div>
       <div id="abilities-list"></div>
@@ -1639,6 +1664,7 @@ footer {
         <div class="monster-badges">
           <span id="enemy-primed" class="enemy-badge hidden">PRIMED</span>
           <span id="enemy-bleed" class="enemy-badge bleed hidden">BLEED</span>
+          <span id="enemy-radiance" class="enemy-badge radiance hidden">RADIANCE</span>
         </div>
       </div>
 
@@ -2524,6 +2550,7 @@ function renderEnemyCard(enemy) {
   const metaEl = document.getElementById("enemy-meta");
   const primedEl = document.getElementById("enemy-primed");
   const bleedEl = document.getElementById("enemy-bleed");
+  const radEl = document.getElementById("enemy-radiance");
   if (nameEl) nameEl.textContent = (enemy.name || "ENEMY").toUpperCase();
 
   const parts = [];
@@ -2550,6 +2577,19 @@ function renderEnemyCard(enemy) {
     }
   } catch (e) {
     if (bleedEl) bleedEl.classList.add("hidden");
+  }
+  try {
+    const r = Number(enemy.radiance ?? 0) || 0;
+    if (radEl) {
+      if (r > 0) {
+        radEl.textContent = `RADIANCE ${r}`;
+        radEl.classList.remove("hidden");
+      } else {
+        radEl.classList.add("hidden");
+      }
+    }
+  } catch (e) {
+    if (radEl) radEl.classList.add("hidden");
   }
 
   const hp = enemy.hp || {};
@@ -2675,6 +2715,19 @@ function updateCharacterUI(char) {
     statInt.textContent = char.attributes.int ?? "—";
     statWil.textContent = char.attributes.wil ?? "—";
   }
+  // Radiance badge (decays by 1 each round)
+  try {
+    const badge = document.getElementById("player-radiance");
+    const r = Number(char.radiance ?? 0) || 0;
+    if (badge) {
+      if (r > 0) {
+        badge.textContent = `RADIANCE ${r}`;
+        badge.classList.remove("hidden");
+      } else {
+        badge.classList.add("hidden");
+      }
+    }
+  } catch (e) { /* ignore */ }
   renderAbilitiesPanel(char);
 }
 
@@ -3003,6 +3056,7 @@ function applyCharacterUpdate(delta) {
   if (delta.hp !== undefined) characterState.hp = delta.hp;
   if (delta.rp !== undefined) characterState.rp = delta.rp;
   if (delta.veinscore !== undefined) characterState.veinscore = delta.veinscore;
+  if (delta.radiance !== undefined) characterState.radiance = delta.radiance;
   if (delta.meters && typeof delta.meters === "object") {
     characterState.meters = { ...(characterState.meters || {}), ...delta.meters };
     if (delta.meters.heat !== undefined) updateHeat(delta.meters.heat);

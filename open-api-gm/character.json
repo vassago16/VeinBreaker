@@ -21,6 +21,12 @@
     "resolve_basic.disengage",
     "spellforged.warding_pulse",
     "canticle.radiant_glide",
-    "stonepulse.pulse_strike"
+    "stonepulse.pulse_strike",
+    "spellforged.arcane_channel",
+    "spellforged.arcane_step",
+    "spellforged.charge_bolt",
+    "canticle.gleam_strike",
+    "canticle.hymn_of_embers",
+    "canticle.oathbound_guard"
   ]
 }
