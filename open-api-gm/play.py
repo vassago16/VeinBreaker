@@ -48,10 +48,9 @@ import debugpy
 
 
 LOG_FILE = Path(__file__).parent / "narration.log"
-DEFAULT_CHARACTER_PATH = Path(__file__).parent / "default_character.json"
-PROFILE_PATH = Path(__file__).parent / "character.json"
 PLAYER_STATE_PATH = Path(__file__).parent / "player_state.json"
 CHARACTERS_DIR = Path(__file__).parent / "characters"
+DEFAULT_CHARACTER_ID = "character.new_blood"
 BUFF_TYPES = {
     "radiance",
     "quickened",
@@ -80,12 +79,11 @@ def create_default_character():
     Load the default character.
 
     New model:
-      - `character.json` is a profile (static, abilities are ids)
+      - `characters/<id>.json` is a profile (static, abilities are ids)
       - `player_state.json` is mutable runtime state (resources/pools/cooldowns)
 
     Back-compat:
-      - if a legacy `character.json` includes full ability dicts/resources, we accept it.
-      - if files are missing, fallback to `default_character.json` then a built-in template.
+      - if a legacy profile includes full ability dicts/resources, we accept it.
     """
     fallback = {
         "name": "New Blood",
@@ -118,7 +116,19 @@ def create_default_character():
     except Exception:
         selected_profile = None
 
-    profile = selected_profile or _load_json(PROFILE_PATH)
+    profile = selected_profile
+    if not profile:
+        profile = _load_json(CHARACTERS_DIR / f"{DEFAULT_CHARACTER_ID}.json")
+
+    if not profile:
+        try:
+            for p in sorted(CHARACTERS_DIR.glob("*.json")):
+                profile = _load_json(p)
+                if profile:
+                    break
+        except Exception:
+            profile = None
+
     if profile:
         # If this is a legacy full character file, just return it.
         abilities = profile.get("abilities", [])
@@ -142,11 +152,6 @@ def create_default_character():
         # Ensure chain scaffold exists (engine expects it).
         merged.setdefault("chain", {"declared": False, "abilities": [], "resolve_spent": 0, "stable": False, "invalidated": False})
         return merged
-
-    # Fallback: old default file if present
-    legacy_default = _load_json(DEFAULT_CHARACTER_PATH)
-    if legacy_default:
-        return legacy_default
 
     return fallback
 
@@ -308,8 +313,6 @@ def save_profile_and_state(character: dict) -> None:
             json.dumps(profile, indent=2),
             encoding="utf-8",
         )
-        # Keep the legacy `character.json` updated as a fallback.
-        PROFILE_PATH.write_text(json.dumps(profile, indent=2), encoding="utf-8")
     if state:
         PLAYER_STATE_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
@@ -704,7 +707,7 @@ def create_game_context(ui, skip_character_creation=False):
             if cid:
                 profile = load_profile(CHARACTERS_DIR / f"{cid}.json")
             else:
-                profile = load_profile(PROFILE_PATH.name)
+                profile = load_profile(CHARACTERS_DIR / f"{DEFAULT_CHARACTER_ID}.json")
         except Exception:
             profile = {}
         try:
@@ -733,7 +736,7 @@ def create_game_context(ui, skip_character_creation=False):
                 if cid:
                     profile = load_profile(CHARACTERS_DIR / f"{cid}.json")
                 else:
-                    profile = load_profile(PROFILE_PATH.name)
+                    profile = load_profile(CHARACTERS_DIR / f"{DEFAULT_CHARACTER_ID}.json")
             except Exception:
                 profile = {}
             try:
@@ -1579,10 +1582,11 @@ def load_canon():
         if fname.endswith('.json'):
             with open(canon_dir / fname) as f:
                 canon[fname] = json.load(f)
-    abilities_path = Path(__file__).parent / "engine" / "abilities.json"
+    # Canon abilities live in game-data (single source of truth).
+    abilities_path = Path(__file__).parent / "game-data" / "abilities.json"
     if abilities_path.exists():
         canon["abilities.json"] = json.loads(abilities_path.read_text(encoding="utf-8"))
-    resolve_path = Path(__file__).parent / "engine" / "resolve_abilities.json"
+    resolve_path = Path(__file__).parent / "game-data" / "resolve_abilities.json"
     if resolve_path.exists():
         canon["resolve_abilities.json"] = json.loads(resolve_path.read_text(encoding="utf-8"))
     return canon
@@ -2113,13 +2117,11 @@ def load_game_data():
         except Exception:
             data["statuses"] = []
     bestiary: list[dict] = []
-    # Bestiary source (prefer the newer monsters/ folder bestiary when present).
+    # Bestiary source (authoritative).
     bestiary_path = root / "monsters" / "bestiary.json"
-    fallback_bestiary_path = root / "bestiary.json"
-    chosen_bestiary_path = bestiary_path if bestiary_path.exists() else fallback_bestiary_path
-    if chosen_bestiary_path.exists():
+    if bestiary_path.exists():
         try:
-            bj = json.loads(chosen_bestiary_path.read_text(encoding="utf-8"))
+            bj = json.loads(bestiary_path.read_text(encoding="utf-8"))
             if isinstance(bj, dict) and isinstance(bj.get("meta"), dict):
                 data["bestiary_meta"] = bj["meta"]
             bestiary.extend(bj.get("enemies", []))
@@ -2335,7 +2337,7 @@ def _prime_enemy_for_combat(enemy: dict) -> dict:
 
     # Defense
     if enemy.get("dv_base") is None:
-        enemy["dv_base"] = defense.get("dv_base", 10)
+        enemy["dv_base"] = defense.get("dv_base", 8)
     if enemy.get("idf") is None:
         enemy["idf"] = defense.get("idf", 0)
 
@@ -3219,8 +3221,6 @@ def game_step(ctx, player_input):
                 profile.setdefault("attributes", ch.get("attributes") or {})
                 CHARACTERS_DIR.mkdir(parents=True, exist_ok=True)
                 profile_path.write_text(json.dumps(profile, indent=2), encoding="utf-8")
-                # Also update legacy file.
-                PROFILE_PATH.write_text(json.dumps(profile, indent=2), encoding="utf-8")
             except Exception as e:
                 ui.error(f"Failed to save profile: {e}")
 

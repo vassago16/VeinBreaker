@@ -15,11 +15,11 @@ def load_canon():
     canon = {}
     for f in canon_dir.glob("*.json"):
         canon[f.name] = json.loads(f.read_text(encoding="utf-8"))
-    # engine abilities files
-    for fname in ["engine/abilities.json", "engine/resolve_abilities.json"]:
+    # abilities live in game-data (single source of truth)
+    for fname in ["game-data/abilities.json", "game-data/resolve_abilities.json"]:
         p = ROOT / fname
         if p.exists():
-            canon[p.name] = json.loads(p.read_text(encoding="utf-8"))
+            canon[p.name.split("/", 1)[-1]] = json.loads(p.read_text(encoding="utf-8"))
     return canon
 
 

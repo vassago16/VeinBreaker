@@ -12,7 +12,7 @@ def _resolve_path(filename: str | Path) -> Path:
 def save_character(character, filename: str | Path = "player_state.json"):
     """
     Persist mutable player state.
-    Character profiles are kept in separate files (default: `character.json`).
+    Character profiles are kept in separate files under `characters/`.
     """
     path = _resolve_path(filename)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -26,7 +26,7 @@ def load_character(filename: str | Path = "player_state.json"):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def load_profile(filename: str | Path = "character.json"):
+def load_profile(filename: str | Path = "characters/character.new_blood.json"):
     """
     Load a character profile (static info + ability ids).
     """

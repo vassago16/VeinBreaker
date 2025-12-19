@@ -13,7 +13,7 @@ from engine.apply import pick_enemy  # noqa: E402
 
 
 def load_bestiary():
-    data = json.loads((ROOT / "game-data" / "bestiary.json").read_text(encoding="utf-8"))
+    data = json.loads((ROOT / "game-data" / "monsters" / "bestiary.json").read_text(encoding="utf-8"))
     return data.get("enemies", [])
 
 

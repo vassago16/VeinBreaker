@@ -9,7 +9,7 @@
 
   "encounter": {
     "monsters": [
-      { "id": "enemy.brumklin.needleling", "count": 1 }
+      { "id": "enemy.brumklin.skitter", "count": 1 }
     ],
     "traps": [
       { "id": "trap.hematite_spike", "count": 1 }

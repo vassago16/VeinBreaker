@@ -419,7 +419,7 @@
           "max": 12
         },
         "defense": {
-          "dv_base": 12,
+          "dv_base": 7,
           "idf": 1
         },
         "damage_profile": {

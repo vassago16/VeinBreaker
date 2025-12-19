@@ -2,6 +2,13 @@
 
 Quick map of the files and their roles.
 
+## Source Of Truth (Runtime Loads)
+- Rules/config: `open-api-gm/canon/`
+- Game content: `open-api-gm/game-data/` (monsters, abilities, scenes, loot, traps, hazards, statuses)
+- Player data: `open-api-gm/characters/` (profiles) + `open-api-gm/player_state.json` (mutable runtime/save state)
+
+Everything outside those folders (e.g. `monster-maker/`, `Player Guide/`, `Path-maker/`, `trading-card-maker/`) is authoring/reference tooling and is not loaded by the runtime.
+
 ## Entry & Flow
 - `play.py`: Core game logic. Builds initial state, runs character creation (CLI), advances phases, resolves chains. Exposes non-blocking emitters for the web UI.
 - `game_runner.py`: Thin wrapper that constructs a `Game` with a UI provider and forwards step-based input.
@@ -18,7 +25,7 @@ Quick map of the files and their roles.
 - `engine/character.py`: Lists available paths/abilities and builds character objects.
 - `engine/validate.py` / `engine/validator.py`: Validation helpers.
 - `engine/save_load.py`: Save/load character data.
-- `engine/abilities.json`: Canon ability data consumed by character creation and validation.
+- `game-data/abilities.json`: Canon ability data consumed by character creation and validation.
 - `ui/events.py`: Shared event emitters/builders for non-blocking UIs.
 - `ui/web_provider.py` / `ui/cli_provider.py`: UI adapters for web vs. CLI.
 - `index.html`: Web client (polls `/events`, renders narration/log/chain builder/character HUD).

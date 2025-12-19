@@ -1,6 +1,6 @@
 # VeinBreaker Monster (Enemy) Data Schema
 
-This documents what the *runtime* currently supports for enemies loaded from `game-data/bestiary.json` and `game-data/monsters/bestiary.json`.
+This documents what the *runtime* currently supports for enemies loaded from `game-data/monsters/bestiary.json`.
 
 ## Top-level file shape
 
@@ -131,4 +131,3 @@ If a window contains unknown keys, it fails closed (no interrupt).
 ## Fields currently ignored (safe to keep, not wired yet)
 
 The bestiary currently contains additional knobs (examples: `margin_rules`, `timing_bias`, pressure/AI notes). They are not yet used by the runtime unless explicitly listed above.
-
