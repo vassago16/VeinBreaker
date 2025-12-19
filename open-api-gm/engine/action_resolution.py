@@ -75,6 +75,29 @@ def apply_effect_list(effects, actor, enemy=None, default_target="enemy"):
                 res = dest.setdefault("resources", {}) if target == "self" else dest.get("resources", dest)
                 res_val = res.get(res_name, 0)
                 res[res_name] = res_val + delta
+        elif etype == "heal":
+            dice = eff.get("dice", "1d4")
+            flat = eff.get("flat", 0) or 0
+            amount = roll(dice) + int(flat)
+            if amount <= 0:
+                continue
+            if isinstance(dest.get("resources"), dict) and dest["resources"].get("hp") is not None:
+                res = dest["resources"]
+                cur = int(res.get("hp", 0) or 0)
+                max_hp = res.get("hp_max") or res.get("max_hp") or res.get("maxHp")
+                if max_hp is None:
+                    res["hp"] = max(0, cur + int(amount))
+                else:
+                    res["hp"] = min(int(max_hp), max(0, cur + int(amount)))
+            else:
+                hp_val = dest.get("hp", 0)
+                if isinstance(hp_val, dict):
+                    cur = int(hp_val.get("current", hp_val.get("hp", 0)) or 0)
+                    max_hp = hp_val.get("max", hp_val.get("hp_max", cur))
+                    hp_val["current"] = min(int(max_hp), max(0, cur + int(amount)))
+                    dest["hp"] = hp_val
+                else:
+                    dest["hp"] = max(0, int(hp_val or 0) + int(amount))
         elif etype == "resource_set":
             res_name = eff.get("resource")
             val = eff.get("value")

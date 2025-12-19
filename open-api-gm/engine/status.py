@@ -74,7 +74,7 @@ def tick_statuses(target):
         stacks = data.get("stacks", 0) or 0
         duration = data.get("duration", 0) or 0
 
-        # Ongoing damage hooks
+        # Ongoing damage hooks (applied at end of round by the game loop)
         if etype in {"bleed", "radiant burn"} and stacks > 0:
             dmg = stacks  # 1 damage per stack
             # Support both character (resources.hp) and enemy (top-level hp) storage
@@ -82,12 +82,26 @@ def tick_statuses(target):
                 res = target["resources"]
                 res["hp"] = max(0, res.get("hp", 0) - dmg)
             else:
-                target["hp"] = max(0, target.get("hp", 0) - dmg)
+                hp_val = target.get("hp", 0)
+                if isinstance(hp_val, dict):
+                    cur = hp_val.get("current", hp_val.get("hp", 0)) or 0
+                    max_hp = hp_val.get("max", cur)
+                    hp_val["current"] = max(0, int(cur) - int(dmg))
+                    if "max" not in hp_val:
+                        hp_val["max"] = max_hp
+                    target["hp"] = hp_val
+                else:
+                    target["hp"] = max(0, int(hp_val or 0) - int(dmg))
             summary["damage"] += dmg
+            # Bleed decays: remove 1 stack at end of round.
+            if etype == "bleed":
+                new_stacks = max(0, int(stacks) - 1)
+                statuses[etype]["stacks"] = new_stacks
+                stacks = new_stacks
 
         # Decrement duration
         duration -= 1
-        if duration <= 0:
+        if duration <= 0 or (etype == "bleed" and (stacks or 0) <= 0):
             to_remove.append(etype)
         else:
             statuses[etype]["duration"] = duration

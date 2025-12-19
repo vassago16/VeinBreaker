@@ -44,10 +44,12 @@ class TestEngineEffects(unittest.TestCase):
         # Character should gain momentum from the effect
         self.assertEqual(character["resources"].get("momentum"), 1)
 
-        # Bleed should tick for 1 damage at start of turn
+        # Bleed ticks at end of round (manual tick in this unit test)
         hp_before = enemy["hp"]
         tick_statuses(enemy)
         self.assertEqual(enemy["hp"], hp_before - 1)
+        # Bleed decays by 1 stack each tick
+        self.assertEqual(enemy.get("statuses", {}).get("bleed", {}).get("stacks", 0), 0)
 
     def test_focus_action_grants_attack_bonus_and_momentum(self):
         ability = load_ability("Focus Action")

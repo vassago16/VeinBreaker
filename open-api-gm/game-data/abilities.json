@@ -694,7 +694,7 @@
       "type": "movement",
       "cost": 1,
       "cooldown": 1,
-      "effect": "Gain 1 Radiance; if you had 0 Radiance before, gain +1 Momentum.",
+      "effect": "Gain 1 Radiance; if you had 0 Radiance before, gain +1 Momentum. Heal 1d4.",
       "tags": [
         "canticle",
         "movement",
@@ -711,6 +711,11 @@
             "type": "resource_delta",
             "resource": "radiance",
             "delta": 2
+          },
+          {
+            "type": "heal",
+            "dice": "1d4",
+            "target": "self"
           }
         ]
       },

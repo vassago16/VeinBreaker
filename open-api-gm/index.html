@@ -581,6 +581,12 @@ footer {
 	  .enemy-badge.hidden {
 	    display: none;
 	  }
+	  
+	  .enemy-badge.bleed {
+	    border-color: rgba(255, 105, 97, 0.7);
+	    color: #ff6a6a;
+	    background: rgba(255, 106, 106, 0.08);
+	  }
 
 	  /* ===== START MENU (slide-up) ===== */
 
@@ -1632,6 +1638,7 @@ footer {
         <div class="monster-meta" id="enemy-meta"></div>
         <div class="monster-badges">
           <span id="enemy-primed" class="enemy-badge hidden">PRIMED</span>
+          <span id="enemy-bleed" class="enemy-badge bleed hidden">BLEED</span>
         </div>
       </div>
 
@@ -2516,6 +2523,7 @@ function renderEnemyCard(enemy) {
   const nameEl = document.getElementById("enemy-name");
   const metaEl = document.getElementById("enemy-meta");
   const primedEl = document.getElementById("enemy-primed");
+  const bleedEl = document.getElementById("enemy-bleed");
   if (nameEl) nameEl.textContent = (enemy.name || "ENEMY").toUpperCase();
 
   const parts = [];
@@ -2525,6 +2533,24 @@ function renderEnemyCard(enemy) {
   if (enemy.idf !== undefined && enemy.idf !== null) parts.push(`IDF ${enemy.idf}`);
   if (metaEl) metaEl.textContent = parts.join(" · ");
   if (primedEl) primedEl.classList.toggle("hidden", !enemy.primed);
+
+  // Status badges (separate from PRIMED)
+  try {
+    const statuses = enemy.statuses || {};
+    const bleed = statuses?.bleed;
+    const stacks = Number((bleed && bleed.stacks !== undefined) ? bleed.stacks : bleed) || 0;
+    const dur = Number((bleed && bleed.duration !== undefined) ? bleed.duration : 0) || 0;
+    if (bleedEl) {
+      if (stacks > 0) {
+        bleedEl.textContent = dur > 0 ? `BLEED ${stacks} (${dur})` : `BLEED ${stacks}`;
+        bleedEl.classList.remove("hidden");
+      } else {
+        bleedEl.classList.add("hidden");
+      }
+    }
+  } catch (e) {
+    if (bleedEl) bleedEl.classList.add("hidden");
+  }
 
   const hp = enemy.hp || {};
   const hpCur = Number(hp.current ?? hp.hp ?? 0);
@@ -2934,7 +2960,7 @@ function handleEvents(events) {
       case "visceral_attack":
         {
           const label = "VISCERAL ATTACK";
-          showInterruptOverlay(1800, label);
+          showInterruptOverlay(3800, label);
           if (ev.text) logCombat(ev.text, "attack");
         }
         break;

@@ -895,8 +895,7 @@ def round_upkeep(state: dict) -> None:
     for en in state.get("enemies", []):
         en["interrupts_used"] = 0
         en["rp"] = en.get("rp_pool", 2)
-        tick_statuses(en)
-    tick_statuses(ch)
+    # Status ticking (Bleed, radiant burn, etc.) is applied at END OF ROUND, not here.
 
 
 def emit_authoritative_player_update(ui, state: dict, ch: dict) -> None:
@@ -1247,6 +1246,25 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         try:
             round_no = int(state.get("phase", {}).get("round") or 0)
             emit_combat_log(ui, f"END ROUND {round_no}", "system")
+        except Exception:
+            pass
+        # End-of-round status tick (Bleed etc.).
+        try:
+            from engine.status import tick_statuses
+            for en in state.get("enemies", []):
+                tick_statuses(en)
+            tick_statuses(player)
+            # Refresh HUDs after end-of-round damage/decay.
+            if not getattr(ui, "is_blocking", True):
+                try:
+                    emit_authoritative_player_update(ui, state, player)
+                except Exception:
+                    pass
+                try:
+                    if state.get("enemies"):
+                        emit_enemy_update(ui, state, state["enemies"][0])
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -1605,6 +1623,20 @@ def emit_enemy_update(ui, state, enemy) -> None:
             "momentum": combat_get(state, enemy, "momentum", 0),
             "balance": combat_get(state, enemy, "balance", 0),
         }
+        try:
+            statuses = enemy.get("statuses", {}) if isinstance(enemy.get("statuses"), dict) else {}
+            bleed = statuses.get("bleed")
+            if isinstance(bleed, dict):
+                stacks = int(bleed.get("stacks", 0) or 0)
+                duration = int(bleed.get("duration", 0) or 0)
+                if stacks > 0:
+                    payload["statuses"] = {"bleed": {"stacks": stacks, "duration": duration}}
+            elif isinstance(bleed, (int, float)):
+                stacks = int(bleed or 0)
+                if stacks > 0:
+                    payload["statuses"] = {"bleed": {"stacks": stacks, "duration": 0}}
+        except Exception:
+            pass
         emit_event(ui, {"type": "enemy_update", "enemy": payload})
     except Exception:
         pass
@@ -2660,15 +2692,13 @@ def handle_declare_chain_action(ctx, player_input, requested_action):
         reopen_chain_builder(state, ui, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
         return True
 
-    # Server-side validation: EXECUTE requires at least one attack link in the declared chain.
-    if execute_requested:
-        has_attack = any(str((ab.get("type") or "")).lower() == "attack" for ab in selected if isinstance(ab, dict))
-        if not has_attack:
-            reason = "EXECUTE requires at least one attack link in your declared chain."
-            ui.error(reason)
-            emit_event(ui, {"type": "chain_rejected", "reason": reason})
-            reopen_chain_builder(state, ui, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
-            return True
+    # Server-side validation: EXECUTE requires at least one declared link (it may replace any link while Primed).
+    if execute_requested and not selected:
+        reason = "EXECUTE requires at least one declared link."
+        ui.error(reason)
+        emit_event(ui, {"type": "chain_rejected", "reason": reason})
+        reopen_chain_builder(state, ui, max_len=state.get("phase", {}).get("chain_max", 6) or 6)
+        return True
     character = state["party"]["members"][0]
     # Keep legacy character.resources and encounter combat meters in sync before and after declaration.
     # Source of truth for RP is encounter combat meters when present.

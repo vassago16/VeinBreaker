@@ -1,24 +1,24 @@
 {
-  "character_id": "character.hym_of_blood",
+  "character_id": "character.bloodmage",
   "resources": {
-    "hp": 20,
+    "hp": 28,
     "hp_max": 28,
-    "resolve": 2,
+    "resolve": 5,
     "resolve_cap": 5,
     "idf": 0
   },
   "pools": {
     "martial": 4,
-    "shadow": 4,
+    "shadow": 5,
     "magic": 4,
-    "faith": 5
+    "faith": 4
   },
   "marks": {
     "blood": 0,
-    "duns": 1
+    "duns": 0
   },
-  "veinscore": 12,
-  "veins_spent_total": 1,
+  "veinscore": 0,
+  "veins_spent_total": 0,
   "cooldowns": {
     "core.basic_strike": {
       "cooldown": 0,
@@ -36,15 +36,27 @@
       "cooldown": 0,
       "base_cooldown": 0
     },
-    "canticle.gleam_strike": {
+    "hemocratic.cutpoint_slice": {
       "cooldown": 0,
       "base_cooldown": 1
     },
-    "canticle.oathbound_guard": {
+    "hemocratic.veil_step": {
       "cooldown": 0,
       "base_cooldown": 1
     },
-    "canticle.hymn_of_embers": {
+    "hemocratic.wound_mark": {
+      "cooldown": 0,
+      "base_cooldown": 1
+    },
+    "hemocratic.blood_slip": {
+      "cooldown": 0,
+      "base_cooldown": 1
+    },
+    "resolve_basic.disengage": {
+      "cooldown": 0,
+      "base_cooldown": 1
+    },
+    "spellforged.warding_pulse": {
       "cooldown": 0,
       "base_cooldown": 1
     },
@@ -52,11 +64,7 @@
       "cooldown": 0,
       "base_cooldown": 1
     },
-    "resolve_basic.balance_surge": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "spellforged.arcane_channel": {
+    "stonepulse.pulse_strike": {
       "cooldown": 0,
       "base_cooldown": 1
     }

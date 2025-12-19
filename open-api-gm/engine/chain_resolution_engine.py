@@ -307,11 +307,12 @@ class ChainResolutionEngine:
         heat = combat_get(state, aggressor, "heat", _get_resource(aggressor, "heat", 0))
         atk_tb = int(((aggressor.get("temp_bonuses") or {}).get("attack", 0)) or 0)
 
-        # Execution intent (Phase 1): only HP-threshold priming is supported.
+        # Execution intent: if requested and target is Primed, replace a link with Execution Strike.
         chain_obj = aggressor.get("chain") if isinstance(aggressor.get("chain"), dict) else {}
         execute_requested = bool(chain_obj.get("execute")) if isinstance(chain_obj, dict) else False
         execute_primed = _is_primed(state, defender)
         execute_link_idx: Optional[int] = None
+        execute_primed_at_start = False
 
         if execute_requested and not execute_primed and self.emit_log:
             self.emit_log(ui, "Execution requested but target is not Primed.", "system")
@@ -322,7 +323,9 @@ class ChainResolutionEngine:
             start_index = 0
 
         # Identify the first attack link (at/after start_index) that can be replaced by Execution Strike.
+        # If no attack link exists (e.g., movement/utility-only chain), execution may replace the first remaining link.
         if execute_requested and execute_primed:
+            execute_primed_at_start = start_index == 0
             for i in range(max(0, start_index), len(chain_ability_names)):
                 name_or_id = chain_ability_names[i]
                 ab = _lookup_action(name_or_id)
@@ -331,8 +334,10 @@ class ChainResolutionEngine:
                 if (ab.get("type") or "").lower() == "attack":
                     execute_link_idx = i
                     break
-            if execute_link_idx is None and self.emit_log:
-                self.emit_log(ui, "Execution requested but no attack link exists in this chain.", "system")
+            if execute_link_idx is None:
+                execute_link_idx = max(0, start_index)
+            # Execution always needs a roll, even if the chain is otherwise movement-only.
+            needs_roll = True
 
         # Roll attack ONCE per chain (movement-only chains do not roll).
         # If we are resuming, reuse the prior chain roll.
@@ -371,14 +376,39 @@ class ChainResolutionEngine:
                 continue
 
             # Movement links: do not roll; apply resource/status deltas and continue.
-            if (ability.get("type") or "").lower() == "movement" or (ability.get("resolution") or "").lower() == "movement":
+            # If this link is being replaced by an Execution Strike, do NOT short-circuit here.
+            if (
+                (ability.get("type") or "").lower() == "movement"
+                or (ability.get("resolution") or "").lower() == "movement"
+            ) and not (execute_link_idx is not None and idx == execute_link_idx):
                 ab_name = ability.get("name") or ability.get("id") or name_or_id
                 delta = ability.get("resourceDelta") if isinstance(ability.get("resourceDelta"), dict) else {}
                 mom_delta = int(delta.get("momentum", 1) or 0) if isinstance(delta, dict) else 1
                 if mom_delta:
                     combat_add(state, aggressor, "momentum", mom_delta)
+                # Other per-use deltas on the actor (Radiance etc.). Keep combat meters in combat_state; others on resources.
+                try:
+                    if isinstance(delta, dict):
+                        for k, v in delta.items():
+                            if k == "momentum":
+                                continue
+                            try:
+                                dv = int(v or 0)
+                            except Exception:
+                                continue
+                            if dv == 0:
+                                continue
+                            if k in {"heat", "balance", "rp"}:
+                                combat_add(state, aggressor, k, dv)
+                            else:
+                                res = aggressor.setdefault("resources", {}) if isinstance(aggressor, dict) else None
+                                if isinstance(res, dict):
+                                    res[k] = int(res.get(k, 0) or 0) + dv
+                except Exception:
+                    pass
                 # Status application (Arcane Ward and future statuses)
                 applied_statuses = []
+                healed = 0
                 effects = ability.get("effects", {}) if isinstance(ability.get("effects"), dict) else {}
                 on_use = effects.get("on_use", []) if isinstance(effects.get("on_use"), list) else []
                 for eff in on_use:
@@ -393,11 +423,28 @@ class ChainResolutionEngine:
                         shield = 1 if str(sname).strip().lower() in {"arcane ward", "arcane_ward"} else 0
                         status_add(state, aggressor, status=str(sname), stacks=stacks, duration_rounds=1, shield=shield)
                         applied_statuses.append(str(sname))
+                    if eff.get("type") == "heal":
+                        try:
+                            dice = eff.get("dice", "1d4")
+                            flat = int(eff.get("flat", 0) or 0)
+                            amt = int(self.roll(dice) or 0) + flat
+                        except Exception:
+                            amt = 0
+                        if amt > 0:
+                            hp_before = _get_hp(aggressor)
+                            hp_max = _get_hp_max(aggressor)
+                            hp_after = hp_before + amt
+                            if hp_max is not None:
+                                hp_after = min(int(hp_max), int(hp_after))
+                            _set_hp(aggressor, hp_after)
+                            healed += int(hp_after) - int(hp_before)
 
                 if self.emit_log:
                     bits = []
                     if mom_delta:
                         bits.append(f"+momentum {mom_delta}")
+                    if healed:
+                        bits.append(f"heal {healed}")
                     if applied_statuses:
                         bits.append("status " + ", ".join(applied_statuses))
                     suffix = (" (" + "; ".join(bits) + ")") if bits else ""
@@ -448,13 +495,14 @@ class ChainResolutionEngine:
                         combat_set(state, aggressor, "balance", int(exec_balance))
                     except Exception:
                         pass
-                    exec_attack_total = int(attack_d20 + exec_balance + 0 + atk_tb)
+                    exec_bonus = 4 if execute_primed_at_start else 0
+                    exec_attack_total = int(attack_d20 + exec_balance + 0 + atk_tb + exec_bonus)
                     exec_hit = exec_attack_total >= defense_target
 
                     if self.emit_log:
                         self.emit_log(
                             ui,
-                            f"EXECUTION STRIKE: roll {attack_d20} + balance {exec_balance} + heat 0 + {atk_tb} -> AV {exec_attack_total} "
+                            f"EXECUTION STRIKE: roll {attack_d20} + balance {exec_balance} + heat 0 + {atk_tb} + prime {exec_bonus} -> AV {exec_attack_total} "
                             f"vs DV {defense_target} -> {'SUCCESS' if exec_hit else 'FAIL'}",
                             "system",
                         )
@@ -685,22 +733,38 @@ class ChainResolutionEngine:
             try:
                 key = str(defender.get("_combat_key", "")) if isinstance(defender, dict) else ""
                 if key.startswith("enemy"):
-                    emit_event(ui, {
-                        "type": "enemy_update",
-                        "enemy": {
-                            "name": defender.get("name", defender.get("id", "Enemy")),
-                            "tier": defender.get("tier"),
-                            "role": defender.get("role"),
-                            "dv_base": dv_base,
-                             "idf": _get_idf(defender),
-                             "hp": {"current": int(after_hp), "max": int(_get_hp_max(defender) or after_hp)},
-                             "execution_threshold_pct": _get_execution_threshold_pct(defender),
-                             "primed": _is_primed(state, defender),
-                             "heat": combat_get(state, defender, "heat", _get_resource(defender, "heat", 0)),
-                             "momentum": combat_get(state, defender, "momentum", _get_resource(defender, "momentum", 0)),
-                             "balance": combat_get(state, defender, "balance", _get_resource(defender, "balance", 0)),
-                         }
-                     })
+                    statuses = defender.get("statuses", {}) if isinstance(defender.get("statuses"), dict) else {}
+                    bleed = statuses.get("bleed") if isinstance(statuses, dict) else None
+                    bleed_payload = None
+                    if isinstance(bleed, dict):
+                        stacks = int(bleed.get("stacks", 0) or 0)
+                        duration = int(bleed.get("duration", 0) or 0)
+                        if stacks > 0:
+                            bleed_payload = {"bleed": {"stacks": stacks, "duration": duration}}
+                    elif isinstance(bleed, (int, float)):
+                        stacks = int(bleed or 0)
+                        if stacks > 0:
+                            bleed_payload = {"bleed": {"stacks": stacks, "duration": 0}}
+                    emit_event(
+                        ui,
+                        {
+                            "type": "enemy_update",
+                            "enemy": {
+                                "name": defender.get("name", defender.get("id", "Enemy")),
+                                "tier": defender.get("tier"),
+                                "role": defender.get("role"),
+                                "dv_base": dv_base,
+                                "idf": _get_idf(defender),
+                                "hp": {"current": int(after_hp), "max": int(_get_hp_max(defender) or after_hp)},
+                                "execution_threshold_pct": _get_execution_threshold_pct(defender),
+                                "primed": _is_primed(state, defender),
+                                "heat": combat_get(state, defender, "heat", _get_resource(defender, "heat", 0)),
+                                "momentum": combat_get(state, defender, "momentum", _get_resource(defender, "momentum", 0)),
+                                "balance": combat_get(state, defender, "balance", _get_resource(defender, "balance", 0)),
+                                "statuses": bleed_payload,
+                            },
+                        },
+                    )
             except Exception:
                 pass
 
