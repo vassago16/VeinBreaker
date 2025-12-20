@@ -65,10 +65,32 @@ def tick_statuses(target):
     Tick durations and apply ongoing effects (e.g., Bleed damage).
     Returns a summary dict with any damage applied.
     """
-    if not target or "statuses" not in target:
+    if not target:
+        return {}
+    resources = target.get("resources", {}) if isinstance(target, dict) and isinstance(target.get("resources"), dict) else None
+    radiance = int((resources or {}).get("radiance", 0) or 0) if resources is not None else 0
+    statuses = target.get("statuses", None)
+    if statuses is None and radiance <= 0:
         return {}
     summary = {"damage": 0, "expired": []}
-    statuses = target.get("statuses", {})
+    if radiance > 0:
+        # Radiance: end-of-round healing buff.
+        # Heal happens before radiance stacks are reduced.
+        heal_amt = max(0, radiance)
+        if heal_amt > 0 and resources is not None and resources.get("hp") is not None:
+            cur = int(resources.get("hp", 0) or 0)
+            max_hp = resources.get("hp_max") or resources.get("max_hp") or resources.get("maxHp")
+            if max_hp is None:
+                resources["hp"] = max(0, cur + heal_amt)
+            else:
+                resources["hp"] = min(int(max_hp), max(0, cur + heal_amt))
+            summary["healed"] = heal_amt
+
+        # Reduce radiance by 1 stack each tick (decay).
+        if resources is not None:
+            resources["radiance"] = max(0, radiance - 1)
+
+    statuses = statuses if isinstance(statuses, dict) else {}
     to_remove = []
     for etype, data in list(statuses.items()):
         stacks = data.get("stacks", 0) or 0

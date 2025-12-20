@@ -1,0 +1,47 @@
+{
+  "schema_version": "scene.v1",
+  "id": "scene.02.01",
+  "title": "Sanguine Spillway",
+
+  "environment": {
+    "id": "env.vein.sanguine_spillway"
+  },
+
+  "encounter": {
+    "monsters": [
+      { "id": "enemy.brumklin.ripper", "count": 1 },
+      { "id": "enemy.brumklin.lurker", "count": 1 }
+    ],
+    "traps": [
+      { "id": "trap.blood_siphon", "count": 1 }
+    ],
+    "hazards": [
+      "hazard.bloodslick"
+    ]
+  },
+
+  "loot_table": [
+    "loot.vein_fragment.t2"
+  ],
+
+  "events": [
+    {
+      "id": "event.spillway_roar",
+      "trigger": { "type": "on_scene_start" },
+      "conditions": [],
+      "effects": [
+        {
+          "type": "emit_ui_event",
+          "event": {
+            "type": "narration",
+            "text": "A red spillway breathes in pulses. Footing fails, then returns, like a heartbeat."
+          }
+        }
+      ]
+    }
+  ],
+
+  "completion_conditions": [
+    { "type": "all_enemies_defeated" }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "schema_version": "script.v1",
   "id": "script.echoes.test",
-  "title": "Echoes — Test Descent",
+  "title": "Echoes: Test Descent",
 
   "acts": [
     {
@@ -13,15 +13,19 @@
         { "$ref": "scene.01.01" },
         { "$ref": "scene.01.02" },
         { "$ref": "scene.01.03" },
-        { "$ref": "scene.01.04" },
-         { "$ref": "scene.01.01" },
-        { "$ref": "scene.01.02" },
-        { "$ref": "scene.01.03" },
-        { "$ref": "scene.01.04" },
-         { "$ref": "scene.01.01" },
-        { "$ref": "scene.01.02" },
-        { "$ref": "scene.01.03" },
         { "$ref": "scene.01.04" }
+      ]
+    },
+    {
+      "id": "act.02.tier2",
+      "title": "Second Pressure (Tier 2)",
+      "order": 2,
+
+      "scenes": [
+        { "$ref": "scene.02.01" },
+        { "$ref": "scene.02.02" },
+        { "$ref": "scene.02.03" },
+        { "$ref": "scene.02.04" }
       ]
     }
   ]

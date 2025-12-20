@@ -1,0 +1,41 @@
+{
+  "id": "character.rock",
+  "name": "Rock",
+  "path": "stonepulse",
+  "tier": 3,
+  "attributes": {
+    "POW": 10,
+    "AGI": 8,
+    "MND": 8,
+    "SPR": 8
+  },
+  "abilities": [
+    "core.basic_strike",
+    "core.basic_guard",
+    "core.focus_action",
+    "core.shift",
+    "resolve_basic.disengage",
+    "stonepulse.stonepulse_step",
+    "stonepulse.stoneguard_step",
+    "stonepulse.pulse_strike",
+    "spellforged.arcane_channel",
+    "spellforged.arcane_step",
+    "hemocratic.blood_slip",
+    "spellforged.charge_bolt",
+    "hemocratic.cutpoint_slice",
+    "canticle.gleam_strike",
+    "canticle.hymn_of_embers",
+    "canticle.oathbound_guard",
+    "canticle.radiant_glide",
+    "stonepulse.stonepulse_rhythm",
+    "hemocratic.veil_step",
+    "spellforged.warding_pulse",
+    "hemocratic.wound_mark",
+    "stonepulse.anchored_form",
+    "hemocratic.artery_rupture",
+    "hemocratic.bloodletting_focus",
+    "hemocratic.bloodveil_stance",
+    "canticle.canticle_stance",
+    "canticle.chorus_of_resolve"
+  ]
+}

@@ -33,3 +33,19 @@ def stat_mod(score: int) -> int:
     # nearest lower key
     lower = max(k for k in keys if k <= score)
     return STAT_MOD_TABLE[lower]
+
+
+def idf_from_strength(score: int) -> int:
+    """
+    Base IDF derived from STR/POW.
+      - STR 10 => IDF 1
+      - STR 8  => IDF 0
+      - +1 IDF per 2 STR above 10
+    Clamped to >= 0.
+    """
+    try:
+        score = int(score or 0)
+    except Exception:
+        score = 0
+    idf = 1 + ((score - 10) // 2)
+    return max(0, int(idf))

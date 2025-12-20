@@ -1,6 +1,7 @@
 import random
 from engine.action_resolution import roll as roll_dice, resolve_defense_reaction
 from engine.status import apply_status_effects
+from engine.dice import roll_2d10_modified, roll_mode_for_entity
 
 
 def enemy_damage_roll(enemy):
@@ -101,8 +102,8 @@ class InterruptController:
         defender: player dict with resources: idf, momentum, hp
         Returns (hit, dmg, rolls)
         """
-        atk_d20 = random.randint(1, 20)
-        def_d20 = random.randint(1, 20)
+        atk_d20 = roll_dice("2d10")
+        def_d20 = roll_dice("2d10")
 
         atk_total = atk_d20 + attacker.get("attack_mod", 0)
         def_total = def_d20 + defender.get("resources", {}).get("idf", 0) + defender.get("resources", {}).get("momentum", 0)
@@ -117,7 +118,7 @@ class InterruptController:
         }
 
 
-def apply_interrupt(state, interruptor, target):
+def apply_interrupt(state, defender, attacker, defense_ability=None, defense_block_roll=None):
     """
     Resolve an interrupt attempt as a contested roll.
 
@@ -137,19 +138,27 @@ def apply_interrupt(state, interruptor, target):
     # ──────────────────────────────────────────────
     # Pull stats
     # ──────────────────────────────────────────────
-    atk_stat = interruptor.get("stats", {}).get("weapon", 0)
-    def_stat = target.get("stats", {}).get("defense", 0)
+    atk_stat = attacker.get("stats", {}).get("weapon", 0)
+    def_stat = defender.get("stats", {}).get("defense", 0)
 
-    atk_bonus = interruptor.get("resources", {}).get("momentum", 0)
-    def_bonus = target.get("resources", {}).get("idf", 0)
+    atk_bonus = attacker.get("resources", {}).get("momentum", 0)
+    def_bonus = defender.get("resources", {}).get("idf", 0)
 
-    break_margin = state.get("rules", {}).get("interrupt_break_margin", 5)
+    break_margin = (
+        ((attacker.get("resolved_archetype") or {}).get("rhythm_profile") or {})
+        .get("interrupt", {})
+        .get("margin_rules", {})
+        .get("break_chain_on_margin_gte")
+    )
+    if break_margin is None:
+        break_margin = state.get("rules", {}).get("interrupt_break_margin", 5)
+    break_margin = int(break_margin or 0) or 5
 
     # ──────────────────────────────────────────────
     # Contested roll
     # ──────────────────────────────────────────────
-    atk_d20 = roll_dice("1d20")
-    def_d20 = roll_dice("1d20")
+    atk_d20, _ = roll_2d10_modified(roll_mode_for_entity(state, attacker))
+    def_d20, _ = roll_2d10_modified(roll_mode_for_entity(state, defender))
 
     atk_total = atk_d20 + atk_stat + atk_bonus
     def_total = def_d20 + def_stat + def_bonus
@@ -163,9 +172,19 @@ def apply_interrupt(state, interruptor, target):
     damage = 0
     if hit:
         damage = roll_dice("1d4")  # interrupt damage scale
-        target["resources"]["hp"] = max(
-            0, target["resources"].get("hp", 0) - damage
-        )
+        if defense_ability:
+            summary = resolve_defense_reaction(
+                state,
+                defender,
+                attacker,
+                defense_ability,
+                incoming_damage=damage,
+                block_roll=defense_block_roll,
+            )
+            damage = int(summary.get("damage_after_block", 0) or 0)
+        else:
+            defender.setdefault("resources", {})
+            defender["resources"]["hp"] = max(0, defender["resources"].get("hp", 0) - damage)
 
     # ──────────────────────────────────────────────
     # Determine chain break (RULE-LEVEL DECISION)
@@ -173,6 +192,8 @@ def apply_interrupt(state, interruptor, target):
     chain_broken = False
     if hit and (damage > 0 or margin >= break_margin):
         chain_broken = True
+        if isinstance(defender.get("chain"), dict) and defender["chain"].get("declared"):
+            defender["chain"]["invalidated"] = True
 
     # ──────────────────────────────────────────────
     # Return ALL info to engine

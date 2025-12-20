@@ -27,6 +27,9 @@
     "spellforged.charge_bolt",
     "canticle.gleam_strike",
     "canticle.hymn_of_embers",
-    "canticle.oathbound_guard"
+    "canticle.oathbound_guard",
+    "stonepulse.stoneguard_step",
+    "stonepulse.stonepulse_rhythm",
+    "stonepulse.stonepulse_step"
   ]
 }

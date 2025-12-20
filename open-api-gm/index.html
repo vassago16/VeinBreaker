@@ -610,6 +610,45 @@ footer {
 	    display: none;
 	  }
 
+	  .player-badge.heal {
+	    background: rgba(255, 208, 64, 0.18);
+	    border-color: rgba(255, 208, 64, 0.45);
+	    color: rgba(255, 229, 128, 0.95);
+	    text-shadow: 0 0 10px rgba(255, 208, 64, 0.15);
+	  }
+
+	  .status-strip {
+	    display: flex;
+	    flex-wrap: wrap;
+	    gap: 8px;
+	    margin-top: 10px;
+	  }
+
+	  .status-strip.hidden {
+	    display: none;
+	  }
+
+	  .status-chip {
+	    font-size: 12px;
+	    letter-spacing: 0.08em;
+	    padding: 6px 8px;
+	    border-radius: 999px;
+	    border: 1px solid rgba(160, 160, 160, 0.25);
+	    background: rgba(20, 20, 20, 0.65);
+	    color: rgba(235, 235, 235, 0.9);
+	    text-transform: uppercase;
+	  }
+
+	  .status-strip.flash {
+	    animation: statusFlash 650ms ease;
+	  }
+
+	  @keyframes statusFlash {
+	    0% { filter: brightness(1.0); transform: translateY(0); }
+	    30% { filter: brightness(1.25); transform: translateY(-1px); }
+	    100% { filter: brightness(1.0); transform: translateY(0); }
+	  }
+
 	  /* ===== START MENU (slide-up) ===== */
 
 	  .start-menu {
@@ -1617,6 +1656,11 @@ footer {
         <span class="label">VEIN</span>
         <span class="value" id="char-veinscore">–</span>
       </div>
+
+      <div class="vein-node" id="blood-node">
+        <span class="label">BLOOD</span>
+        <span class="value" id="char-blood">–</span>
+      </div>
     </div>
 
     <div class="stats">
@@ -1648,6 +1692,8 @@ footer {
 
     <!-- RADIANCE -->
     <div id="player-radiance" class="player-badge hidden">RADIANCE 0</div>
+    <div id="player-heal-badge" class="player-badge heal hidden">↑ HEAL +0</div>
+    <div id="player-statuses" class="status-strip hidden"></div>
 
     <section id="abilities-panel">
       <div class="panel-title">ABILITIES</div>
@@ -1850,6 +1896,11 @@ footer {
 	        <div id="safe-room-rest-result" class="safe-room-rest-result hidden"></div>
 	      </section>
 
+	      <section id="safe-room-training" class="safe-room-progression">
+	        <div class="panel-title">TRAINING (COST 3 VEIN)</div>
+	        <div id="safe-room-training-buttons" class="character-create-buttons"></div>
+	      </section>
+
 	      <section id="character-create-panel" class="character-create-panel hidden">
 	        <div class="panel-title">NEW CHARACTER</div>
 	        <div class="character-create-field">
@@ -1918,6 +1969,7 @@ const choicesEl = document.getElementById("choices");
 const charHp = document.getElementById("char-hp");
 const charRp = document.getElementById("char-rp");
     const charVeinscore = document.getElementById("char-veinscore");
+const charBlood = document.getElementById("char-blood");
     const statStr = document.getElementById("stat-str");
 const statDex = document.getElementById("stat-dex");
 const statInt = document.getElementById("stat-int");
@@ -1927,6 +1979,7 @@ let hasUnreadSignals = false;
 let characterState = null;
 let enemyState = null;
 let abilityById = new Map();
+let healBadgeTimer = null;
 let pendingCombatResult = null;
 let combatResultDelayUntil = 0;
 let combatResultDelayTimer = null;
@@ -1985,6 +2038,9 @@ function openSafeRoomScreen(ev) {
   const progEl = document.getElementById("safe-room-progression");
   const restEl = document.getElementById("safe-room-rest-result");
   const offersEl = document.getElementById("safe-room-offers");
+  const trainingEl = document.getElementById("safe-room-training");
+  const trainingButtons = document.getElementById("safe-room-training-buttons");
+  const shopTitleEl = document.querySelector(".safe-room-shop .panel-title");
   if (!overlay || !veinEl || !chEl || !offersEl || !progEl || !restEl) return;
 
   // Ensure other overlays don't steal focus.
@@ -1993,6 +2049,9 @@ function openSafeRoomScreen(ev) {
 
   window.__safeRoomMode = ev?.mode || "safe_room";
   window.__characterCreateStage = ev?.stage || null;
+  if (shopTitleEl) {
+    shopTitleEl.textContent = (window.__safeRoomMode === "character_create") ? "STARTER ABILITIES (PICK 3, INCLUDE YOUR PATH)" : "AVAILABLE UPGRADES";
+  }
 
   const veinscore = Number(ev?.character?.veinscore ?? 0);
   veinEl.textContent = String(veinscore);
@@ -2044,7 +2103,14 @@ function openSafeRoomScreen(ev) {
     const btn = div.querySelector("button");
     if (btn) {
       const act = (window.__safeRoomMode === "character_create") ? "character_create_buy" : "safe_room_buy";
-      btn.onclick = () => sendStep({ action: act, ability: off.id });
+      btn.onclick = () => {
+        if (act === "character_create_buy") {
+          const nm = String(document.getElementById("character-create-name")?.value || "").trim();
+          sendStep({ action: act, ability: off.id, name: nm });
+        } else {
+          sendStep({ action: act, ability: off.id });
+        }
+      };
     }
     offersEl.appendChild(div);
   });
@@ -2060,6 +2126,7 @@ function openSafeRoomScreen(ev) {
   if (cc && nameInput && pathsEl && rpEl && restBtn && contBtn) {
     const isCC = window.__safeRoomMode === "character_create";
     cc.classList.toggle("hidden", !isCC);
+    if (trainingEl) trainingEl.classList.toggle("hidden", isCC);
 
     if (isCC) {
       // Re-label buttons for creation.
@@ -2080,7 +2147,10 @@ function openSafeRoomScreen(ev) {
         const b = document.createElement("button");
         b.className = "choice";
         b.textContent = p.label || p.id;
-        b.onclick = () => sendStep({ action: "character_create_path", path: p.id });
+        b.onclick = () => {
+          const nm = String(nameInput.value || "").trim();
+          sendStep({ action: "character_create_path", path: p.id, name: nm });
+        };
         pathsEl.appendChild(b);
       });
 
@@ -2089,7 +2159,10 @@ function openSafeRoomScreen(ev) {
           const b = document.createElement("button");
           b.className = "choice secondary";
           b.textContent = a.name || a.id;
-          b.onclick = () => sendStep({ action: "character_create_rp", rp_ability: a.id });
+          b.onclick = () => {
+            const nm = String(nameInput.value || "").trim();
+            sendStep({ action: "character_create_rp", rp_ability: a.id, name: nm });
+          };
           rpEl.appendChild(b);
         });
       }
@@ -2097,8 +2170,12 @@ function openSafeRoomScreen(ev) {
       contBtn.disabled = stage !== "shop";
       contBtn.onclick = async () => {
         const nm = String(nameInput.value || "").trim();
-        await sendStep({ action: "character_create_finish", name: nm });
-        closeSafeRoomScreen();
+        const events = await sendStep({ action: "character_create_finish", name: nm });
+        // If the backend responded with a safe_room_enter, it intentionally wants the overlay visible.
+        // Closing it here can leave the player with no next action UI.
+        const openedSafeRoom = Array.isArray(events) && events.some(e => e?.type === "safe_room_enter");
+        const stillCreating = Array.isArray(events) && events.some(e => e?.type === "safe_room_enter" && e?.mode === "character_create");
+        if (!openedSafeRoom && !stillCreating) closeSafeRoomScreen();
       };
     } else {
       restBtn.classList.remove("hidden");
@@ -2106,6 +2183,26 @@ function openSafeRoomScreen(ev) {
       contBtn.textContent = "CONTINUE";
     }
   }
+
+  // Training buttons (safe room only): spend 3 Vein for +1 stat.
+  try {
+    if (trainingEl && trainingButtons) {
+      const isCC = window.__safeRoomMode === "character_create";
+      trainingEl.classList.toggle("hidden", isCC);
+      if (!isCC) {
+        trainingButtons.innerHTML = "";
+        const canTrain = veinscore >= 3;
+        ["POW", "AGI", "MND", "SPR"].forEach(st => {
+          const b = document.createElement("button");
+          b.className = "choice secondary";
+          b.textContent = `+1 ${st}`;
+          if (!canTrain) b.disabled = true;
+          b.onclick = () => sendStep({ action: "safe_room_stat_up", stat: st });
+          trainingButtons.appendChild(b);
+        });
+      }
+    }
+  } catch (e) { /* ignore */ }
 
   overlay.classList.remove("hidden");
   overlay.setAttribute("aria-hidden", "false");
@@ -2709,6 +2806,10 @@ function updateCharacterUI(char) {
   if (char.veinscore !== undefined) {
     charVeinscore.textContent = char.veinscore;
   }
+  try {
+    const blood = Number(char?.marks?.blood ?? char?.blood ?? 0) || 0;
+    if (charBlood) charBlood.textContent = String(blood);
+  } catch (e) { /* ignore */ }
   if (char.attributes) {
     statStr.textContent = char.attributes.str ?? "—";
     statDex.textContent = char.attributes.dex ?? "—";
@@ -2728,7 +2829,59 @@ function updateCharacterUI(char) {
       }
     }
   } catch (e) { /* ignore */ }
+
+  // Status strip
+  try {
+    const host = document.getElementById("player-statuses");
+    const st = char.statuses || {};
+    if (host) {
+      host.innerHTML = "";
+      const keys = Object.keys(st || {}).sort();
+      if (keys.length) {
+        keys.forEach(k => {
+          const v = st[k];
+          const stacks = (v && typeof v === "object" && v.stacks !== undefined) ? v.stacks : (typeof v === "number" ? v : undefined);
+          const dur = (v && typeof v === "object" && v.duration !== undefined) ? v.duration : undefined;
+          const chip = document.createElement("div");
+          chip.className = "status-chip";
+          const sPart = (stacks !== undefined) ? ` ${stacks}` : "";
+          const dPart = (dur !== undefined && dur !== null) ? ` (${dur})` : "";
+          chip.textContent = `${String(k).toUpperCase()}${sPart}${dPart}`;
+          host.appendChild(chip);
+        });
+        host.classList.remove("hidden");
+      } else {
+        host.classList.add("hidden");
+      }
+    }
+  } catch (e) { /* ignore */ }
   renderAbilitiesPanel(char);
+}
+
+function showHealBadge(delta) {
+  const badge = document.getElementById("player-heal-badge");
+  const statuses = document.getElementById("player-statuses");
+  if (!badge) return;
+  if (healBadgeTimer) clearTimeout(healBadgeTimer);
+  badge.textContent = `↑ HEAL +${delta}`;
+  badge.classList.remove("hidden");
+  if (statuses) statuses.classList.add("hidden");
+  healBadgeTimer = setTimeout(() => {
+    badge.classList.add("hidden");
+    if (statuses && characterState && characterState.statuses && Object.keys(characterState.statuses).length) {
+      statuses.classList.remove("hidden");
+    }
+    healBadgeTimer = null;
+  }, 1400);
+}
+
+function flashStatusesIfAny() {
+  const host = document.getElementById("player-statuses");
+  if (!host || host.classList.contains("hidden")) return;
+  host.classList.remove("flash");
+  host.offsetHeight;
+  host.classList.add("flash");
+  setTimeout(() => host.classList.remove("flash"), 700);
 }
 
 function updateHeat(value) {
@@ -3052,11 +3205,15 @@ function applyCharacterUpdate(delta) {
   if (!characterState) {
     characterState = { abilities: [] };
   }
+  const prevHp = characterState.hp ? (Number(characterState.hp.current ?? characterState.hp) || 0) : null;
   if (delta.name !== undefined) characterState.name = delta.name;
   if (delta.hp !== undefined) characterState.hp = delta.hp;
   if (delta.rp !== undefined) characterState.rp = delta.rp;
   if (delta.veinscore !== undefined) characterState.veinscore = delta.veinscore;
   if (delta.radiance !== undefined) characterState.radiance = delta.radiance;
+  if (delta.attributes !== undefined) characterState.attributes = delta.attributes;
+  if (delta.marks !== undefined) characterState.marks = delta.marks;
+  if (delta.statuses !== undefined) characterState.statuses = delta.statuses;
   if (delta.meters && typeof delta.meters === "object") {
     characterState.meters = { ...(characterState.meters || {}), ...delta.meters };
     if (delta.meters.heat !== undefined) updateHeat(delta.meters.heat);
@@ -3077,6 +3234,17 @@ function applyCharacterUpdate(delta) {
   updateCharacterUI(characterState);
   renderAbilitiesPanel(characterState);
   updateRPPanel();
+
+  // Healing UX: if HP increased, show a yellow up-arrow badge; otherwise flash statuses.
+  const curHp = characterState.hp ? (Number(characterState.hp.current ?? characterState.hp) || 0) : null;
+  if (prevHp !== null && curHp !== null) {
+    const diff = curHp - prevHp;
+    if (diff > 0) {
+      showHealBadge(diff);
+    } else {
+      flashStatusesIfAny();
+    }
+  }
 }
 
 // initial boot: show intro + start menu (do not start the backend yet)

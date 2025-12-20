@@ -28,7 +28,7 @@ def ability_attack_roll(character, ability, base_d20=None):
     If base_d20 is provided, it is used instead of rolling a new d20.
     Returns (total, d20_roll).
     """
-    die_total = base_d20 if base_d20 is not None else roll("1d20")
+    die_total = base_d20 if base_d20 is not None else roll("2d10")
     add_stat = ability.get("addStatToAttackRoll", True)
     stat_key = ability.get("stat")
     stats = character.get("stats") or character.get("attributes", {})
@@ -236,6 +236,45 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
             return hp.get("current", hp.get("hp", 0))
         return hp if hp is not None else 0
 
+    def _get_hp_max_val(e):
+        if not isinstance(e, dict):
+            return None
+        hp = e.get("hp")
+        if isinstance(hp, dict):
+            mx = hp.get("max") or hp.get("hp_max") or hp.get("max_hp") or hp.get("maxHp")
+            return int(mx) if mx is not None else None
+        res = e.get("resources") if isinstance(e.get("resources"), dict) else None
+        if isinstance(res, dict):
+            mx = res.get("hp_max") or res.get("max_hp") or res.get("maxHp")
+            return int(mx) if mx is not None else None
+        stat_block = e.get("stat_block") if isinstance(e.get("stat_block"), dict) else {}
+        if isinstance(stat_block, dict):
+            hp_block = stat_block.get("hp") if isinstance(stat_block.get("hp"), dict) else {}
+            if isinstance(hp_block, dict) and hp_block.get("max") is not None:
+                return int(hp_block.get("max") or 0)
+        mx = e.get("hp_max") or e.get("max_hp") or e.get("maxHp")
+        return int(mx) if mx is not None else None
+
+    def _is_wounded_foe(e) -> bool:
+        try:
+            cur = int(_get_hp_val(e) or 0)
+            mx = _get_hp_max_val(e)
+            if mx is None:
+                return False
+            mx = int(mx or 0)
+            if mx <= 0:
+                return False
+            return cur < (mx / 2.0)
+        except Exception:
+            return False
+
+    def _blood_marks() -> int:
+        try:
+            marks = character.get("marks") if isinstance(character.get("marks"), dict) else {}
+            return int(marks.get("blood", 0) or 0)
+        except Exception:
+            return 0
+
     def _set_hp_val(e, hp):
         if not isinstance(e, dict):
             return
@@ -341,6 +380,13 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
             return "miss"
         log["hit"] = True
 
+    # Crit: a hit where to_hit is 5+ above the (modified) defense target.
+    try:
+        crit_margin = int(to_hit) - int(defense_roll)
+        log["crit"] = bool(log.get("hit") is True and crit_margin >= 5)
+    except Exception:
+        log["crit"] = False
+
     # Simple damage application to the first enemy, if any
     damage_applied = 0
     if enemies:
@@ -356,6 +402,13 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         if dmg_entry and isinstance(dmg_entry, dict):
             dmg_extra_flat = dmg_entry.get("flat", 0) or 0
         dmg_total = ability_damage_total(character, ability, damage_roll) + heat_bonus + dmg_extra_flat
+        # Blood Mark 1+: +1 passive damage vs wounded foes (< 50% HP).
+        try:
+            if _blood_marks() >= 1 and _is_wounded_foe(enemy):
+                dmg_total += 1
+                log["blood_mark_wounded_bonus"] = 1
+        except Exception:
+            pass
         # Status shields (starter): Arcane Ward reduces next incoming damage by 1.
         shield_used = 0
         if isinstance(enemy, dict) and enemy.get("_combat_key") and dmg_total > 0:
@@ -376,6 +429,48 @@ def apply_action_effects(state, character, enemies, defense_d20=None):
         hit_applied = apply_effect_list(effects.get("on_hit", []), actor=character, enemy=enemy, default_target="enemy")
         if hit_applied.get("statuses"):
             log["statuses_applied"] = hit_applied["statuses"]
+
+        # Blood Mark 2+: +1 RP on crit. If the target is elite, it reacts aggressively.
+        try:
+            if _blood_marks() >= 2 and log.get("crit") is True:
+                rp_gain = 1
+                if character.get("_combat_key"):
+                    cur_rp = combat_get(state, character, "rp", int(resources.get("resolve", 0) or 0))
+                    rp_cap = combat_get(state, character, "rp_cap", int(resources.get("resolve_cap", cur_rp) or cur_rp))
+                    new_rp = int(cur_rp) + rp_gain
+                    if int(rp_cap or 0) > 0:
+                        new_rp = min(int(rp_cap), int(new_rp))
+                    combat_set(state, character, "rp", int(new_rp))
+                    resources["resolve"] = int(new_rp)
+                else:
+                    cap = int(resources.get("resolve_cap", resources.get("resolve", 0)) or 0)
+                    cur = int(resources.get("resolve", 0) or 0)
+                    new_rp = cur + rp_gain
+                    if cap > 0:
+                        new_rp = min(cap, new_rp)
+                    resources["resolve"] = int(new_rp)
+                log["blood_mark_crit_rp"] = rp_gain
+
+                elite = False
+                try:
+                    elite = str(enemy.get("rarity") or "").lower() == "elite"
+                    if not elite:
+                        elite = "elite" in [str(t).lower() for t in (enemy.get("tags") or [])]
+                    if not elite and isinstance(enemy.get("stat_block"), dict):
+                        elite = str(enemy["stat_block"].get("rarity") or "").lower() == "elite"
+                except Exception:
+                    elite = False
+                if elite:
+                    try:
+                        if isinstance(enemy, dict) and enemy.get("_combat_key"):
+                            combat_add(state, enemy, "momentum", 1)
+                        else:
+                            enemy["momentum"] = int(enemy.get("momentum", 0) or 0) + 1
+                    except Exception:
+                        pass
+                    log["elite_reacts_aggressively"] = True
+        except Exception:
+            pass
 
     if "momentum" in tags:
         if character.get("_combat_key"):

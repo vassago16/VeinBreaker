@@ -1,0 +1,17 @@
+{
+  "schema_version": "loot.v1",
+  "id": "loot.vein_fragment.t2",
+  "name": "True Vein Sigil Shard",
+
+  "tier": 2,
+  "rarity": "uncommon",
+
+  "effects": [
+    {
+      "type": "add_veinscore",
+      "amount": 2
+    }
+  ],
+
+  "narration": "A sigil shard that pulses in time with your grip—stronger, hungrier."
+}

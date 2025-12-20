@@ -107,6 +107,7 @@ def get_character():
             "veinscore": veinscore,
             "attributes": norm_attrs,
             "abilities": char.get("abilities", []),
+            "marks": char.get("marks", {}) if isinstance(char.get("marks"), dict) else {},
         }
 
     # Load the current profile + mutable state, then hydrate ability IDs into full objects.

@@ -1,0 +1,22 @@
+{
+  "id": "character.dex",
+  "name": "dex",
+  "path": "hemocratic",
+  "tier": 1,
+  "attributes": {
+    "POW": 8,
+    "AGI": 10,
+    "MND": 8,
+    "SPR": 8
+  },
+  "abilities": [
+    "core.basic_strike",
+    "core.basic_guard",
+    "core.focus_action",
+    "core.shift",
+    "resolve_basic.rhythm_break",
+    "hemocratic.cutpoint_slice",
+    "hemocratic.veil_step",
+    "hemocratic.wound_mark"
+  ]
+}

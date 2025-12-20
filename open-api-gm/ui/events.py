@@ -94,6 +94,17 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
         veinscore = resources.get("veinscore")
 
     radiance = resources.get("radiance")
+    if radiance is None:
+        radiance = character.get("radiance")
+    statuses = character.get("statuses") if isinstance(character, dict) and "statuses" in character else None
+    marks = character.get("marks") if isinstance(character.get("marks"), dict) else None
+    attrs = character.get("attributes") if isinstance(character.get("attributes"), dict) else character.get("stats") if isinstance(character.get("stats"), dict) else {}
+    attributes = {
+        "str": attrs.get("str") or attrs.get("STR") or attrs.get("POW") or attrs.get("pow"),
+        "dex": attrs.get("dex") or attrs.get("DEX") or attrs.get("AGI") or attrs.get("agi"),
+        "int": attrs.get("int") or attrs.get("INT") or attrs.get("MND") or attrs.get("mnd"),
+        "wil": attrs.get("wil") or attrs.get("WIL") or attrs.get("SPR") or attrs.get("spr"),
+    }
 
     meters = character.get("meters")
 
@@ -108,18 +119,31 @@ def build_character_update(character: Dict[str, Any]) -> Dict[str, Any]:
                 "id": ab.get("id") or ab.get("name"),
                 "cooldown": ab.get("cooldown", 0),
             })
-    return {
-        "type": "character_update",
-        "character": {
-            "name": character.get("name"),
-            "hp": hp,
-            "rp": {"current": rp, "cap": rp_cap} if rp_cap is not None else rp,
-            "veinscore": veinscore,
-            "radiance": radiance,
-            "abilities": abilities,
-            "meters": meters,
-        }
-    }
+
+    # Emit as a delta: omit keys that are unknown/None so the UI doesn't overwrite good state with nulls.
+    ch: Dict[str, Any] = {}
+    if character.get("name") is not None:
+        ch["name"] = character.get("name")
+    if hp is not None:
+        ch["hp"] = hp
+    if rp is not None:
+        ch["rp"] = {"current": rp, "cap": rp_cap} if rp_cap is not None else rp
+    if veinscore is not None:
+        ch["veinscore"] = veinscore
+    if radiance is not None:
+        ch["radiance"] = radiance
+    if isinstance(attributes, dict) and any(v is not None for v in attributes.values()):
+        ch["attributes"] = attributes
+    if isinstance(marks, dict):
+        ch["marks"] = marks
+    if isinstance(statuses, dict):
+        ch["statuses"] = statuses
+    if abilities:
+        ch["abilities"] = abilities
+    if meters is not None:
+        ch["meters"] = meters
+
+    return {"type": "character_update", "character": ch}
 
 
 def emit_character_update(ui, character: Dict[str, Any]) -> None:

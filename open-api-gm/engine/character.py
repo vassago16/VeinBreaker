@@ -1,4 +1,5 @@
 from engine.validator import validate
+from engine.stats import idf_from_strength
 
 
 def _resolve_data(canon):
@@ -128,7 +129,7 @@ def create_character(
             "momentum": 0,
             "heat": 0,
             "balance": 0,
-            "idf": 0
+            "idf": idf_from_strength(pow_val),
         },
         "attributes": attributes,
         "pools": pools,

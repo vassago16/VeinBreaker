@@ -268,33 +268,60 @@
           }
         }
       },
-      "moves": [
-        {
-          "id": "move.hamstring_cut",
-          "name": "Hamstring Cut",
-          "type": "attack",
-          "cost": {
-            "rp": 1
+        "moves": [
+          {
+            "id": "move.hamstring_cut",
+            "name": "Hamstring Cut",
+            "type": "attack",
+            "cost": {
+              "rp": 1
+            },
+            "cooldown": 0,
+            "to_hit": {
+              "av_mod": 0
+            },
+            "on_hit": {
+              "damage": "baseline",
+              "effects": [
+                "bleed"
+              ]
+            },
+            "on_miss": {
+              "notes": "Stays low; baiting movement."
+            },
+            "card_text": "Low slash that opens bleeding tracks."
           },
-          "cooldown": 0,
-          "to_hit": {
-            "av_mod": 0
-          },
-          "on_hit": {
-            "damage": "baseline",
-            "effects": [
-              "bleed"
-            ]
-          },
-          "on_miss": {
-            "notes": "Stays low; baiting movement."
-          },
-          "card_text": "Low slash that opens bleeding tracks."
-        }
-      ],
-      "resolved_archetype": {
-        "rhythm_profile": {
-          "interrupt": {
+          {
+            "id": "move.brutal_shove",
+            "name": "Brutal Shove",
+            "type": "attack",
+            "cost": {
+              "rp": 1
+            },
+            "cooldown": 0,
+            "to_hit": {
+              "av_mod": 0
+            },
+            "interrupt_window": {
+              "when": "before_link",
+              "if_prev_link_missed": true,
+              "notes": "Only opens if Hamstring Cut missed."
+            },
+            "on_hit": {
+              "damage": "baseline",
+              "effects": [
+                "stagger"
+              ]
+            },
+            "on_miss": {
+              "notes": "Overextends and snarls."
+            },
+            "card_text": "A brutal body-check that knocks you off rhythm."
+          }
+        ],
+        "resolved_archetype": {
+          "rhythm_profile": {
+            "interrupt": {
             "budget_per_round": 1,
             "reserve_per_player_turn": 0,
             "timing_bias": "late",
@@ -1438,6 +1465,226 @@
         }
       },
       "rp_pool": 3
+    },
+    {
+      "id": "enemy.brumklin.ripper",
+      "name": "Brumklin Ripper",
+      "archetype_id": "archetype.aggressor",
+      "tier": 2,
+      "role": "harasser",
+      "rarity": "common",
+      "tags": [
+        "brumkin",
+        "skirmisher",
+        "bleed"
+      ],
+      "lore": {
+        "one_liner": "It cuts where your rhythm is weakest.",
+        "dungeon_voice": "Miss and I drink.",
+        "notes_gm": "Tier-2 skitterline: same lesson, sharper punishment."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 14
+        },
+        "defense": {
+          "dv_base": 9,
+          "idf": 0
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": -1
+          },
+          "spike": {
+            "dice": "1d6",
+            "flat": 1
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.ripper.slice_and_hook",
+          "name": "Slice & Hook",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": 0
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "The Ripper overcommits and exposes an opening."
+          },
+          "card_text": "A quick cut that sets up a follow-through."
+        },
+        {
+          "id": "move.ripper.rhythm_rend",
+          "name": "Rhythm Rend",
+          "type": "attack",
+          "cost": {
+            "rp": 2
+          },
+          "cooldown": 2,
+          "to_hit": {
+            "av_mod": -1
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "Telegraphed swing; good for teaching interrupts and defense timing."
+          },
+          "card_text": "A heavy tear meant to end long chains."
+        }
+      ],
+      "rp_pool": 4
+    },
+    {
+      "id": "enemy.shambler.sinew",
+      "name": "Sinew Shambler",
+      "archetype_id": "archetype.aberrant",
+      "tier": 2,
+      "role": "bruiser",
+      "rarity": "common",
+      "tags": [
+        "shambler",
+        "undead",
+        "sticky"
+      ],
+      "lore": {
+        "one_liner": "It drags its ribs like anchors.",
+        "dungeon_voice": "Stay. Stay. Stay.",
+        "notes_gm": "A slow threat that pressures movement and spacing."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 18
+        },
+        "defense": {
+          "dv_base": 10,
+          "idf": 1
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "1d8",
+            "flat": -1
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.sinew.cling_and_crush",
+          "name": "Cling & Crush",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": -1
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "It stumbles forward, dragging debris."
+          },
+          "card_text": "Heavy pressure that makes repositioning costly."
+        }
+      ],
+      "rp_pool": 3
+    },
+    {
+      "id": "enemy.goblin.bog_hexer",
+      "name": "Bog Hexer",
+      "archetype_id": "archetype.stalker",
+      "tier": 2,
+      "role": "controller",
+      "rarity": "uncommon",
+      "tags": [
+        "goblin",
+        "hex",
+        "fen"
+      ],
+      "lore": {
+        "one_liner": "It curses your footing and calls it tactics.",
+        "dungeon_voice": "Step wrong. Step slow.",
+        "notes_gm": "Pairs well with a shieldbearer to force tempo changes."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 12
+        },
+        "defense": {
+          "dv_base": 11,
+          "idf": 0
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": -2
+          },
+          "spike": {
+            "dice": "1d6",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.hexer.mire_bolt",
+          "name": "Mire Bolt",
+          "type": "attack",
+          "cost": {
+            "rp": 1
+          },
+          "cooldown": 0,
+          "to_hit": {
+            "av_mod": 1
+          },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "Mud splashes wide; no damage but it forces respect."
+          },
+          "card_text": "A spiteful shot meant to break focus."
+        },
+        {
+          "id": "move.hexer.salt_the_ground",
+          "name": "Salt the Ground",
+          "type": "attack",
+          "cost": {
+            "rp": 2
+          },
+          "cooldown": 2,
+          "to_hit": {
+            "av_mod": -1
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": []
+          },
+          "on_miss": {
+            "notes": "The hex fizzles and leaves the caster open."
+          },
+          "card_text": "A heavier curse that punishes overextension."
+        }
+      ],
+      "rp_pool": 4
     }
   ]
 }

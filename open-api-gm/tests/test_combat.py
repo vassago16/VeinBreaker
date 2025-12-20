@@ -57,8 +57,9 @@ class TestCombatMechanics(unittest.TestCase):
             }
         }
         # Force rolls: enemy atk 15, player def 10 => margin 5 => chain invalidated
-        with patch("random.randint", side_effect=[15, 10, 1]):
-            hit, dmg, rolls = apply_interrupt({"phase": {}}, character, enemy)
+        # 2d10 rolls: (7+8)=15, (4+6)=10, damage roll=1
+        with patch("random.randint", side_effect=[7, 8, 4, 6, 1]):
+            hit, dmg, rolls, chain_broken = apply_interrupt({"phase": {}}, character, enemy)
         self.assertTrue(character.get("chain", {}).get("invalidated", False))
 
 

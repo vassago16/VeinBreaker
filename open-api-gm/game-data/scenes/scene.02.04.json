@@ -1,0 +1,47 @@
+{
+  "schema_version": "scene.v1",
+  "id": "scene.02.04",
+  "title": "The Pressure Choir",
+
+  "environment": {
+    "id": "env.vein.pressure_choir"
+  },
+
+  "encounter": {
+    "monsters": [
+      { "id": "enemy.stonebound.mauler", "count": 1 },
+      { "id": "enemy.brumklin.ripper", "count": 1 }
+    ],
+    "traps": [
+      { "id": "trap.vein_surge", "count": 1 }
+    ],
+    "hazards": [
+      "hazard.bloodslick"
+    ]
+  },
+
+  "loot_table": [
+    "loot.vein_fragment.t2"
+  ],
+
+  "events": [
+    {
+      "id": "event.choir_hum",
+      "trigger": { "type": "on_scene_start" },
+      "conditions": [],
+      "effects": [
+        {
+          "type": "emit_ui_event",
+          "event": {
+            "type": "narration",
+            "text": "A low hum vibrates through the stone. Each pulse arrives a fraction early, like it's trying to interrupt you."
+          }
+        }
+      ]
+    }
+  ],
+
+  "completion_conditions": [
+    { "type": "all_enemies_defeated" }
+  ]
+}

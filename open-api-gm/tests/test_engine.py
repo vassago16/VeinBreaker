@@ -28,6 +28,18 @@ def base_character():
 
 
 class TestEngineEffects(unittest.TestCase):
+    def test_radiance_heals_end_of_round_and_decays(self):
+        character = base_character()
+        character["resources"]["hp"] = 8
+        character["resources"]["hp_max"] = 12
+        character["resources"]["radiance"] = 3
+
+        tick_statuses(character)
+
+        # Heal happens before the decay (3 radiance -> heal 3, then radiance becomes 2)
+        self.assertEqual(character["resources"]["hp"], 11)
+        self.assertEqual(character["resources"]["radiance"], 2)
+
     def test_cutpoint_slice_applies_bleed_and_momentum(self):
         ability = load_ability("Cutpoint Slice")
         character = base_character()

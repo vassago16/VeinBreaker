@@ -338,7 +338,7 @@ def _safe_room_cost(ability: dict) -> int:
 # Thresholds represent total Vein ever spent (veins_spent_total / _veins_spent_total).
 VEIN_TIER_THRESHOLDS: list[tuple[int, int]] = [
     (1, 0),
-    (2, 10),
+    (2, 3),
     (3, 25),
     (4, 45),
 ]
@@ -356,20 +356,59 @@ def tier_from_veins_spent(veins_spent_total: int, *, base_tier: int = 1) -> int:
     return max(int(base_tier or 1), tier)
 
 
-def apply_vein_tier_progression(character: dict) -> bool:
+def apply_vein_tier_progression(character: dict) -> dict:
     """
     Auto-increment character tier based on total veins spent.
-    Returns True if the tier increased.
+    Tier 2 can also be unlocked early once the player holds 3+ Veinscore.
+    Returns {before, after, leveled}.
     """
     if not isinstance(character, dict):
-        return False
+        return {"before": 1, "after": 1, "leveled": False}
+
     before = int(character.get("tier", 1) or 1)
     spent = int(character.get("_veins_spent_total", 0) or 0)
     after = tier_from_veins_spent(spent, base_tier=before)
-    if after > before:
+
+    # Early Tier 2 gate: if player has 3 Vein (unspent), they can attain Tier 2.
+    try:
+        res = character.get("resources", {}) if isinstance(character.get("resources"), dict) else {}
+        vein = int(res.get("veinscore", character.get("veinscore", 0)) or 0)
+    except Exception:
+        vein = 0
+    if before < 2 and vein >= 3:
+        after = max(after, 2)
+
+    leveled = after > before
+    if leveled:
         character["tier"] = after
-        return True
-    return False
+
+        # Tier 2 package
+        if before < 2 and after >= 2:
+            res = character.setdefault("resources", {})
+            try:
+                hp_max = int(res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp", 0)))) or 0)
+            except Exception:
+                hp_max = int(res.get("hp", 0) or 0)
+            if hp_max <= 0:
+                hp_max = int(res.get("hp", 0) or 0)
+            res["hp_max"] = max(0, hp_max + 10)
+
+            # Clamp current HP to new max (do not auto-heal unless already above).
+            try:
+                hp_cur = int(res.get("hp", 0) or 0)
+            except Exception:
+                hp_cur = 0
+            res["hp"] = min(res["hp_max"], max(0, hp_cur))
+
+            # Raise RP cap to 7 (mirror for legacy + combat-state registration).
+            res["resolve_cap"] = 7
+            if res.get("resolve") is not None:
+                try:
+                    res["resolve"] = min(int(res["resolve_cap"]), int(res.get("resolve", 0) or 0))
+                except Exception:
+                    pass
+
+    return {"before": before, "after": after, "leveled": leveled}
 
 
 def safe_room_progression_payload(character: dict) -> dict:
@@ -463,7 +502,9 @@ def emit_safe_room_enter(ctx: dict) -> None:
     if not isinstance(ch, dict):
         return
     # Ensure tier progression is reflected in safe-room offers.
-    apply_vein_tier_progression(ch)
+    tier_info = apply_vein_tier_progression(ch)
+    if tier_info.get("leveled") and int(tier_info.get("after", 1) or 1) == 2:
+        ui.system("Tier 2 attained.")
     res = ch.get("resources", {}) if isinstance(ch.get("resources"), dict) else {}
     offers = build_safe_room_offers(ch, game_data)
     emit_event(ui, {
@@ -488,6 +529,68 @@ def emit_safe_room_enter(ctx: dict) -> None:
     })
 
 
+def _normalize_attributes_for_ui(ch: dict) -> dict:
+    attrs = ch.get("attributes", {}) if isinstance(ch.get("attributes"), dict) else ch.get("stats", {}) if isinstance(ch.get("stats"), dict) else {}
+    return {
+        "str": attrs.get("str") or attrs.get("STR") or attrs.get("POW") or attrs.get("pow"),
+        "dex": attrs.get("dex") or attrs.get("DEX") or attrs.get("AGI") or attrs.get("agi"),
+        "int": attrs.get("int") or attrs.get("INT") or attrs.get("MND") or attrs.get("mnd"),
+        "wil": attrs.get("wil") or attrs.get("WIL") or attrs.get("SPR") or attrs.get("spr"),
+    }
+
+def _increment_attribute_stat(character: dict, stat: str, amount: int = 1) -> None:
+    """
+    Increment a stat while tolerating mixed attribute key styles.
+    Canonical keys: POW/AGI/MND/SPR
+    UI-normalized keys: str/dex/int/wil
+    """
+    if not isinstance(character, dict):
+        return
+    stat = str(stat or "").upper().strip()
+    if stat not in {"POW", "AGI", "MND", "SPR"}:
+        return
+    try:
+        amt = int(amount or 0)
+    except Exception:
+        amt = 0
+    if amt == 0:
+        return
+
+    attrs = character.setdefault("attributes", {})
+    if not isinstance(attrs, dict):
+        attrs = {}
+        character["attributes"] = attrs
+
+    key_sets = {
+        "POW": ("POW", "STR", "str"),
+        "AGI": ("AGI", "DEX", "dex"),
+        "MND": ("MND", "INT", "int"),
+        "SPR": ("SPR", "WIL", "wil"),
+    }
+    keys = key_sets[stat]
+
+    cur = None
+    for k in keys:
+        if attrs.get(k) is not None:
+            cur = attrs.get(k)
+            break
+    try:
+        cur_val = int(cur or 0)
+    except Exception:
+        cur_val = 0
+    new_val = cur_val + amt
+
+    # Ensure the canonical stat exists for persistence and derived-stat calculations.
+    attrs[stat] = new_val
+    # Ensure UI-normalized key stays in sync.
+    normalized = {"POW": "str", "AGI": "dex", "MND": "int", "SPR": "wil"}[stat]
+    attrs[normalized] = new_val
+    # If the profile already uses alternative keys, keep them in sync too.
+    for k in keys:
+        if k in attrs:
+            attrs[k] = new_val
+
+
 CHARACTER_CREATE_PATHS = [
     {"id": "stonepulse", "label": "Stone", "stat": "POW"},
     {"id": "hemocratic", "label": "Shadow", "stat": "AGI"},
@@ -507,6 +610,11 @@ def _create_draft_character(*, path_id: str | None = None) -> dict:
             if p["id"] == path_id:
                 attrs[p["stat"]] = int(attrs.get(p["stat"], 8) or 8) + 2
                 break
+    try:
+        from engine.stats import idf_from_strength
+        base_idf = idf_from_strength(int(attrs.get("POW", 0) or 0))
+    except Exception:
+        base_idf = 0
 
     return {
         "id": "character.draft",
@@ -519,7 +627,7 @@ def _create_draft_character(*, path_id: str | None = None) -> dict:
             "hp_max": 28,
             "resolve": 5,
             "resolve_cap": 5,
-            "idf": 0,
+            "idf": int(base_idf),
             "veinscore": 3,
         },
         "pools": {},
@@ -531,34 +639,65 @@ def _create_draft_character(*, path_id: str | None = None) -> dict:
 
 
 def _starter_ability_ids_for_path(path_id: str | None, game_data: dict) -> list[str]:
-    base = ["core.basic_strike", "core.basic_guard", "core.focus_action", "core.shift"]
-    if not path_id:
-        return base
-    out = list(base)
-    try:
-        gd_abilities = (game_data.get("abilities", {}) or {}).get("abilities", [])
-    except Exception:
+    # Starter loadout is only the shared core kit.
+    # Path abilities are selected during character creation (pick 3), not granted automatically.
+    return ["core.basic_strike", "core.basic_guard", "core.focus_action", "core.shift"]
+
+
+def _character_create_validate_starter_picks(character: dict, game_data: dict) -> str | None:
+    """
+    Enforce: pick exactly 3 tier-1 abilities from the creation list, and at least one must match the chosen path.
+    Does not count core abilities or resolve abilities.
+    """
+    if not isinstance(character, dict) or not isinstance(game_data, dict):
+        return "Invalid character data."
+    path_id = character.get("path")
+    if path_id not in {p["id"] for p in CHARACTER_CREATE_PATHS}:
+        return "Choose a path first."
+
+    core_ids = set(_starter_ability_ids_for_path(None, game_data))
+    gd_abilities = (game_data.get("abilities", {}) or {}).get("abilities", [])
+    if not isinstance(gd_abilities, list):
         gd_abilities = []
-    if isinstance(gd_abilities, list):
-        for ab in gd_abilities:
-            if not isinstance(ab, dict):
-                continue
-            if ab.get("path") != path_id:
-                continue
-            try:
-                t = int(ab.get("tier", 99) or 99)
-            except Exception:
-                t = 99
-            if t == 1 and ab.get("id"):
-                out.append(str(ab["id"]))
+    by_id = {str(a.get("id")): a for a in gd_abilities if isinstance(a, dict) and a.get("id")}
+
+    rp_catalog = _resolve_ability_catalog(game_data)
+    rp_ids = {str(a.get("id") or a.get("name")) for a in rp_catalog if isinstance(a, dict) and (a.get("id") or a.get("name"))}
+
+    owned = [str(a) for a in (character.get("abilities") or []) if a]
+    if not any(a in rp_ids for a in owned):
+        return "Pick 1 resolve ability."
+
+    picks: list[str] = []
+    for aid in owned:
+        if aid in core_ids:
+            continue
+        if aid in rp_ids:
+            continue
+        ab = by_id.get(aid)
+        if not isinstance(ab, dict):
+            continue
+        try:
+            t = int(ab.get("tier", 99) or 99)
+        except Exception:
+            t = 99
+        if t != 1:
+            continue
+        picks.append(aid)
+
     # stable unique
-    seen = set()
-    uniq = []
-    for a in out:
-        if a and a not in seen:
-            uniq.append(a)
+    seen: set[str] = set()
+    uniq_picks: list[str] = []
+    for a in picks:
+        if a not in seen:
+            uniq_picks.append(a)
             seen.add(a)
-    return uniq
+
+    if len(uniq_picks) != 3:
+        return "Pick exactly 3 starter abilities (tier 1)."
+    if not any(isinstance(by_id.get(a), dict) and by_id[a].get("path") == path_id for a in uniq_picks):
+        return "At least one starter ability must match your chosen path."
+    return None
 
 
 def _resolve_ability_catalog(game_data: dict) -> list[dict]:
@@ -679,16 +818,38 @@ def _refill_pools_to_cap(ch: dict) -> None:
         for k, cap in pool_caps.items():
             pools[k] = int(cap)
 
+
+def _sync_base_idf(character: dict) -> None:
+    """
+    Ensure player has a base IDF derived from STR/POW (per current rules).
+    This is a base stat; temporary modifiers should use temp_bonuses.idf.
+    """
+    if not isinstance(character, dict):
+        return
+    attrs = character.get("attributes") or character.get("stats") or {}
+    try:
+        str_score = int(attrs.get("POW") or attrs.get("STR") or attrs.get("str") or 0)
+    except Exception:
+        str_score = 0
+    try:
+        from engine.stats import idf_from_strength
+        base_idf = idf_from_strength(str_score)
+    except Exception:
+        base_idf = 0
+    res = character.setdefault("resources", {}) if isinstance(character.get("resources"), dict) else character.setdefault("resources", {})
+    if isinstance(res, dict):
+        res["idf"] = int(base_idf)
+
 def create_game_context(ui, skip_character_creation=False):
     parser = argparse.ArgumentParser()
     parser.add_argument("--auto", action="store_true", help="Run in automated mode (no prompts).")
-    parser.add_argument("--narrate", dest="narrate", action="store_true", help="Enable narration (off by default).")
-    parser.add_argument("--nonarrate", dest="narrate", action="store_false", help="Disable narration (default).")
+    parser.add_argument("--narrate", dest="narrate", action="store_true", help="Enable narration (default).")
+    parser.add_argument("--nonarrate", dest="narrate", action="store_false", help="Disable narration.")
     parser.set_defaults(narrate=False)
     parser.add_argument(
         "--interactive-defaults",
         action="store_true",
-        help="Interactive mode but default to saved character and narration off without prompting."
+        help="Interactive mode but default to saved character and narration on without prompting."
     )
     args, _ = parser.parse_known_args()
 
@@ -773,6 +934,11 @@ def create_game_context(ui, skip_character_creation=False):
         res["hp_max"] = hp_obj.get("max") or res.get("hp_max") or res.get("max_hp") or res.get("maxHp")
     if "hp_max" not in res and "max_hp" not in res and "maxHp" not in res and isinstance(res.get("hp"), (int, float)):
         res["hp_max"] = res["hp"]
+    # Base IDF is derived from POW/STR per rules.
+    try:
+        _sync_base_idf(character)
+    except Exception:
+        pass
 
     state = initial_state()
     state["flags"] = {"narration_enabled": bool(args.narrate)}
@@ -862,11 +1028,97 @@ def log_flags(prefix: str, state: dict) -> None:
     flags = state.get("flags", {})
     append_log(f"{prefix} flags={flags}")
 
+def maybe_emit_aftermath_narration(ui, state: dict, *, player: dict | None, enemy: dict | None, result_label: str) -> None:
+    """
+    Emit a short post-combat recap narration in the narrator's dungeon voice.
+    Runs once per combat end.
+    """
+    try:
+        if not isinstance(state, dict) or state.get("_aftermath_narrated"):
+            return
+        if not state.get("flags", {}).get("narration_enabled"):
+            return
+        if not NARRATION and not NARRATOR:
+            return
+
+        enemies_defeated = []
+        if isinstance(enemy, dict):
+            lore = enemy.get("lore", {}) if isinstance(enemy.get("lore"), dict) else {}
+            enemies_defeated.append({
+                "id": enemy.get("id"),
+                "name": enemy.get("name", enemy.get("id", "Enemy")),
+                "tier": enemy.get("tier"),
+                "dungeon_voice": lore.get("dungeon_voice"),
+                "one_liner": lore.get("one_liner"),
+            })
+
+        p_state = {}
+        if isinstance(player, dict):
+            res = player.get("resources", {}) if isinstance(player.get("resources"), dict) else {}
+            try:
+                p_state = {
+                    "name": player.get("name"),
+                    "tier": player.get("tier", 1),
+                    "hp": res.get("hp"),
+                    "hp_max": res.get("hp_max", res.get("max_hp", res.get("maxHp"))),
+                    "rp": res.get("resolve"),
+                    "radiance": res.get("radiance", 0),
+                    "meters": {
+                        "momentum": combat_get(state, player, "momentum", res.get("momentum", 0)),
+                        "heat": combat_get(state, player, "heat", res.get("heat", 0)),
+                        "balance": combat_get(state, player, "balance", res.get("balance", 0)),
+                    },
+                    "metrics": state.get("scene_metrics", {}),
+                }
+            except Exception:
+                p_state = {"name": player.get("name")}
+
+        location = None
+        try:
+            location = (state.get("scene", {}) or {}).get("title")
+        except Exception:
+            location = None
+        if not location:
+            location = (enemy.get("location") if isinstance(enemy, dict) else None) or "encounter"
+
+        text = None
+        if NARRATION:
+            text = NARRATION.aftermath(
+                location=str(location),
+                enemies_defeated=enemies_defeated,
+                player_state=p_state,
+                environment_change=str(result_label),
+            )
+        elif NARRATOR:
+            text = NARRATOR.narrate(
+                {
+                    "location": str(location),
+                    "enemies_defeated": enemies_defeated,
+                    "player_state": p_state,
+                    "environment_change": str(result_label),
+                },
+                scene_tag="aftermath",
+            )
+
+        if text:
+            ui.narration(text)
+            append_log(f"NARRATION_AFTERMATH: {text}")
+            state["_aftermath_narrated"] = True
+    except Exception as e:
+        try:
+            append_log(f"NARRATION_AFTERMATH_ERROR: {e}")
+        except Exception:
+            pass
+
 def round_upkeep(state: dict) -> None:
     """Per-round refresh: cooldowns, resolve regen, balance/momentum/heat resets, enemy budgets."""
     tick_cooldowns(state)
     ch = state["party"]["members"][0]
     res = ch.get("resources", {})
+    try:
+        _sync_base_idf(ch)
+    except Exception:
+        pass
     # Reset pools at the start of the player's turn (current rule).
     # Pools are derived from attributes (POW/AGI/MND/SPR) and treated as per-turn spend.
     try:
@@ -910,17 +1162,51 @@ def emit_authoritative_player_update(ui, state: dict, ch: dict) -> None:
         return
     if not isinstance(state, dict) or not isinstance(ch, dict):
         return
+
+    def _encounter_statuses(entity: dict) -> dict:
+        try:
+            from engine.combat_state import participant
+        except Exception:
+            return {}
+        p = participant(state, entity)
+        if not isinstance(p, dict):
+            return {}
+        statuses = p.get("statuses")
+        if not isinstance(statuses, dict):
+            return {}
+        out: dict = {}
+        for sid, st in statuses.items():
+            if not isinstance(st, dict):
+                continue
+            stacks = int(st.get("stacks", 0) or 0)
+            if stacks <= 0:
+                continue
+            dur = st.get("duration_rounds")
+            try:
+                dur = int(dur) if dur is not None else None
+            except Exception:
+                dur = None
+            key = str(sid or st.get("name") or "").strip()
+            if key.startswith("status."):
+                key = key.split(".", 1)[1]
+            key = key.lower() if key else "status"
+            out[key] = {"stacks": stacks, **({"duration": dur} if dur is not None else {})}
+        return out
+
     res = ch.get("resources", {}) if isinstance(ch.get("resources"), dict) else {}
     rp_cur = combat_get(state, ch, "rp", res.get("resolve", 0))
     rp_cap = combat_get(state, ch, "rp_cap", res.get("resolve_cap", rp_cur))
+    encounter_statuses = _encounter_statuses(ch)
     emit_character_update(ui, {
         "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("max_hp", res.get("maxHp", res.get("hp"))))},
         "rp": rp_cur,
         "rp_cap": rp_cap,
         "veinscore": res.get("veinscore", 0),
+        "radiance": res.get("radiance", 0),
         "attributes": ch.get("attributes", {}),
         "name": ch.get("name"),
         "abilities": ch.get("abilities", []),
+        "statuses": encounter_statuses or (ch.get("statuses", {}) if isinstance(ch.get("statuses"), dict) else {}),
         "meters": {
             "momentum": combat_get(state, ch, "momentum", res.get("momentum", 0)),
             "balance": combat_get(state, ch, "balance", res.get("balance", 0)),
@@ -946,6 +1232,8 @@ def reset_encounter_meters(state: dict, *, player: dict | None = None, enemy: di
         combat_set(state, player, "heat", 0)
         combat_set(state, player, "momentum", 0)
         combat_set(state, player, "balance", 0)
+        # Allow a new post-combat recap for the next encounter.
+        state.pop("_aftermath_narrated", None)
         if reset_rp:
             res = player.get("resources", {}) if isinstance(player.get("resources"), dict) else {}
             cap = combat_get(state, player, "rp_cap", res.get("resolve_cap", res.get("resolve", 0)))
@@ -1237,6 +1525,17 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
         f"(links resolved: {result.links_resolved})"
     )
 
+    # Refresh HUDs after a chain resolves so encounter-scoped statuses (e.g., Stagger) are visible immediately.
+    if not getattr(ui, "is_blocking", True):
+        try:
+            emit_authoritative_player_update(ui, state, player)
+        except Exception:
+            pass
+        try:
+            emit_enemy_update(ui, state, enemy)
+        except Exception:
+            pass
+
     # If chain resolution ended combat, emit the result immediately for web UI.
     try:
         if state.get("combat_over") and not getattr(ui, "is_blocking", True):
@@ -1256,6 +1555,8 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
             enemy_dead = _hp(enemy) <= 0 if enemy else False
             result_label = "defeat" if player_dead else "victory" if enemy_dead else "ended"
             state["scene_complete"] = bool(enemy_dead)
+
+            maybe_emit_aftermath_narration(ui, state, player=player, enemy=enemy, result_label=result_label)
 
             emit_combat_state(ui, False)
             state["phase"]["current"] = "out_of_combat"
@@ -1333,17 +1634,15 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
                 dmg = int(summary.get("damage", 0) or 0) if isinstance(summary, dict) else 0
                 if dmg > 0:
                     emit_combat_log(ui, f"{player.get('name', 'Player')} takes {dmg} damage from statuses.", "damage")
+                healed = int(summary.get("healed", 0) or 0) if isinstance(summary, dict) else 0
+                if healed > 0:
+                    emit_combat_log(ui, f"{player.get('name', 'Player')} heals {healed} HP from Radiance.", "system")
                 after_hp = _hp(player)
                 if after_hp <= 0 and before_hp > 0:
                     emit_combat_log(ui, f"{player.get('name', 'Player')} is brought to 0 HP.", "system")
-            # End-of-round Radiance decay: -1 per round (clamped), persists as a resource.
+            # End-of-round Radiance decay is handled in tick_statuses() for players.
+            # Keep enemy decay here only (if enemies ever receive radiance as a resource).
             try:
-                # Player
-                if isinstance(player.get("resources"), dict):
-                    r = int(player["resources"].get("radiance", 0) or 0)
-                    if r > 0:
-                        player["resources"]["radiance"] = r - 1
-                # Enemies (if they ever receive radiance effects)
                 for en in state.get("enemies", []):
                     if isinstance(en, dict) and isinstance(en.get("resources"), dict):
                         r = int(en["resources"].get("radiance", 0) or 0)
@@ -1375,6 +1674,7 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
                         from ui.events import emit_event
                         result = "defeat" if player_dead else "victory" if enemy_dead else "ended"
                         state["scene_complete"] = bool(enemy_dead)
+                        maybe_emit_aftermath_narration(ui, state, player=player, enemy=enemy0, result_label=result)
                         emit_combat_state(ui, False)
                         state["phase"]["current"] = "out_of_combat"
                         state.pop("awaiting", None)
@@ -1399,8 +1699,10 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
 def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | None:
     """
     Minimal enemy phase:
-    - Enemy declares a simple one-move chain (first attack move)
-    - Player gets a single interrupt prompt before the enemy chain resolves
+    - Enemy declares a simple move chain (built from available RP)
+    - Optional: player gets a single pre-action interrupt prompt
+      - If a move in the chain declares a link-scoped interrupt window, skip the pre-action prompt and let the
+        chain resolver open that window at the appropriate link.
     """
     state = ctx["state"]
     ui = ctx["ui"]
@@ -1418,6 +1720,28 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
         return True
 
     enemy = enemies[0]
+    # Pre-select the enemy chain once so we can telegraph it before presenting an interrupt window.
+    if "enemy_pre_chain" not in state:
+        chain_moves = build_enemy_chain(enemy)
+        enemy_chain = []
+        has_link_interrupt = False
+        for mv in chain_moves or []:
+            if not isinstance(mv, dict):
+                continue
+            enemy_chain.append(mv.get("name") or mv.get("id"))
+            if isinstance(mv.get("interrupt_window"), dict):
+                has_link_interrupt = True
+        state["enemy_pre_chain"] = enemy_chain
+        state["_enemy_chain_has_link_interrupt"] = bool(has_link_interrupt)
+        # If there is no attack available, skip the interrupt prompt entirely.
+        if not enemy_chain:
+            state.pop("enemy_pre_chain", None)
+            state.pop("_enemy_chain_has_link_interrupt", None)
+            state["active_combatant"] = "player"
+            state["phase"]["current"] = "chain_declaration"
+            if not getattr(ui, "is_blocking", True):
+                reopen_chain_builder(state, ui)
+            return True
     # Ensure the enemy HUD is current before we show the interrupt UI.
     try:
         if not getattr(ui, "is_blocking", True):
@@ -1445,9 +1769,50 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
 
     pending = state.pop("pending_enemy_interrupt", None)
 
+    # If the chain declares a link-scoped interrupt window, skip the pre-action interrupt UI and go straight to
+    # chain resolution (the chain engine will open the window only when appropriate).
+    if pending is None and state.get("_enemy_chain_has_link_interrupt"):
+        try:
+            enemy_chain = state.get("enemy_pre_chain", []) if isinstance(state.get("enemy_pre_chain"), list) else []
+            if enemy_chain and not state.get("_enemy_pre_interrupt_telegraphed"):
+                emit_combat_log(ui, f"{enemy.get('name','Enemy')} declares: {', '.join(enemy_chain)}", "system")
+                state["_enemy_pre_interrupt_telegraphed"] = True
+        except Exception:
+            pass
+
+        enemy_chain = state.pop("enemy_pre_chain", None)
+        enemy_chain = enemy_chain if isinstance(enemy_chain, list) else []
+        state.pop("_enemy_pre_interrupt_telegraphed", None)
+        state.pop("_enemy_chain_has_link_interrupt", None)
+        if not enemy_chain:
+            state["active_combatant"] = "player"
+            state["phase"]["current"] = "chain_declaration"
+            if not getattr(ui, "is_blocking", True):
+                reopen_chain_builder(state, ui)
+            return True
+
+        enemy.setdefault("chain", {})
+        enemy["chain"]["abilities"] = enemy_chain
+        enemy["chain"]["declared"] = True
+        state["active_combatant"] = "enemy"
+        state["phase"]["current"] = "chain_resolution"
+        if not getattr(ui, "is_blocking", True):
+            return handle_chain_resolution(ctx)
+        return True
+
     # Prompt once per enemy turn (web/non-blocking)
     if pending is None and not getattr(ui, "is_blocking", True):
         from ui.events import emit_event
+
+        # Telegraph the enemy's intended chain before showing the interrupt option.
+        if not state.get("_enemy_pre_interrupt_telegraphed"):
+            try:
+                enemy_chain = state.get("enemy_pre_chain", []) if isinstance(state.get("enemy_pre_chain"), list) else []
+                if enemy_chain:
+                    emit_combat_log(ui, f"{enemy.get('name','Enemy')} declares: {', '.join(enemy_chain)}", "system")
+                    state["_enemy_pre_interrupt_telegraphed"] = True
+            except Exception:
+                pass
 
         # Present only defensive/interrupt-capable abilities.
         usable = usable_ability_objects(state)
@@ -1477,6 +1842,13 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
 
     # Prompt (CLI/blocking)
     if pending is None and getattr(ui, "is_blocking", True):
+        try:
+            enemy_chain = state.get("enemy_pre_chain", []) if isinstance(state.get("enemy_pre_chain"), list) else []
+            if enemy_chain and not state.get("_enemy_pre_interrupt_telegraphed"):
+                emit_combat_log(ui, f"{enemy.get('name','Enemy')} declares: {', '.join(enemy_chain)}", "system")
+                state["_enemy_pre_interrupt_telegraphed"] = True
+        except Exception:
+            pass
         idx = ui.choice("Interrupt the enemy before they act?", ["No", "Interrupt"])
         pending = (idx == 1)
 
@@ -1528,11 +1900,19 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
 
             emit_combat_log(ui, f"Interrupt ability: {chosen.get('name')} (bonus {ab_bonus})", "system")
 
-        p_d20 = roll("1d20")
+        try:
+            from engine.dice import roll_2d10_modified, roll_mode_for_entity
+            p_d20, _ = roll_2d10_modified(roll_mode_for_entity(state, player))
+        except Exception:
+            p_d20 = roll("2d10")
         p_roll = p_d20 + int(idf) + int(momentum) + int(ab_bonus)
         defense = (enemy.get("stat_block", {}) or {}).get("defense", {})
         dv = enemy.get("dv_base", defense.get("dv_base", 10))
-        e_d20 = roll("1d20")
+        try:
+            from engine.dice import roll_2d10_modified, roll_mode_for_entity
+            e_d20, _ = roll_2d10_modified(roll_mode_for_entity(state, enemy))
+        except Exception:
+            e_d20 = roll("2d10")
         e_roll = e_d20 + (dv or 0)
         emit_combat_log(ui, f"Interrupt contest: player {p_roll} (d20 {p_d20}) vs enemy {e_roll} (d20 {e_d20})", "roll")
         if p_roll >= e_roll:
@@ -1547,15 +1927,17 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
             state["phase"]["current"] = "chain_declaration"
             if not getattr(ui, "is_blocking", True):
                 reopen_chain_builder(state, ui)
+            # Clear any preselected chain (enemy action was denied).
+            state.pop("enemy_pre_chain", None)
+            state.pop("_enemy_pre_interrupt_telegraphed", None)
             return True
         emit_combat_log(ui, "Interrupt failed. Enemy acts.", "system")
 
     # Enemy declares a simple one-move chain (first attack move)
-    enemy_chain = []
-    for mv in enemy.get("moves", []):
-        if mv.get("type") == "attack":
-            enemy_chain.append(mv.get("name") or mv.get("id"))
-            break
+    enemy_chain = state.pop("enemy_pre_chain", None)
+    enemy_chain = enemy_chain if isinstance(enemy_chain, list) else []
+    state.pop("_enemy_pre_interrupt_telegraphed", None)
+    state.pop("_enemy_chain_has_link_interrupt", None)
     if not enemy_chain:
         state["active_combatant"] = "player"
         state["phase"]["current"] = "chain_declaration"
@@ -1563,7 +1945,6 @@ def handle_enemy_turn(ctx: dict, player_input: dict | None = None) -> bool | Non
             reopen_chain_builder(state, ui)
         return True
 
-    emit_combat_log(ui, f"{enemy.get('name','Enemy')} declares: {', '.join(enemy_chain)}", "system")
     enemy.setdefault("chain", {})
     enemy["chain"]["abilities"] = enemy_chain
     enemy["chain"]["declared"] = True
@@ -2701,6 +3082,18 @@ def resolve_awaiting(state, ui, player_input):
     # Web-safe: chain interrupt decisions are action-based (not choice-index-based).
     if isinstance(state.get("awaiting"), dict) and isinstance(player_input, dict):
         awaiting = state.get("awaiting", {})
+        if awaiting.get("type") == "enemy_interrupt":
+            act = player_input.get("action")
+            if act == "interrupt_skip":
+                state.pop("awaiting", None)
+                state["pending_enemy_interrupt"] = False
+                should_return = False
+            if act == "interrupt":
+                state.pop("awaiting", None)
+                state["pending_enemy_interrupt"] = True
+                if player_input.get("ability"):
+                    state["pending_interrupt_ability"] = player_input["ability"]
+                should_return = False
         if awaiting.get("type") == "chain_interrupt":
             act = player_input.get("action")
             if act == "interrupt_skip":
@@ -3008,7 +3401,10 @@ def game_step(ctx, player_input):
                 ui.error("Invalid path selection.")
                 emit_character_create(ctx)
                 return True
+            prev_name = (player_input.get("name") if isinstance(player_input, dict) else None) or ch.get("name") or "New Blood"
+            prev_name = str(prev_name).strip() or "New Blood"
             ch = _create_draft_character(path_id=path_id)
+            ch["name"] = prev_name
             ch["abilities"] = _starter_ability_ids_for_path(path_id, ctx.get("game_data") or {})
             draft["character"] = ch
             draft["stage"] = "choose_rp"
@@ -3017,14 +3413,23 @@ def game_step(ctx, player_input):
             return True
 
         if requested_action == "character_create_rp":
+            try:
+                nm = (player_input.get("name") if isinstance(player_input, dict) else None)
+                if nm is not None:
+                    ch["name"] = str(nm).strip() or ch.get("name") or "New Blood"
+            except Exception:
+                pass
             rp_id = player_input.get("rp_ability") if isinstance(player_input, dict) else None
             catalog = _resolve_ability_catalog(ctx.get("game_data") or {})
             if rp_id not in {str(a.get("id") or a.get("name")) for a in catalog if isinstance(a, dict)}:
                 ui.error("Invalid resolve ability selection.")
                 emit_character_create(ctx)
                 return True
-            if rp_id not in (ch.get("abilities") or []):
-                ch.setdefault("abilities", []).append(rp_id)
+            # Enforce exactly one resolve ability at creation time: selecting a new one replaces the old.
+            rp_ids = {str(a.get("id") or a.get("name")) for a in catalog if isinstance(a, dict) and (a.get("id") or a.get("name"))}
+            existing = [a for a in (ch.get("abilities") or []) if a]
+            ch["abilities"] = [a for a in existing if str(a) not in rp_ids]
+            ch.setdefault("abilities", []).append(str(rp_id))
             draft["character"] = ch
             draft["stage"] = "shop"
             state["character_create"] = draft
@@ -3032,6 +3437,12 @@ def game_step(ctx, player_input):
             return True
 
         if requested_action == "character_create_buy":
+            try:
+                nm = (player_input.get("name") if isinstance(player_input, dict) else None)
+                if nm is not None:
+                    ch["name"] = str(nm).strip() or ch.get("name") or "New Blood"
+            except Exception:
+                pass
             ability_id = player_input.get("ability") if isinstance(player_input, dict) else None
             if not ability_id:
                 ui.error("Missing ability id.")
@@ -3043,6 +3454,20 @@ def game_step(ctx, player_input):
                 ui.error("That ability is not available.")
                 emit_character_create(ctx)
                 return True
+            # Soft cap: you may only pick 3 starter abilities from the tier-1 list.
+            try:
+                owned = [str(a) for a in (ch.get("abilities") or []) if a]
+                core_ids = set(_starter_ability_ids_for_path(None, ctx.get("game_data") or {}))
+                rp_catalog = _resolve_ability_catalog(ctx.get("game_data") or {})
+                rp_ids = {str(a.get("id") or a.get("name")) for a in rp_catalog if isinstance(a, dict) and (a.get("id") or a.get("name"))}
+                # Count already-picked tier-1 abilities (excluding core/resolve).
+                already_picked = [a for a in owned if a not in core_ids and a not in rp_ids and not str(a).startswith("core.")]
+                if len(set(already_picked)) >= 3:
+                    ui.error("Starter ability limit reached (pick 3).")
+                    emit_character_create(ctx)
+                    return True
+            except Exception:
+                pass
             res = ch.get("resources", {}) if isinstance(ch.get("resources"), dict) else {}
             vein = int(res.get("veinscore", 0) or 0)
             cost = int(offer.get("cost", 1) or 1)
@@ -3062,6 +3487,11 @@ def game_step(ctx, player_input):
         if requested_action == "character_create_finish":
             name = (player_input.get("name") if isinstance(player_input, dict) else None) or "New Blood"
             name = str(name).strip() or "New Blood"
+            err = _character_create_validate_starter_picks(ch, ctx.get("game_data") or {})
+            if err:
+                ui.error(err)
+                emit_character_create(ctx)
+                return True
             ch["name"] = name
             ch["id"] = _character_id_from_name(name)
 
@@ -3172,6 +3602,66 @@ def game_step(ctx, player_input):
             emit_safe_room_enter(ctx)
             return True
 
+        if requested_action == "safe_room_stat_up" and isinstance(player_input, dict):
+            stat = player_input.get("stat")
+            stat = str(stat).upper().strip() if stat is not None else ""
+            if stat not in {"POW", "AGI", "MND", "SPR"}:
+                ui.error("Invalid stat. Choose POW/AGI/MND/SPR.")
+                emit_safe_room_enter(ctx)
+                return True
+
+            # Ensure we are mutating the authoritative resources dict.
+            res = ch.setdefault("resources", {}) if isinstance(ch.get("resources"), dict) else {}
+            if not isinstance(res, dict):
+                res = {}
+                ch["resources"] = res
+
+            cost = 3
+            vein = int(res.get("veinscore", ch.get("veinscore", 0)) or 0)
+            if vein < cost:
+                ui.error("Not enough Veinscore.")
+                emit_safe_room_enter(ctx)
+                return True
+
+            _increment_attribute_stat(ch, stat, 1)
+
+            # Deduct and track spent.
+            vein_new = vein - cost
+            res["veinscore"] = vein_new
+            ch["veinscore"] = vein_new
+            ch["_veins_spent_total"] = int(ch.get("_veins_spent_total", 0) or 0) + int(cost)
+            tier_info = apply_vein_tier_progression(ch)
+
+            # Derived stats/pools.
+            try:
+                _sync_base_idf(ch)
+            except Exception:
+                pass
+            try:
+                _refill_pools_to_cap(ch)
+            except Exception:
+                pass
+
+            ui.system(f"Trained: {stat} +1 (-{cost} Vein)")
+            if tier_info.get("leveled") and int(tier_info.get("after", 1) or 1) == 2:
+                ui.system("Tier 2 attained.")
+            try:
+                save_profile_and_state(ch)
+            except Exception:
+                pass
+            if not getattr(ui, "is_blocking", True):
+                emit_character_update(ui, {
+                    "name": ch.get("name"),
+                    "hp": {"current": res.get("hp"), "max": res.get("hp_max", res.get("hp"))},
+                    "rp": res.get("resolve"),
+                    "rp_cap": res.get("resolve_cap", res.get("resolve")),
+                    "veinscore": res.get("veinscore", ch.get("veinscore", 0)),
+                    "attributes": _normalize_attributes_for_ui(ch),
+                    "abilities": ch.get("abilities", []),
+                })
+            emit_safe_room_enter(ctx)
+            return True
+
         if requested_action == "safe_room_buy" and isinstance(player_input, dict):
             ability_id = player_input.get("ability")
             if not ability_id:
@@ -3202,7 +3692,7 @@ def game_step(ctx, player_input):
             res["veinscore"] = vein_new
             ch["veinscore"] = vein_new
             ch["_veins_spent_total"] = int(ch.get("_veins_spent_total", 0) or 0) + int(cost)
-            leveled = apply_vein_tier_progression(ch)
+            tier_info = apply_vein_tier_progression(ch)
 
             # Add to profile on disk (ids only), then hydrate into runtime.
             try:
@@ -3232,8 +3722,8 @@ def game_step(ctx, player_input):
                 pass
 
             ui.system(f"Learned: {offer.get('name', ability_id)} (-{cost} Vein)")
-            if leveled:
-                ui.system(f"Tier up: {ch.get('tier')}")
+            if tier_info.get("leveled") and int(tier_info.get("after", 1) or 1) == 2:
+                ui.system("Tier 2 attained.")
             try:
                 save_profile_and_state(ch)
             except Exception:
@@ -3245,6 +3735,7 @@ def game_step(ctx, player_input):
                     "rp": res.get("resolve"),
                     "rp_cap": res.get("resolve_cap", res.get("resolve")),
                     "veinscore": res.get("veinscore", ch.get("veinscore", 0)),
+                    "attributes": _normalize_attributes_for_ui(ch),
                     "abilities": ch.get("abilities", []),
                 })
             emit_safe_room_enter(ctx)
@@ -3275,6 +3766,16 @@ def game_step(ctx, player_input):
 
     if state.get("combat_over"):
         from ui.events import emit_event
+
+        # Persist any post-combat changes (marks/loot/etc) once, since web UI may poll frequently.
+        if not state.get("_saved_combat_over"):
+            try:
+                ch = state.get("party", {}).get("members", [None])[0]
+                if isinstance(ch, dict):
+                    save_profile_and_state(ch)
+                state["_saved_combat_over"] = True
+            except Exception:
+                pass
 
         def _hp(entity):
             if not isinstance(entity, dict):
@@ -3324,6 +3825,7 @@ def game_step(ctx, player_input):
                 state.pop("loot_pending_items", None)
                 # Continue behaves like the old combat_continue.
                 state["combat_over"] = False
+                state.pop("_saved_combat_over", None)
                 state.pop("awaiting", None)
                 state["phase"]["current"] = "out_of_combat"
                 state.pop("encounter", None)
@@ -3361,6 +3863,7 @@ def game_step(ctx, player_input):
 
             # Reset combat state and restart encounter in the same scene (no campaign advance).
             state["combat_over"] = False
+            state.pop("_saved_combat_over", None)
             state.pop("awaiting", None)
             state["loot_pending"] = False
             state.pop("loot_pending_items", None)
@@ -3514,6 +4017,18 @@ def game_step(ctx, player_input):
 
     choice = choose_action(ctx, actions, resolved_choice, requested_action, auto_mode, interactive_defaults, nonarrate)
     if choice is None:
+        return True
+
+    # Web UX: treat out-of-combat "award_loot" as a shortcut to the level-up (safe room) screen.
+    # (This is effectively the "downtime/shop" UI where Veinscore is spent.)
+    if choice in {"award_loot", "use_safe_room"}:
+        state["mode"] = "safe_room"
+        state["phase"]["current"] = "out_of_combat"
+        state.pop("awaiting", None)
+        try:
+            emit_safe_room_enter(ctx)
+        except Exception:
+            pass
         return True
 
     # Web helper: explicit build_chain choice should reopen chain builder instead of falling through to phase actions.

@@ -1,27 +1,32 @@
 {
   "schema_version": "scene.v1",
-  "id": "scene.01.03",
-  "title": "Goblin War Camp",
+  "id": "scene.02.03",
+  "title": "Bloodfen Warpath",
 
   "environment": {
-    "id": "env.goblin.camp"
+    "id": "env.goblin.bloodfen"
   },
 
   "encounter": {
     "monsters": [
-      { "id": "enemy.goblin.shieldbearer", "count": 2 }
+      { "id": "enemy.goblin.shieldbearer", "count": 1 },
+      { "id": "enemy.goblin.bog_hexer", "count": 1 }
     ],
-    "traps": [],
-    "hazards": []
+    "traps": [
+      { "id": "trap.vein_lure", "count": 1 }
+    ],
+    "hazards": [
+      "hazard.bloodslick"
+    ]
   },
 
   "loot_table": [
-    "loot.vein_fragment.t1"
+    "loot.vein_fragment.t2"
   ],
 
   "events": [
     {
-      "id": "event.pressure_builds",
+      "id": "event.bloodfen_stink",
       "trigger": { "type": "on_scene_start" },
       "conditions": [],
       "effects": [
@@ -29,7 +34,7 @@
           "type": "emit_ui_event",
           "event": {
             "type": "narration",
-            "text": "The goblins smell you. They lick their lips."
+            "text": "Reeds rattle. The fen stinks of old iron and fresh boasts."
           }
         }
       ]

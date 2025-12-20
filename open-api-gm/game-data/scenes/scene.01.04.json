@@ -8,16 +8,10 @@
   },
 
   "encounter": {
-  "monsters": [
-    
-  ],
-  "traps": [
-    { }
-  ],
-  "hazards": [
-  ]
-},
-
+    "monsters": [],
+    "traps": [],
+    "hazards": []
+  },
 
   "loot_table": [
     "loot.vein_fragment.t1"
@@ -33,7 +27,7 @@
           "type": "emit_ui_event",
           "event": {
             "type": "narration",
-            "text": "You have found a safe haven"
+            "text": "You have found a safe haven."
           }
         }
       ]

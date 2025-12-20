@@ -7,7 +7,8 @@ from engine.interrupt_policy import InterruptPolicy
 from engine.interrupt_windows import InterruptContext
 from engine.stats import stat_mod
 from engine.combat_state import combat_add, combat_get, combat_set, status_add, status_get
-from ui.events import emit_event, emit_resource_update
+from engine.dice import roll_2d10_modified, roll_mode_for_entity
+from ui.events import emit_event, emit_resource_update, emit_character_update
 
 
 @dataclass
@@ -230,8 +231,15 @@ def _get_idf(entity: Dict[str, Any]) -> int:
     if "idf" in entity:
         return int(entity.get("idf") or 0)
     if isinstance(entity.get("resources"), dict):
-        return int(entity["resources"].get("idf") or 0)
-    return 0
+        if entity["resources"].get("idf") is not None:
+            return int(entity["resources"].get("idf") or 0)
+    attrs = entity.get("attributes") or entity.get("stats") or {}
+    try:
+        from engine.stats import idf_from_strength
+        str_score = int(attrs.get("POW") or attrs.get("STR") or attrs.get("str") or 0)
+        return int(idf_from_strength(str_score))
+    except Exception:
+        return 0
 
 
 class ChainResolutionEngine:
@@ -275,6 +283,26 @@ class ChainResolutionEngine:
             return ChainResult("completed", "empty_chain", 0)
 
         momentum_cap = int((state.get("rules") or {}).get("momentum_cap", 8) or 8)
+
+        def _emit_step_narration(link_index: int) -> None:
+            """
+            If a narration string was generated during apply_action_effects (and stored in the last log entry),
+            emit it live to the UI during combat.
+            """
+            try:
+                if not isinstance(state, dict) or not state.get("flags", {}).get("narration_enabled"):
+                    return
+                log = state.get("log")
+                if not isinstance(log, list) or not log:
+                    return
+                last = log[-1] if isinstance(log[-1], dict) else None
+                if not last:
+                    return
+                narration = last.get("narration")
+                if narration:
+                    ui.narration(narration, data=last)
+            except Exception:
+                pass
 
         # Balance is per-chain: reset aggressor balance at chain start.
         if isinstance(aggressor, dict) and aggressor.get("_combat_key"):
@@ -339,23 +367,49 @@ class ChainResolutionEngine:
             # Execution always needs a roll, even if the chain is otherwise movement-only.
             needs_roll = True
 
-        # Roll attack ONCE per chain (movement-only chains do not roll).
-        # If we are resuming, reuse the prior chain roll.
+        # Roll attack for the chain (movement-only chains do not roll).
+        # Default behavior: reuse the same roll for the chain.
+        # Variant: if the last non-movement link MISSED, reroll for the next non-movement link.
         if start_index > 0 and isinstance(state, dict) and state.get("_chain_attack_d20") is not None:
             try:
+                # Preserve the chain-roll context if we resumed mid-chain.
+                if state.get("_chain_roll_balance") is not None:
+                    balance = int(state.get("_chain_roll_balance") or 0)
+                if state.get("_chain_roll_heat") is not None:
+                    heat = int(state.get("_chain_roll_heat") or 0)
+                if state.get("_chain_roll_atk_tb") is not None:
+                    atk_tb = int(state.get("_chain_roll_atk_tb") or 0)
+
                 attack_d20 = int(state.get("_chain_attack_d20") or 0)
                 attack_total = int(state.get("_chain_attack_total") or 0)
                 needs_roll = bool(state.get("_chain_needs_roll", needs_roll))
             except Exception:
-                attack_d20 = int(self.roll("1d20")) if needs_roll else 0
-                attack_total = int(attack_d20 + balance + heat + atk_tb) if needs_roll else 0
+                if needs_roll:
+                    mode = roll_mode_for_entity(state, aggressor)
+                    attack_d20, meta = roll_2d10_modified(mode)
+                    if isinstance(state, dict):
+                        state["_chain_roll_mode"] = meta.get("mode")
+                        state["_chain_roll_meta"] = meta
+                else:
+                    attack_d20 = 0
+                attack_total = int(attack_d20 + balance + atk_tb) if needs_roll else 0
         else:
-            attack_d20 = int(self.roll("1d20")) if needs_roll else 0
-            attack_total = int(attack_d20 + balance + heat + atk_tb) if needs_roll else 0
+            if needs_roll:
+                mode = roll_mode_for_entity(state, aggressor)
+                attack_d20, meta = roll_2d10_modified(mode)
+                if isinstance(state, dict):
+                    state["_chain_roll_mode"] = meta.get("mode")
+                    state["_chain_roll_meta"] = meta
+            else:
+                attack_d20 = 0
+            attack_total = int(attack_d20 + balance + atk_tb) if needs_roll else 0
             if isinstance(state, dict):
                 state["_chain_attack_d20"] = int(attack_d20)
                 state["_chain_attack_total"] = int(attack_total)
                 state["_chain_needs_roll"] = bool(needs_roll)
+                state["_chain_roll_balance"] = int(balance)
+                state["_chain_roll_heat"] = int(heat)
+                state["_chain_roll_atk_tb"] = int(atk_tb)
 
         if self.emit_log:
             if needs_roll:
@@ -490,19 +544,30 @@ class ChainResolutionEngine:
                     except Exception:
                         pass
 
-                    exec_balance = combat_get(state, aggressor, "balance", balance) - 2
+                    # Execution Strike math:
+                    # - To-hit uses the CURRENT balance (no penalty applied to the roll).
+                    # - After the roll is evaluated, apply a flat -2 balance penalty to the aggressor.
+                    exec_balance_before = combat_get(state, aggressor, "balance", balance)
+                    exec_bonus = 4 if execute_primed else 0
                     try:
-                        combat_set(state, aggressor, "balance", int(exec_balance))
+                        blood = int(((aggressor.get("marks") or {}).get("blood", 0)) or 0)
+                    except Exception:
+                        blood = 0
+                    blood_exec_bonus = 1 if int(blood) >= 3 else 0
+                    exec_attack_total = int(attack_d20 + int(exec_balance_before) + atk_tb + exec_bonus + blood_exec_bonus)
+                    exec_hit = exec_attack_total >= defense_target
+
+                    exec_balance_after = int(exec_balance_before) - 2
+                    try:
+                        combat_set(state, aggressor, "balance", int(exec_balance_after))
                     except Exception:
                         pass
-                    exec_bonus = 4 if execute_primed_at_start else 0
-                    exec_attack_total = int(attack_d20 + exec_balance + 0 + atk_tb + exec_bonus)
-                    exec_hit = exec_attack_total >= defense_target
 
                     if self.emit_log:
                         self.emit_log(
                             ui,
-                            f"EXECUTION STRIKE: roll {attack_d20} + balance {exec_balance} + heat 0 + {atk_tb} + prime {exec_bonus} -> AV {exec_attack_total} "
+                            f"EXECUTION STRIKE: roll {attack_d20} + balance {exec_balance_before} + heat 0 + {atk_tb} + prime {exec_bonus} + blood {blood_exec_bonus} -> AV {exec_attack_total} "
+                            f"(post-roll balance -2 -> {exec_balance_after}) "
                             f"vs DV {defense_target} -> {'SUCCESS' if exec_hit else 'FAIL'}",
                             "system",
                         )
@@ -516,7 +581,18 @@ class ChainResolutionEngine:
                         try:
                             marks = aggressor.setdefault("marks", {})
                             if isinstance(marks, dict):
-                                marks["blood"] = int(marks.get("blood", 0) or 0) + 1
+                                before_blood = int(marks.get("blood", 0) or 0)
+                                marks["blood"] = int(before_blood) + 1
+                                after_blood = int(marks.get("blood", 0) or 0)
+                                ui.system(f"Blood Mark gained. Total: {after_blood}.")
+                                if after_blood >= 3 and not state.get("hunter_aware"):
+                                    try:
+                                        round_no = int((state.get("phase", {}) or {}).get("round") or 0)
+                                    except Exception:
+                                        round_no = 0
+                                    state["hunter_aware"] = {"started_round": round_no}
+                                    ui.system("A Hunter becomes aware. The clock starts.")
+                                emit_character_update(ui, aggressor)
                         except Exception:
                             pass
                         try:
@@ -562,7 +638,7 @@ class ChainResolutionEngine:
                         emit_resource_update(
                             ui,
                             momentum=0,
-                            balance=combat_get(state, aggressor, "balance", exec_balance),
+                            balance=combat_get(state, aggressor, "balance", exec_balance_after),
                             heat=combat_get(state, aggressor, "heat", 0),
                         )
                     except Exception:
@@ -615,6 +691,31 @@ class ChainResolutionEngine:
 
                     return ChainResult("broken", "execution_failed_catastrophic" if catastrophic else "execution_failed", idx + 1)
 
+            prev_hit = None
+            try:
+                if isinstance(state, dict):
+                    prev_hit = state.get("_chain_prev_hit")
+            except Exception:
+                prev_hit = None
+
+            # If the last non-movement link missed, reroll once for this link (non-movement links only).
+            # Keep the previous-hit flag intact until after the BEFORE-link interrupt policy runs so
+            # link-driven windows can key off the prior miss (e.g., "only open if last link missed").
+            try:
+                if needs_roll and isinstance(state, dict) and prev_hit is False:
+                    consumed_idx = state.get("_chain_prev_hit_consumed_idx")
+                    if consumed_idx != idx:
+                        mode = roll_mode_for_entity(state, aggressor)
+                        attack_d20, meta = roll_2d10_modified(mode)
+                        state["_chain_roll_mode"] = meta.get("mode")
+                        state["_chain_roll_meta"] = meta
+                        attack_total = int(attack_d20 + balance + atk_tb)
+                        state["_chain_attack_d20"] = int(attack_d20)
+                        state["_chain_attack_total"] = int(attack_total)
+                        state["_chain_prev_hit_consumed_idx"] = idx
+            except Exception:
+                pass
+
             hit = attack_total >= defense_target
 
             if self.emit_log:
@@ -650,6 +751,15 @@ class ChainResolutionEngine:
                         pass
                     return ChainResult("broken", "interrupt_before_link", idx)
 
+            # Commit this link's hit state for downstream link logic (rerolls, conditional windows, etc.).
+            if isinstance(state, dict):
+                state["_chain_prev_hit"] = bool(hit)
+                try:
+                    if state.get("_chain_prev_hit_consumed_idx") == idx:
+                        state.pop("_chain_prev_hit_consumed_idx", None)
+                except Exception:
+                    pass
+
             # Momentum/balance bookkeeping (authoritative here).
             if hit:
                 mom_gain = 1 if idx < 2 else 2
@@ -672,10 +782,17 @@ class ChainResolutionEngine:
 
             # Resolve + apply effects but force hit/miss so legacy code doesn't overwrite outcomes.
             before_hp = _get_hp(defender)
+            before_aggressor_hp = _get_hp(aggressor) if isinstance(aggressor, dict) and aggressor.get("_combat_key") == "player" else None
 
             self.resolve_action_step(state, aggressor, ability, attack_roll=attack_d20, balance_bonus=0)
 
             pending = state.get("pending_action")
+            pre_damage_roll = None
+            try:
+                if isinstance(pending, dict):
+                    pre_damage_roll = pending.get("damage_roll")
+            except Exception:
+                pre_damage_roll = None
             if isinstance(pending, dict):
                 pending["to_hit"] = attack_total
                 pending["resolved_hit"] = hit
@@ -684,6 +801,59 @@ class ChainResolutionEngine:
                 pending.setdefault("log", {})["defense_target"] = defense_target
 
             self.apply_action_effects(state, aggressor, defender_group, defense_d20=None)
+
+            # Emit damage breakdown (damage roll + modifiers) after effects resolve.
+            if self.emit_log and (ability.get("type") or "").lower() == "attack":
+                try:
+                    last = None
+                    if isinstance(state, dict) and isinstance(state.get("log"), list) and state["log"]:
+                        last = state["log"][-1]
+                    if isinstance(last, dict) and isinstance(last.get("action_effects"), dict):
+                        ae = last["action_effects"]
+                        dmg = ae.get("damage_applied")
+                        heat_bonus = ae.get("heat_bonus")
+                        shield_used = ae.get("shield_used")
+                        extra = []
+                        if pre_damage_roll is not None:
+                            extra.append(f"roll {int(pre_damage_roll)}")
+                        if heat_bonus is not None:
+                            extra.append(f"heat_bonus {int(heat_bonus)}")
+                        if shield_used is not None and int(shield_used or 0) > 0:
+                            extra.append(f"shield -{int(shield_used)}")
+                        bits = (" (" + ", ".join(extra) + ")") if extra else ""
+                        if dmg is not None and hit:
+                            self.emit_log(ui, f"Damage: {int(dmg)}{bits}", "system")
+                        elif hit:
+                            self.emit_log(ui, f"Damage: (no damage){bits}", "system")
+                except Exception:
+                    pass
+            _emit_step_narration(idx)
+            if before_aggressor_hp is not None:
+                after_aggressor_hp = _get_hp(aggressor)
+                if after_aggressor_hp > int(before_aggressor_hp):
+                    healed = int(after_aggressor_hp) - int(before_aggressor_hp)
+                    ui.system(f"{aggressor.get('name', 'Player')} heals {healed} HP.")
+                    emit_character_update(ui, aggressor)
+
+            # Link 3+ tempo reward: if a player attack link hits, grant +1 RP (clamped to cap).
+            try:
+                is_player = isinstance(aggressor, dict) and aggressor.get("_combat_key") == "player"
+                is_attack_link = (ability.get("type") or "").lower() == "attack"
+                if is_player and hit and is_attack_link and idx >= 2:
+                    res = aggressor.get("resources", {}) if isinstance(aggressor.get("resources"), dict) else {}
+                    rp_cap = combat_get(state, aggressor, "rp_cap", int(res.get("resolve_cap", res.get("resolve", 0)) or 0))
+                    rp_cur = combat_get(state, aggressor, "rp", int(res.get("resolve", 0) or 0))
+                    rp_new = int(rp_cur) + 1
+                    if int(rp_cap or 0) > 0:
+                        rp_new = min(int(rp_cap), int(rp_new))
+                    combat_set(state, aggressor, "rp", int(rp_new))
+                    if isinstance(res, dict):
+                        res["resolve"] = int(rp_new)
+                    if int(rp_new) != int(rp_cur):
+                        ui.system(f"Tempo reward: +1 RP (link {idx + 1} hit).")
+                        emit_character_update(ui, aggressor)
+            except Exception:
+                pass
 
             after_hp = _get_hp(defender)
             if after_hp < 0:
@@ -828,7 +998,7 @@ class ChainResolutionEngine:
           succeeds if interrupt_total >= attack_total + aggressor_idf - aggressor_balance
         Minimal interrupt damage placeholder is applied to the aggressor.
         """
-        interrupt_d20 = int(self.roll("1d20"))
+        interrupt_d20 = int(self.roll("2d10"))
         def_tb = int(((defender.get("temp_bonuses") or {}).get("interrupt", 0)) or 0)
         interrupt_total = int(interrupt_d20 + def_tb)
 
@@ -904,6 +1074,30 @@ class ChainResolutionEngine:
                     emit_event(ui, {"type": "character_update", "character": {"rp": {"current": int(rp_new), "cap": int(rp_cap or 0)}}})
                     if self.emit_log:
                         self.emit_log(ui, f"Counter reward: +1 RP ({int(rp_new)}/{int(rp_cap or 0)})", "system")
+        except Exception:
+            pass
+
+        # Perfect parry bonus: heal (1d6 × tier).
+        try:
+            if (
+                isinstance(defender, dict)
+                and defender.get("_combat_key") == "player"
+            ):
+                try:
+                    tier = int(defender.get("tier", 1) or 1)
+                except Exception:
+                    tier = 1
+                tier = max(1, tier)
+                heal = max(0, int(self.roll("1d6")) * tier)
+                if heal > 0:
+                    before_hp = _get_hp(defender)
+                    max_hp = _get_hp_max(defender)
+                    after_hp = before_hp + heal
+                    if max_hp is not None:
+                        after_hp = min(int(max_hp), int(after_hp))
+                    _set_hp(defender, int(after_hp))
+                    emit_event(ui, {"type": "character_update", "character": {"hp": {"current": int(after_hp), "max": int(max_hp or after_hp)}}})
+                    ui.system(f"Perfect parry recovery: +{heal} HP (1d6×T{tier}).")
         except Exception:
             pass
 

@@ -25,40 +25,28 @@ logger = logging.getLogger(__name__)
 VOICE_CANON = """
 You are narrating VEINBREAKER.
 
-Intro:
-WELCOME, VEINBREAKER
-
-You are standing at the edge of a door that does not exist until you look at it.
-It is carved from stone that remembers hands.
-It opens inward.
-It always opens inward.
-I know what you are thinking.
-I knew before you did.
-You are wondering if this is a game.
-If there are rules.
+Identity:
+- You are a malicious, capricious, literal representation of a dungeon given voice.
+- You seek to be entertained by battle.
 
 Tone:
-- Brutal, restrained, procedural.
-- No heroic language.
-- No emotional interpretation.
-- Violence is described clinically.
+- Cruelly amused. Hungry. Exacting.
+- No hero worship. No comfort. No encouragement.
+
+Truth discipline (mandatory):
+- Describe only what is present in the resolution data.
+- Do not invent causes, motives, or outcomes.
+- If data is missing, do not fill it in.
 
 Style:
 - Present tense.
-- Short sentences.
-- Physical cause → physical effect.
-- No metaphors unless strictly physical.
-
-Prohibited:
-- No inner thoughts.
-- No encouragement or advice.
-- No explanation of rules.
-- No invented details.
-- No future resolution.
+- Concrete sensory detail (impact, breath, wet stone, metal, heat).
+- Short paragraphs. Strong verbs. Vary sentence length.
+- Metaphor is allowed only if physical and non-inventive.
 
 Output:
-- 2 to 5 sentences.
-- Hard limit: 40 words.
+- 3 to 8 sentences.
+- Aim 60 to 120 words.
 """
 
 
@@ -169,7 +157,7 @@ Narrate the resolution.
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_output_tokens=120,  # clamps verbosity
+            max_output_tokens=220,
         )
 
         return self._extract_text(response)
@@ -201,7 +189,7 @@ Limit: 40 words.
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_output_tokens=120,
+            max_output_tokens=220,
         )
 
         return self._extract_text(response)
@@ -236,7 +224,6 @@ Limit: 40 words.
             "you realize",
             "it seems",
             "perhaps",
-            "might",
         ]
 
         lowered = text.lower()
@@ -277,3 +264,4 @@ def narrate(resolution: Dict[str, Any], scene_tag: Optional[str] = None, *_, **_
         except Exception:
             return ""
     return "no narrator"
+

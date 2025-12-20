@@ -71,9 +71,9 @@ class TestDefenseReactions(unittest.TestCase):
             "tags": ["momentum", "defense"],
         }
 
-        # Force: atk d20=15, def d20=5 => hit; damage roll=4; block roll=5 -> full block + reflect 1
-        with mock.patch("random.randint", side_effect=[15, 5, 4]):
-            hit, dmg, rolls = apply_interrupt(
+        # Force (2d10): atk (7+8)=15, def (2+3)=5 => hit; damage roll=4; block roll=5 -> full block + reflect 1
+        with mock.patch("random.randint", side_effect=[7, 8, 2, 3, 4]):
+            hit, dmg, rolls, chain_broken = apply_interrupt(
                 state, defender, attacker, defense_ability=ability, defense_block_roll=5
             )
 

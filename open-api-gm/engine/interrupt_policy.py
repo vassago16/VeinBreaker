@@ -204,9 +204,28 @@ class PlayerPromptPolicy:
         if isinstance(state, dict) and state.get("suppress_chain_interrupt"):
             return InterruptDecision("no_interrupt")
 
+        # Link-driven windows (data-driven enemy patterns, etc.)
+        try:
+            link = ctx.link if isinstance(ctx, InterruptContext) else None
+        except Exception:
+            link = None
+        if isinstance(link, dict):
+            iw = link.get("interrupt_window")
+            if isinstance(iw, dict) and iw.get("when") == when:
+                prev_missed = bool(iw.get("if_prev_link_missed") or iw.get("open_if_prev_miss"))
+                if prev_missed and isinstance(state, dict) and state.get("_chain_prev_hit") is False:
+                    window = {"source": "link", "rp_cost": int(iw.get("rp_cost", 1) or 1)}
+                else:
+                    window = None
+            else:
+                window = None
+        else:
+            window = None
+
         rules = state.get("player_interrupt_rules", {}) if isinstance(state, dict) else {}
         windows = rules.get("interrupt_windows", []) or []
-        window = window_allows_interrupt(windows, when, ctx)
+        if not window:
+            window = window_allows_interrupt(windows, when, ctx)
 
         if not window and isinstance(state, dict) and _default_window_open(when, ctx, state):
             window = {"source": "default", "rp_cost": 1}

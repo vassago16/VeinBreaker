@@ -1,8 +1,8 @@
 {
-  "id": "character.new_blood",
-  "name": "New Blood",
+  "id": "character.boss_man_rinaldo",
+  "name": "Boss man Rinaldo",
   "path": "stonepulse",
-  "tier": 1,
+  "tier": 2,
   "attributes": {
     "POW": 10,
     "AGI": 8,
@@ -14,9 +14,10 @@
     "core.basic_guard",
     "core.focus_action",
     "core.shift",
-    "stonepulse.pulse_strike",
-    "stonepulse.stoneguard_step",
+    "resolve_basic.last_guard",
+    "canticle.radiant_glide",
     "stonepulse.stonepulse_step",
-    "resolve_basic.disengage"
+    "hemocratic.cutpoint_slice",
+    "stonepulse.stonepulse_stance"
   ]
 }

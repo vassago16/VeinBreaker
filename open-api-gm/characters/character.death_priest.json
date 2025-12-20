@@ -1,6 +1,6 @@
 {
-  "id": "character.hym_of_blood",
-  "name": "Hym-of-Blood",
+  "id": "character.death_priest",
+  "name": "Death Priest",
   "path": "canticle",
   "tier": 2,
   "attributes": {
@@ -18,8 +18,13 @@
     "canticle.oathbound_guard",
     "canticle.hymn_of_embers",
     "canticle.radiant_glide",
-    "resolve_basic.balance_surge",
+    "resolve_basic.last_guard",
+    "hemocratic.veil_step",
+    "hemocratic.cutpoint_slice",
     "spellforged.arcane_channel",
-    "hemocratic.cutpoint_slice"
+    "hemocratic.blood_slip",
+    "stonepulse.pulse_strike",
+    "canticle.sanctus_aegis",
+    "canticle.canticle_stance"
   ]
 }

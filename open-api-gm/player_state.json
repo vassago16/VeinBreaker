@@ -1,96 +1,68 @@
 {
-  "character_id": "character.hym_of_blood",
+  "character_id": "character.new_blood",
   "resources": {
-    "hp": 16,
+    "hp": 28,
     "hp_max": 28,
-    "resolve": 2,
+    "resolve": 5,
     "resolve_cap": 5,
-    "idf": 0
+    "idf": 1
   },
   "pools": {
-    "martial": 4,
-    "shadow": 3,
+    "martial": 5,
+    "shadow": 4,
     "magic": 4,
     "faith": 4
   },
   "marks": {
-    "blood": 2,
-    "duns": 0
+    "blood": 6,
+    "duns": 3
   },
   "veinscore": 0,
-  "veins_spent_total": 6,
+  "veins_spent_total": 0,
   "cooldowns": {
     "core.basic_strike": {
       "cooldown": 0,
-      "base_cooldown": 0
+      "base_cooldown": 0,
+      "cooldown_round": 7
     },
     "core.basic_guard": {
       "cooldown": 0,
-      "base_cooldown": 0
+      "base_cooldown": 0,
+      "cooldown_round": 5
     },
     "core.focus_action": {
       "cooldown": 0,
-      "base_cooldown": 0
+      "base_cooldown": 0,
+      "cooldown_round": 4
     },
     "core.shift": {
       "cooldown": 0,
-      "base_cooldown": 0
+      "base_cooldown": 0,
+      "cooldown_round": 5
     },
-    "hemocratic.cutpoint_slice": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "hemocratic.veil_step": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "hemocratic.wound_mark": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "hemocratic.blood_slip": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "resolve_basic.disengage": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "spellforged.warding_pulse": {
-      "cooldown": 0,
-      "base_cooldown": 1
+    "resolve_basic.last_guard": {
+      "cooldown": 3,
+      "base_cooldown": 3,
+      "cooldown_round": 5
     },
     "canticle.radiant_glide": {
       "cooldown": 0,
-      "base_cooldown": 1
+      "base_cooldown": 1,
+      "cooldown_round": 5
     },
-    "stonepulse.pulse_strike": {
+    "stonepulse.stonepulse_step": {
       "cooldown": 0,
-      "base_cooldown": 1
+      "base_cooldown": 1,
+      "cooldown_round": 5
     },
-    "spellforged.arcane_channel": {
+    "hemocratic.cutpoint_slice": {
       "cooldown": 0,
-      "base_cooldown": 1
+      "base_cooldown": 1,
+      "cooldown_round": 5
     },
-    "spellforged.arcane_step": {
+    "stonepulse.stonepulse_stance": {
       "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "spellforged.charge_bolt": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "canticle.gleam_strike": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "canticle.hymn_of_embers": {
-      "cooldown": 0,
-      "base_cooldown": 1
-    },
-    "canticle.oathbound_guard": {
-      "cooldown": 0,
-      "base_cooldown": 1
+      "base_cooldown": 0
     }
   }
 }
