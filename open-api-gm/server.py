@@ -34,6 +34,7 @@ class StepRequest(BaseModel):
     choice: int | None = None
     chain: list[str] | None = None
     ability: str | None = None
+    stat: str | None = None
     execute: bool | None = None
     name: str | None = None
     path: str | None = None
@@ -291,6 +292,7 @@ def step(req: StepRequest):
         "choice": req.choice,
         "chain": req.chain,
         "ability": req.ability,
+        "stat": req.stat,
         "execute": req.execute,
         "name": req.name,
         "path": req.path,

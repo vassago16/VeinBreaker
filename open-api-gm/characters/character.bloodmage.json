@@ -2,7 +2,7 @@
   "id": "character.bloodmage",
   "name": "BloodMage",
   "path": "hemocratic",
-  "tier": 1,
+  "tier": 2,
   "attributes": {
     "POW": 8,
     "AGI": 10,
@@ -30,6 +30,7 @@
     "canticle.oathbound_guard",
     "stonepulse.stoneguard_step",
     "stonepulse.stonepulse_rhythm",
-    "stonepulse.stonepulse_step"
+    "stonepulse.stonepulse_step",
+    "stonepulse.anchored_form"
   ]
 }

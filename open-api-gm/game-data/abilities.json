@@ -55,7 +55,7 @@
       "name": "Basic Guard",
       "type": "defense",
       "cost": 1,
-      "cooldown": 0,
+      "cooldown": 1,
       "effect": "Reduce incoming damage by 1d4. STR modifier applies to the Defense roll.  +1 Momentum.",
       "tags": [
         "core",

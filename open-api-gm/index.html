@@ -188,6 +188,37 @@ footer {
   margin: 0 0 8px;
 }
 
+.ability-column .col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.ability-column .col-head h3 {
+  margin: 0;
+}
+
+.col-toggle {
+  border: 1px solid var(--line);
+  background: #101113;
+  color: var(--dim);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.col-toggle:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.ability-list.hidden {
+  display: none;
+}
+
 .ability-list {
   display: flex;
   flex-direction: column;
@@ -242,22 +273,61 @@ footer {
   padding-top: 12px;
 }
 
-#chain-slots {
+.chain-preview-head {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chain-page-toggle.hidden {
+  display: none;
+}
+
+.chain-page-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.chain-page-btn {
+  border: 1px solid var(--line);
+  background: #101113;
+  color: var(--dim);
+  cursor: pointer;
+  padding: 4px 10px;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.chain-page-btn:hover {
+  border-color: var(--accent);
+  color: var(--fg);
+}
+
+.chain-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#chain-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
   margin: 10px 0 12px;
-  flex-wrap: wrap;
 }
 
 .chain-slot {
-  width: 150px;
   height: 54px;
   border: 1px dashed var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--dim);
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chain-slot.filled {
@@ -1792,13 +1862,23 @@ footer {
       </div>
 
       <div class="ability-column">
-        <h3>MOVEMENT</h3>
+        <div class="col-head">
+          <h3 id="move-stance-title">MOVEMENT</h3>
+          <button class="col-toggle" onclick="toggleMoveStance()" title="Toggle Movement/Stance">←→</button>
+        </div>
         <div id="movement-abilities" class="ability-list"></div>
+        <div id="stance-abilities" class="ability-list hidden"></div>
       </div>
     </div>
 
     <div class="chain-preview">
-      <h3>CHAIN</h3>
+      <div class="chain-preview-head">
+        <h3>CHAIN</h3>
+        <div id="chain-page-toggle" class="chain-page-toggle hidden" aria-hidden="true">
+          <button id="chain-page-left" class="chain-page-btn" onclick="chainPageLeft()" title="Slots 1-6">←</button>
+          <button id="chain-page-right" class="chain-page-btn" onclick="chainPageRight()" title="Slots 7-12">→</button>
+        </div>
+      </div>
       <div id="chain-slots"></div>
 
       <!-- BALANCE -->
@@ -1985,6 +2065,7 @@ let combatResultDelayUntil = 0;
 let combatResultDelayTimer = null;
 const HEAT_CAP = 8;
 const MOMENTUM_MAX = 8;
+let showStanceColumn = false;
 
 function addEntry(text, cls) {
   const div = document.createElement("div");
@@ -2050,7 +2131,7 @@ function openSafeRoomScreen(ev) {
   window.__safeRoomMode = ev?.mode || "safe_room";
   window.__characterCreateStage = ev?.stage || null;
   if (shopTitleEl) {
-    shopTitleEl.textContent = (window.__safeRoomMode === "character_create") ? "STARTER ABILITIES (PICK 3, INCLUDE YOUR PATH)" : "AVAILABLE UPGRADES";
+    shopTitleEl.textContent = (window.__safeRoomMode === "character_create") ? "STARTER ABILITIES (PICK 3)" : "AVAILABLE UPGRADES";
   }
 
   const veinscore = Number(ev?.character?.veinscore ?? 0);
@@ -2181,6 +2262,9 @@ function openSafeRoomScreen(ev) {
       restBtn.classList.remove("hidden");
       contBtn.disabled = false;
       contBtn.textContent = "CONTINUE";
+      // Restore safe-room button handlers after leaving character creation (it overrides onclick).
+      contBtn.onclick = () => safeRoomContinue();
+      restBtn.onclick = () => safeRoomRest();
     }
   }
 
@@ -3178,6 +3262,9 @@ function handleEvents(events) {
           maxEl.textContent = String(maxChainLength);
         }
         chain = [];
+        chainViewOffset = 0;
+        showStanceColumn = false;
+        updateMoveStanceUI();
         executionAvailable = false;
         executionRequested = false;
         updateExecuteUI();
@@ -3273,8 +3360,11 @@ setInterval(pollEvents, 12000000);
 
 	// CHAIN BUILDER STATE AND HELPERS
 	let chainAbilities = []; // from backend event
-	let chain = [];
-	let maxChainLength = 6;
+let chain = [];
+let maxChainLength = 6;
+const CHAIN_VIEW_SIZE = 6;
+let chainViewOffset = 0;
+const CHAIN_DISPLAY_SLOTS = 12;
 	let executionAvailable = false;
 	let executionRequested = false;
 
@@ -3348,12 +3438,16 @@ function updateExecuteUI() {
 
 function clearChain() {
   chain = [];
+  chainViewOffset = 0;
   renderChain();
   updateExecuteUI();
 }
 
 function removeFromChain(i) {
   chain.splice(i, 1);
+  if (chainViewOffset >= CHAIN_VIEW_SIZE && chain.length <= CHAIN_VIEW_SIZE) {
+    chainViewOffset = 0;
+  }
   renderChain();
   updateExecuteUI();
 }
@@ -3361,6 +3455,9 @@ function removeFromChain(i) {
 function addToChain(ability) {
   if (chain.length >= maxChainLength) return;
   chain.push(ability);
+  if (chain.length > CHAIN_VIEW_SIZE) {
+    chainViewOffset = CHAIN_VIEW_SIZE;
+  }
   renderChain();
   updateExecuteUI();
 }
@@ -3376,6 +3473,7 @@ function renderAbilities(abilities) {
     defense: document.getElementById("defense-abilities"),
     utility: document.getElementById("utility-abilities"),
     movement: document.getElementById("movement-abilities"),
+    stance: document.getElementById("stance-abilities"),
   };
 
   Object.values(buckets).forEach(el => el.innerHTML = "");
@@ -3406,8 +3504,22 @@ function renderAbilities(abilities) {
       card.onclick = () => addToChain(ab);
     }
 
-    host.appendChild(card);
-  });
+      host.appendChild(card);
+    });
+  }
+
+function updateMoveStanceUI() {
+  const title = document.getElementById("move-stance-title");
+  const mv = document.getElementById("movement-abilities");
+  const st = document.getElementById("stance-abilities");
+  if (title) title.textContent = showStanceColumn ? "STANCE" : "MOVEMENT";
+  if (mv) mv.classList.toggle("hidden", showStanceColumn);
+  if (st) st.classList.toggle("hidden", !showStanceColumn);
+}
+
+function toggleMoveStance() {
+  showStanceColumn = !showStanceColumn;
+  updateMoveStanceUI();
 }
 
 function renderChain() {
@@ -3416,7 +3528,13 @@ function renderChain() {
   const slots = document.getElementById("chain-slots");
   slots.innerHTML = "";
 
-  for (let i = 0; i < maxChainLength; i++) {
+  const displaySlots = Math.max(CHAIN_DISPLAY_SLOTS, maxChainLength);
+  // Clamp offset if the max/display changed.
+  if (chainViewOffset >= displaySlots) chainViewOffset = 0;
+  const visible = Math.min(CHAIN_VIEW_SIZE, Math.max(0, displaySlots - chainViewOffset));
+
+  for (let j = 0; j < visible; j++) {
+    const i = chainViewOffset + j;
     const slot = document.createElement("div");
     slot.className = "chain-slot";
 
@@ -3425,7 +3543,7 @@ function renderChain() {
       slot.textContent = chain[i].name;
       slot.onclick = () => removeFromChain(i);
     } else {
-      slot.textContent = "—";
+      slot.textContent = "-";
     }
 
     slots.appendChild(slot);
@@ -3433,6 +3551,37 @@ function renderChain() {
 
   const commit = document.getElementById("chain-commit");
   commit.disabled = false;
+
+  updateChainPager();
+}
+
+function updateChainPager() {
+  const pager = document.getElementById("chain-page-toggle");
+  const left = document.getElementById("chain-page-left");
+  const right = document.getElementById("chain-page-right");
+  if (!pager || !left || !right) return;
+
+  const hasSecondPage = Math.max(CHAIN_DISPLAY_SLOTS, maxChainLength) > CHAIN_VIEW_SIZE;
+  const firstPageFull = chain.length >= CHAIN_VIEW_SIZE;
+  const canGoRight = hasSecondPage && chainViewOffset === 0 && firstPageFull;
+  const canGoLeft = hasSecondPage && chainViewOffset >= CHAIN_VIEW_SIZE;
+
+  const show = canGoRight || canGoLeft;
+  pager.classList.toggle("hidden", !show);
+  pager.setAttribute("aria-hidden", show ? "false" : "true");
+  left.disabled = !canGoLeft;
+  right.disabled = !canGoRight;
+}
+
+function chainPageLeft() {
+  chainViewOffset = 0;
+  renderChain();
+}
+
+function chainPageRight() {
+  if (chain.length < CHAIN_VIEW_SIZE) return;
+  chainViewOffset = CHAIN_VIEW_SIZE;
+  renderChain();
 }
 
 async function submitChain() {

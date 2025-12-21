@@ -516,7 +516,7 @@
       "type": "resolve",
       "playMode": "reaction",
       "cost": 2,
-      "cooldown": 2,
+      "cooldown": 4,
       "timing": ["defense_window"],
       "effect": "Cancel an Interrupt attempt before the contest is rolled.",
       "tags": ["resolve", "interrupt", "defense_window"],

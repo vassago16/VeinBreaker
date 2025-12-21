@@ -70,6 +70,66 @@ class TestSafeRoomStatUpPersistsAndCosts(unittest.TestCase):
         self.assertEqual(int(ch["attributes"]["POW"]), 9)
         self.assertEqual(int(ch["attributes"]["str"]), 9)
 
+    def test_stat_up_accepts_str_alias(self):
+        session = _Session()
+        ui = _UI(session)
+        phase_machine = play.load_canon().get("phase_machine.json")
+        state = {
+            "phase": {"current": "out_of_combat"},
+            "mode": "safe_room",
+            "party": {
+                "members": [
+                    {
+                        "id": "character.test_stat_up_alias",
+                        "name": "Test",
+                        "tier": 1,
+                        "resources": {"hp": 10, "hp_max": 10, "resolve": 3, "resolve_cap": 5, "veinscore": 3},
+                        "attributes": {"STR": 8},
+                        "abilities": [],
+                    }
+                ]
+            },
+        }
+        ctx = {"state": state, "ui": ui, "game_data": {"abilities": {"abilities": []}}, "phase_machine": phase_machine}
+
+        with patch.object(play, "save_profile_and_state", lambda *_a, **_k: None):
+            play.game_step(ctx, {"action": "safe_room_stat_up", "stat": "STR"})
+
+        ch = state["party"]["members"][0]
+        self.assertEqual(int(ch["resources"]["veinscore"]), 0)
+        self.assertEqual(int(ch["attributes"]["POW"]), 9)
+        self.assertEqual(int(ch["attributes"]["str"]), 9)
+
+    def test_stat_up_accepts_control_char_payload(self):
+        session = _Session()
+        ui = _UI(session)
+        phase_machine = play.load_canon().get("phase_machine.json")
+        state = {
+            "phase": {"current": "out_of_combat"},
+            "mode": "safe_room",
+            "party": {
+                "members": [
+                    {
+                        "id": "character.test_stat_up_ctrl",
+                        "name": "Test",
+                        "tier": 1,
+                        "resources": {"hp": 10, "hp_max": 10, "resolve": 3, "resolve_cap": 5, "veinscore": 3},
+                        "attributes": {"AGI": 8},
+                        "abilities": [],
+                    }
+                ]
+            },
+        }
+        ctx = {"state": state, "ui": ui, "game_data": {"abilities": {"abilities": []}}, "phase_machine": phase_machine}
+
+        with patch.object(play, "save_profile_and_state", lambda *_a, **_k: None):
+            play.game_step(ctx, {"action": "safe_room_stat_up", "stat": "AGI\u0000"})
+
+        ch = state["party"]["members"][0]
+        self.assertEqual(int(ch["resources"]["veinscore"]), 0)
+        self.assertEqual(int(ch["attributes"]["AGI"]), 9)
+        self.assertEqual(int(ch["attributes"]["dex"]), 9)
+
 
 if __name__ == "__main__":
     unittest.main()

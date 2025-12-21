@@ -538,6 +538,35 @@ def _normalize_attributes_for_ui(ch: dict) -> dict:
         "wil": attrs.get("wil") or attrs.get("WIL") or attrs.get("SPR") or attrs.get("spr"),
     }
 
+def _canonical_stat_id(stat: str | None) -> str | None:
+    """
+    Normalize stat identifiers coming from the UI into canonical POW/AGI/MND/SPR.
+    Accepts common aliases used across the codebase and HUD (STR/DEX/INT/WIL, and lowercase forms).
+    """
+    if stat is None:
+        return None
+    s = str(stat).strip()
+    if not s:
+        return None
+    # Defensive normalization: drop control chars / stray punctuation so client payloads like "AGI\\u0000"
+    # don't fail validation.
+    s_up = "".join(ch for ch in s.upper() if ch.isalnum() or ch == "_")
+    aliases = {
+        "POW": "POW",
+        "AGI": "AGI",
+        "MND": "MND",
+        "SPR": "SPR",
+        "STR": "POW",
+        "DEX": "AGI",
+        "INT": "MND",
+        "WIL": "SPR",
+        "POWER": "POW",
+        "AGILITY": "AGI",
+        "MIND": "MND",
+        "SPIRIT": "SPR",
+    }
+    return aliases.get(s_up)
+
 def _increment_attribute_stat(character: dict, stat: str, amount: int = 1) -> None:
     """
     Increment a stat while tolerating mixed attribute key styles.
@@ -546,8 +575,8 @@ def _increment_attribute_stat(character: dict, stat: str, amount: int = 1) -> No
     """
     if not isinstance(character, dict):
         return
-    stat = str(stat or "").upper().strip()
-    if stat not in {"POW", "AGI", "MND", "SPR"}:
+    stat = _canonical_stat_id(stat)
+    if stat is None:
         return
     try:
         amt = int(amount or 0)
@@ -646,7 +675,7 @@ def _starter_ability_ids_for_path(path_id: str | None, game_data: dict) -> list[
 
 def _character_create_validate_starter_picks(character: dict, game_data: dict) -> str | None:
     """
-    Enforce: pick exactly 3 tier-1 abilities from the creation list, and at least one must match the chosen path.
+    Enforce: pick exactly 3 tier-1 abilities from the creation list.
     Does not count core abilities or resolve abilities.
     """
     if not isinstance(character, dict) or not isinstance(game_data, dict):
@@ -695,8 +724,6 @@ def _character_create_validate_starter_picks(character: dict, game_data: dict) -
 
     if len(uniq_picks) != 3:
         return "Pick exactly 3 starter abilities (tier 1)."
-    if not any(isinstance(by_id.get(a), dict) and by_id[a].get("path") == path_id for a in uniq_picks):
-        return "At least one starter ability must match your chosen path."
     return None
 
 
@@ -3603,9 +3630,8 @@ def game_step(ctx, player_input):
             return True
 
         if requested_action == "safe_room_stat_up" and isinstance(player_input, dict):
-            stat = player_input.get("stat")
-            stat = str(stat).upper().strip() if stat is not None else ""
-            if stat not in {"POW", "AGI", "MND", "SPR"}:
+            stat = _canonical_stat_id(player_input.get("stat"))
+            if stat is None:
                 ui.error("Invalid stat. Choose POW/AGI/MND/SPR.")
                 emit_safe_room_enter(ctx)
                 return True

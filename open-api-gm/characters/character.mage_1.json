@@ -1,0 +1,26 @@
+{
+  "id": "character.mage_1",
+  "name": "mage 1",
+  "path": "spellforged",
+  "tier": 2,
+  "attributes": {
+    "POW": 8,
+    "AGI": 8,
+    "MND": 10,
+    "SPR": 8
+  },
+  "abilities": [
+    "core.basic_strike",
+    "core.basic_guard",
+    "core.focus_action",
+    "core.shift",
+    "resolve_basic.disengage",
+    "canticle.gleam_strike",
+    "canticle.radiant_glide",
+    "spellforged.charge_bolt",
+    "spellforged.arcane_channel",
+    "hemocratic.veinshift_evade",
+    "stonepulse.stonepulse_stance",
+    "canticle.searing_canticle"
+  ]
+}

@@ -4,10 +4,13 @@
   "path": "stonepulse",
   "tier": 2,
   "attributes": {
-    "POW": 10,
-    "AGI": 8,
-    "MND": 8,
-    "SPR": 8
+    "POW": 11,
+    "AGI": 9,
+    "MND": 9,
+    "SPR": 8,
+    "str": 11,
+    "int": 9,
+    "dex": 9
   },
   "abilities": [
     "core.basic_strike",

@@ -31,7 +31,7 @@ class TestCharacterCreationStarters(unittest.TestCase):
         err = play._character_create_validate_starter_picks(ch, gd)
         self.assertIn("exactly 3", (err or "").lower())
 
-    def test_requires_at_least_one_from_path(self):
+    def test_allows_three_any_paths(self):
         gd = load_game_data()
         ch = play._create_draft_character(path_id="stonepulse")
         ch["abilities"] = (
@@ -44,7 +44,7 @@ class TestCharacterCreationStarters(unittest.TestCase):
             ]
         )
         err = play._character_create_validate_starter_picks(ch, gd)
-        self.assertIn("match your chosen path", (err or "").lower())
+        self.assertIsNone(err)
 
     def test_allows_three_with_one_from_path(self):
         gd = load_game_data()
@@ -64,4 +64,3 @@ class TestCharacterCreationStarters(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
