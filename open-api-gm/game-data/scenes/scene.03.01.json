@@ -1,0 +1,46 @@
+{
+  "schema_version": "scene.v1",
+  "id": "scene.03.01",
+  "title": "Hematite Belfry",
+
+  "environment": {
+    "id": "env.vein.hematite_belfry"
+  },
+
+  "encounter": {
+    "monsters": [
+      { "id": "enemy.vein.carrion_dancer", "count": 1 },
+      { "id": "enemy.ashen.censor", "count": 1 }
+    ],
+    "traps": [],
+    "hazards": [
+      "hazard.bloodslick"
+    ]
+  },
+
+  "loot_table": [
+    "loot.vein_fragment.t3"
+  ],
+
+  "events": [
+    {
+      "id": "event.belfry_peal",
+      "trigger": { "type": "on_scene_start" },
+      "conditions": [],
+      "effects": [
+        {
+          "type": "emit_ui_event",
+          "event": {
+            "type": "narration",
+            "text": "A bell you cannot see tolls inside your teeth. Each note feels like a hand trying to close around your breath."
+          }
+        }
+      ]
+    }
+  ],
+
+  "completion_conditions": [
+    { "type": "all_enemies_defeated" }
+  ]
+}
+

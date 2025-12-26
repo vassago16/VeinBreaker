@@ -1015,6 +1015,376 @@
       "rp_pool": 4
     },
     {
+      "id": "enemy.vein.carrion_dancer",
+      "name": "Carrion Dancer",
+      "archetype_id": "archetype.stalker",
+      "tier": 3,
+      "role": "stalker",
+      "rarity": "uncommon",
+      "tags": [
+        "vein",
+        "dancer",
+        "bleed"
+      ],
+      "lore": {
+        "one_liner": "Four cuts to teach you the fifth.",
+        "dungeon_voice": "Keep up. Keep up. Keep up.",
+        "notes_gm": "Long, fast chains with bleed pressure and a telegraphed finisher."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 34
+        },
+        "defense": {
+          "dv_base": 13,
+          "idf": 1
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": 1
+          },
+          "spike": {
+            "dice": "2d6",
+            "flat": 2
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.rending_step_i",
+          "name": "Rending Step I",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "bleed", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "The dancer skims past, annoyed." },
+          "card_text": "A fast cut that opens the rhythm."
+        },
+        {
+          "id": "move.rending_step_ii",
+          "name": "Rending Step II",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "bleed", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "A shallow miss. It doesn't slow." },
+          "card_text": "Another cut, same tempo—harder to read."
+        },
+        {
+          "id": "move.rending_step_iii",
+          "name": "Rending Step III",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "bleed", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "It hisses in time with your breath." },
+          "card_text": "A third cut that dares you to interrupt."
+        },
+        {
+          "id": "move.rending_step_iv",
+          "name": "Rending Step IV",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "bleed", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "A scrape across stone—then silence." },
+          "card_text": "The fourth cut sets the angle."
+        },
+        {
+          "id": "move.telegraphed_overhead_slam",
+          "name": "Telegraphed Overhead Slam",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 1,
+          "to_hit": { "av_mod": -1 },
+          "interrupt_window": {
+            "when": "before_link",
+            "rp_cost": 1,
+            "notes": "Telegraphed finisher."
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": [
+              { "type": "stagger", "stacks": 2 },
+              { "type": "bleed", "stacks": 2 }
+            ]
+          },
+          "on_miss": { "notes": "The slam cracks the floor. The dancer recoils." },
+          "card_text": "A slow, obvious finisher meant to end you."
+        }
+      ],
+      "rp_pool": 5
+    },
+    {
+      "id": "enemy.vein.bulwark_brute",
+      "name": "Bulwark Brute",
+      "archetype_id": "archetype.defender",
+      "tier": 3,
+      "role": "brute",
+      "rarity": "uncommon",
+      "tags": [
+        "vein",
+        "brute",
+        "armored"
+      ],
+      "traits": {
+        "second_hit_gate": true
+      },
+      "lore": {
+        "one_liner": "The first hit proves nothing. The second hit proves intent.",
+        "dungeon_voice": "Again. Harder.",
+        "notes_gm": "Takes damage only after the second hit in a single chain; encourages multi-link commitment."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 44
+        },
+        "defense": {
+          "dv_base": 15,
+          "idf": 2
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d8",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "2d6",
+            "flat": 1
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.anvil_swipe_i",
+          "name": "Anvil Swipe I",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": { "damage": "baseline", "effects": [] },
+          "on_miss": { "notes": "It grinds its weight back into place." },
+          "card_text": "A heavy sweep meant to pin you."
+        },
+        {
+          "id": "move.anvil_swipe_ii",
+          "name": "Anvil Swipe II",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": { "damage": "baseline", "effects": [] },
+          "on_miss": { "notes": "Stone dust follows the swing." },
+          "card_text": "A second sweep that tries to catch your recovery."
+        },
+        {
+          "id": "move.iron_shove",
+          "name": "Iron Shove",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": 0 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "stagger", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "It lurches, offended." },
+          "card_text": "A body-check that breaks timing."
+        },
+        {
+          "id": "move.crushing_stamp",
+          "name": "Crushing Stamp",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 1,
+          "to_hit": { "av_mod": 0 },
+          "interrupt_window": {
+            "when": "before_link",
+            "rp_cost": 1,
+            "notes": "Telegraphed stomp."
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": [
+              { "type": "stagger", "stacks": 2 }
+            ]
+          },
+          "on_miss": { "notes": "The stamp lands wrong. The brute snarls." },
+          "card_text": "A slow crush that dares you to interrupt."
+        }
+      ],
+      "rp_pool": 4
+    },
+    {
+      "id": "enemy.vein.choir_hexer",
+      "name": "Choir Hexer",
+      "archetype_id": "archetype.controller",
+      "tier": 3,
+      "role": "controller",
+      "rarity": "uncommon",
+      "tags": [
+        "vein",
+        "choir",
+        "hex"
+      ],
+      "lore": {
+        "one_liner": "It sings your mistakes into your muscles.",
+        "dungeon_voice": "Hold still. Hear it.",
+        "notes_gm": "Long chains that layer Vulnerable/Stagger and culminate in a telegraphed break."
+      },
+      "stat_block": {
+        "hp": {
+          "max": 26
+        },
+        "defense": {
+          "dv_base": 13,
+          "idf": 1
+        },
+        "damage_profile": {
+          "baseline": {
+            "dice": "1d6",
+            "flat": 0
+          },
+          "spike": {
+            "dice": "2d6",
+            "flat": 0
+          }
+        }
+      },
+      "moves": [
+        {
+          "id": "move.hex_needle_i",
+          "name": "Hex Needle I",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "vulnerable", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "The note goes flat and dies." },
+          "card_text": "A needle-thin note that opens you."
+        },
+        {
+          "id": "move.hex_needle_ii",
+          "name": "Hex Needle II",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "vulnerable", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "Its throat clicks, recalibrating." },
+          "card_text": "Another needle note—closer."
+        },
+        {
+          "id": "move.harmonic_bind",
+          "name": "Harmonic Bind",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "stagger", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "The bind fails to catch." },
+          "card_text": "A binding chord that ruins timing."
+        },
+        {
+          "id": "move.hex_needle_iii",
+          "name": "Hex Needle III",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "vulnerable", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "It swallows the miss and keeps singing." },
+          "card_text": "The third needle lands where it hurts."
+        },
+        {
+          "id": "move.sibilant_cut",
+          "name": "Sibilant Cut",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 0,
+          "to_hit": { "av_mod": -1 },
+          "on_hit": {
+            "damage": "baseline",
+            "effects": [
+              { "type": "bleed", "stacks": 1 }
+            ]
+          },
+          "on_miss": { "notes": "A hiss with no bite." },
+          "card_text": "A hiss that becomes a cut."
+        },
+        {
+          "id": "move.telegraphed_choir_break",
+          "name": "Telegraphed Choir Break",
+          "type": "attack",
+          "cost": { "rp": 1 },
+          "cooldown": 1,
+          "to_hit": { "av_mod": -1 },
+          "interrupt_window": {
+            "when": "before_link",
+            "rp_cost": 1,
+            "notes": "Telegraphed finale."
+          },
+          "on_hit": {
+            "damage": "spike",
+            "effects": [
+              { "type": "stagger", "stacks": 2 },
+              { "type": "vulnerable", "stacks": 2 }
+            ]
+          },
+          "on_miss": { "notes": "The choir breaks on its own note." },
+          "card_text": "A crushing chord meant to end the chain."
+        }
+      ],
+      "rp_pool": 6
+    },
+    {
       "id": "enemy.ironbound.judge",
       "name": "Ironbound Judge",
       "archetype_id": "archetype.defender",

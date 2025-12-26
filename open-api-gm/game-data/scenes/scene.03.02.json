@@ -1,0 +1,44 @@
+{
+  "schema_version": "scene.v1",
+  "id": "scene.03.02",
+  "title": "Throatswitch Galleries",
+
+  "environment": {
+    "id": "env.vein.throatswitch_galleries"
+  },
+
+  "encounter": {
+    "monsters": [
+      { "id": "enemy.vein.bulwark_brute", "count": 1 },
+      { "id": "enemy.vein.choir_hexer", "count": 1 }
+    ],
+    "traps": [],
+    "hazards": []
+  },
+
+  "loot_table": [
+    "loot.vein_fragment.t3"
+  ],
+
+  "events": [
+    {
+      "id": "event.gallery_throat",
+      "trigger": { "type": "on_scene_start" },
+      "conditions": [],
+      "effects": [
+        {
+          "type": "emit_ui_event",
+          "event": {
+            "type": "narration",
+            "text": "The corridor tightens like a throat preparing to swallow. Footfalls come back wrong—half a beat early, half a beat late."
+          }
+        }
+      ]
+    }
+  ],
+
+  "completion_conditions": [
+    { "type": "all_enemies_defeated" }
+  ]
+}
+

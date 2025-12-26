@@ -27,6 +27,18 @@
         { "$ref": "scene.02.03" },
         { "$ref": "scene.02.04" }
       ]
+    },
+    {
+      "id": "act.03.tier3",
+      "title": "Third Pressure (Tier 3)",
+      "order": 3,
+
+      "scenes": [
+        { "$ref": "scene.03.01" },
+        { "$ref": "scene.03.02" },
+        { "$ref": "scene.03.03" },
+        { "$ref": "scene.03.04" }
+      ]
     }
   ]
 }

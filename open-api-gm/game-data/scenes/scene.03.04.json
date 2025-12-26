@@ -1,0 +1,41 @@
+{
+  "schema_version": "scene.v1",
+  "id": "scene.03.04",
+  "title": "Safe Room",
+
+  "environment": {
+    "id": "env.safe.room"
+  },
+
+  "encounter": {
+    "monsters": [],
+    "traps": [],
+    "hazards": []
+  },
+
+  "loot_table": [
+    "loot.vein_fragment.t3"
+  ],
+
+  "events": [
+    {
+      "id": "event.safe_room_t3",
+      "trigger": { "type": "on_scene_start" },
+      "conditions": [],
+      "effects": [
+        {
+          "type": "emit_ui_event",
+          "event": {
+            "type": "narration",
+            "text": "A room that pretends not to breathe. The Dungeon watches you rest like a cat watches a sparrow blink."
+          }
+        }
+      ]
+    }
+  ],
+
+  "completion_conditions": [
+    { "type": "all_enemies_defeated" }
+  ]
+}
+

@@ -1,10 +1,10 @@
 {
-  "character_id": "character.boss_man_rinaldo",
+  "character_id": "character.new_blood2",
   "resources": {
-    "hp": 48,
-    "hp_max": 48,
-    "resolve": 7,
-    "resolve_cap": 7,
+    "hp": 0,
+    "hp_max": 28,
+    "resolve": 2,
+    "resolve_cap": 5,
     "idf": 1
   },
   "pools": {
@@ -14,16 +14,16 @@
     "faith": 4
   },
   "marks": {
-    "blood": 6,
+    "blood": 0,
     "duns": 0
   },
-  "veinscore": 1,
-  "veins_spent_total": 12,
+  "veinscore": 0,
+  "veins_spent_total": 0,
   "cooldowns": {
     "core.basic_strike": {
       "cooldown": 0,
       "base_cooldown": 0,
-      "cooldown_round": 5
+      "cooldown_round": 6
     },
     "core.basic_guard": {
       "cooldown": 0,
@@ -36,31 +36,25 @@
     },
     "core.shift": {
       "cooldown": 0,
-      "base_cooldown": 0
-    },
-    "resolve_basic.last_guard": {
-      "cooldown": 3,
-      "base_cooldown": 3,
-      "cooldown_round": 5
-    },
-    "canticle.radiant_glide": {
-      "cooldown": 1,
-      "base_cooldown": 1,
+      "base_cooldown": 0,
       "cooldown_round": 6
     },
-    "stonepulse.stonepulse_step": {
+    "resolve_basic.disengage": {
       "cooldown": 0,
-      "base_cooldown": 1,
-      "cooldown_round": 5
+      "base_cooldown": 1
     },
-    "hemocratic.cutpoint_slice": {
-      "cooldown": 0,
+    "canticle.gleam_strike": {
+      "cooldown": 1,
       "base_cooldown": 1,
-      "cooldown_round": 5
+      "cooldown_round": 7
     },
-    "stonepulse.stonepulse_stance": {
+    "canticle.oathbound_guard": {
       "cooldown": 0,
-      "base_cooldown": 0
+      "base_cooldown": 1
+    },
+    "canticle.hymn_of_embers": {
+      "cooldown": 0,
+      "base_cooldown": 1
     }
   }
 }

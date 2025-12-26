@@ -1,0 +1,18 @@
+{
+  "schema_version": "loot.v1",
+  "id": "loot.vein_fragment.t3",
+  "name": "Vitreous Vein Prism",
+
+  "tier": 3,
+  "rarity": "rare",
+
+  "effects": [
+    {
+      "type": "add_veinscore",
+      "amount": 3
+    }
+  ],
+
+  "narration": "A prism that refracts pain into purpose. It hums when you blink."
+}
+

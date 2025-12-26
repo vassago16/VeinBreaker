@@ -1519,6 +1519,7 @@ def handle_chain_resolution(ctx: dict) -> bool | None:
     state.pop("_chain_attack_d20", None)
     state.pop("_chain_attack_total", None)
     state.pop("_chain_needs_roll", None)
+    state.pop("_link_interrupt_only", None)
     # Clear any suppression after a chain finishes resolving.
     state.pop("suppress_chain_interrupt", None)
 
@@ -2620,6 +2621,69 @@ def script_scene_ids(script: dict) -> list[str]:
     return out
 
 
+def script_ordered_acts(script: dict) -> list[dict]:
+    acts = script.get("acts", []) if isinstance(script, dict) else []
+    if not isinstance(acts, list):
+        return []
+
+    def _order(a):
+        try:
+            return int(a.get("order", 0) or 0)
+        except Exception:
+            return 0
+
+    return sorted([a for a in acts if isinstance(a, dict)], key=_order)
+
+
+def _format_act_label(act: dict) -> str:
+    act_id = str(act.get("id") or "").strip()
+    # Common formats: act.01.test, act.02.tier2, act.03.tier3
+    parts = [p for p in act_id.split(".") if p]
+    act_num = None
+    if len(parts) >= 2 and parts[0] == "act":
+        try:
+            act_num = int(parts[1])
+        except Exception:
+            act_num = None
+
+    suffix = parts[2] if len(parts) >= 3 else ""
+    suffix_label = ""
+    if suffix.lower().startswith("tier"):
+        suffix_label = f"Tier {suffix[4:]}".strip()
+    elif suffix:
+        suffix_label = suffix.replace("_", " ").title()
+
+    if act_num is not None and suffix_label:
+        return f"Act {act_num} ({suffix_label})"
+    if act_num is not None:
+        return f"Act {act_num}"
+    return act_id or "Act"
+
+
+def script_act_start_scene_id(script: dict, act_id: str) -> str | None:
+    for act in script_ordered_acts(script):
+        if str(act.get("id") or "") != str(act_id):
+            continue
+        scenes = act.get("scenes", []) or []
+        for s in scenes:
+            if isinstance(s, dict) and "$ref" in s:
+                ref = str(s["$ref"])
+                if ref:
+                    return ref
+            if isinstance(s, str) and s:
+                return s
+    return None
+
+
+def _campaign_scene_index(state: dict, scene_id: str) -> int | None:
+    camp = state.get("campaign", {}) if isinstance(state.get("campaign"), dict) else {}
+    scene_ids = camp.get("scene_ids", []) if isinstance(camp.get("scene_ids"), list) else []
+    try:
+        return scene_ids.index(scene_id)
+    except Exception:
+        return None
+
+
 def ensure_campaign(state: dict, game_data: dict) -> None:
     """
     Initializes a simple linear campaign (script.echoes.json) into state["campaign"].
@@ -2867,8 +2931,30 @@ def enter_scene_into_state(ctx: dict, scene_id: str) -> bool:
     if enemies:
         emit_enemy_update(ui, state, enemies[0])
     if not getattr(ui, "is_blocking", True):
-        ui.choice("Enter encounter?", ["enter_encounter"])
-        state["awaiting"] = {"type": "player_choice", "options": ["enter_encounter"]}
+        options = ["enter_encounter"]
+        value_map = {}
+        try:
+            ensure_campaign(state, game_data or {})
+            camp = state.get("campaign", {}) if isinstance(state.get("campaign"), dict) else {}
+            camp_ids = camp.get("scene_ids", []) if isinstance(camp.get("scene_ids"), list) else []
+            camp_idx = int(camp.get("index", 0) or 0)
+            is_first_scene = bool(camp_ids and camp_idx == 0 and str(camp_ids[0]) == str(scene_id))
+            if is_first_scene and not state.get("campaign_act_chosen"):
+                script = load_script()
+                for act in script_ordered_acts(script):
+                    act_id = act.get("id")
+                    if not act_id:
+                        continue
+                    label = f"Start {_format_act_label(act)}"
+                    options.append(label)
+                    value_map[label] = f"start_act:{act_id}"
+        except Exception:
+            pass
+        ui.choice("Enter encounter?", options)
+        awaiting = {"type": "player_choice", "options": options}
+        if value_map:
+            awaiting["value_map"] = value_map
+        state["awaiting"] = awaiting
     return True
 
 def select_loot(game_data, enemy):
@@ -3156,7 +3242,12 @@ def resolve_awaiting(state, ui, player_input):
 
         if awaiting["type"] == "player_choice":
             if isinstance(idx, int) and 0 <= idx < len(awaiting["options"]):
-                resolved_choice = awaiting["options"][idx]
+                opt = awaiting["options"][idx]
+                value_map = awaiting.get("value_map") if isinstance(awaiting, dict) else None
+                if isinstance(opt, str) and isinstance(value_map, dict) and opt in value_map:
+                    resolved_choice = value_map.get(opt)
+                else:
+                    resolved_choice = opt
             else:
                 ui.error("Invalid choice selection.")
                 should_return = True
@@ -4045,6 +4136,26 @@ def game_step(ctx, player_input):
     if choice is None:
         return True
 
+    # Web: allow selecting which act to start in when offered at the first encounter prompt.
+    if isinstance(choice, str) and choice.startswith("start_act:"):
+        act_id = choice.split(":", 1)[1].strip()
+        try:
+            ensure_campaign(state, ctx.get("game_data", {}))
+            script = load_script()
+            start_scene = script_act_start_scene_id(script, act_id)
+            if start_scene:
+                idx = _campaign_scene_index(state, start_scene)
+                if idx is not None:
+                    state["campaign"]["index"] = int(idx)
+                state["campaign_act_chosen"] = act_id
+                state.pop("awaiting", None)
+                enter_scene_into_state(ctx, start_scene)
+                return True
+        except Exception:
+            pass
+        ui.error(f"Could not start act: {act_id}")
+        return True
+
     # Web UX: treat out-of-combat "award_loot" as a shortcut to the level-up (safe room) screen.
     # (This is effectively the "downtime/shop" UI where Veinscore is spent.)
     if choice in {"award_loot", "use_safe_room"}:
@@ -4072,6 +4183,14 @@ def game_step(ctx, player_input):
     prev_phase = state["phase"]["current"]
     apply_action(state, choice)
     if choice in ("enter_encounter", "generate_encounter" ):
+        # If the player continues from the initial campaign scene, don't keep offering act selection on reloads.
+        if choice == "enter_encounter" and not state.get("campaign_act_chosen"):
+            try:
+                camp = state.get("campaign", {}) if isinstance(state.get("campaign"), dict) else {}
+                if int(camp.get("index", 0) or 0) == 0:
+                    state["campaign_act_chosen"] = "current"
+            except Exception:
+                pass
         if state.get("enemies"):
             enemy = state["enemies"][0]
             # Encounter-scoped combat meters (heat/balance/momentum)

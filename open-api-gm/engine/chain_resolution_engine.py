@@ -321,6 +321,27 @@ class ChainResolutionEngine:
             )
             return m
 
+        # If this chain defines explicit link interrupt windows, suppress default (link 3+/miss) prompts
+        # so only telegraphed/data-driven windows appear. Keep this across awaiting/resume.
+        try:
+            if isinstance(state, dict) and int(start_index or 0) == 0:
+                state.pop("_link_interrupt_only", None)
+            has_explicit_link_windows = False
+            for n in chain_ability_names:
+                action = _lookup_action(n)
+                if isinstance(action, dict) and isinstance(action.get("interrupt_window"), dict):
+                    has_explicit_link_windows = True
+                    break
+            if (
+                isinstance(state, dict)
+                and has_explicit_link_windows
+                and isinstance(defender, dict)
+                and defender.get("_combat_key") == "player"
+            ):
+                state["_link_interrupt_only"] = True
+        except Exception:
+            pass
+
         # Only roll if we have at least one non-movement link in this chain.
         needs_roll = False
         for n in chain_ability_names:
@@ -344,6 +365,10 @@ class ChainResolutionEngine:
 
         if execute_requested and not execute_primed and self.emit_log:
             self.emit_log(ui, "Execution requested but target is not Primed.", "system")
+
+        # Per-chain trait bookkeeping.
+        if isinstance(state, dict) and int(start_index or 0) == 0:
+            state.pop("_chain_damage_gate_hits", None)
 
         try:
             start_index = int(start_index or 0)
@@ -716,13 +741,21 @@ class ChainResolutionEngine:
             except Exception:
                 pass
 
-            hit = attack_total >= defense_target
+            # Per-link hit modifier (enemy move `to_hit.av_mod`, etc.)
+            try:
+                to_hit = ability.get("to_hit") if isinstance(ability.get("to_hit"), dict) else {}
+                link_av_mod = int((to_hit.get("av_mod", 0) if isinstance(to_hit, dict) else 0) or 0)
+            except Exception:
+                link_av_mod = 0
+            link_attack_total = int(attack_total + link_av_mod)
+
+            hit = link_attack_total >= defense_target
 
             if self.emit_log:
                 ab_name = ability.get("name") or ability.get("id") or name_or_id
                 self.emit_log(
                     ui,
-                    f"Link {idx + 1}:{ab_name} roll {attack_d20} + {balance} + heat {heat} + {atk_tb} -> attack_total {attack_total} "
+                    f"Link {idx + 1}:{ab_name} roll {attack_d20} + {balance} + heat {heat} + {atk_tb} + av_mod {link_av_mod} -> attack_total {link_attack_total} "
                     f"vs defense_target {dv_base} + {def_mom} + {def_tb} = {defense_target} -> {'HIT' if hit else 'MISS'}",
                     "system",
                 )
@@ -743,7 +776,7 @@ class ChainResolutionEngine:
             if getattr(decision, "kind", None) == "awaiting":
                 return ChainResult("awaiting", "interrupt_prompt", idx)
             if getattr(decision, "kind", None) == "attempt":
-                if self._attempt_interrupt_newrules(state, ui, aggressor, defender, attack_total):
+                if self._attempt_interrupt_newrules(state, ui, aggressor, defender, link_attack_total):
                     # Let the outer loop render a human-readable chain break banner.
                     try:
                         state["_chain_break_action"] = ability.get("name") or ability.get("id") or name_or_id
@@ -794,11 +827,28 @@ class ChainResolutionEngine:
             except Exception:
                 pre_damage_roll = None
             if isinstance(pending, dict):
-                pending["to_hit"] = attack_total
+                pending["to_hit"] = link_attack_total
                 pending["resolved_hit"] = hit
                 pending["forced_defense_roll"] = defense_target
-                pending.setdefault("log", {})["chain_attack_total"] = attack_total
+                pending.setdefault("log", {})["chain_attack_total"] = link_attack_total
                 pending.setdefault("log", {})["defense_target"] = defense_target
+
+                # Trait: some defenders only take damage after being hit twice in the same chain.
+                try:
+                    traits = defender.get("traits") if isinstance(defender.get("traits"), dict) else {}
+                    if hit and isinstance(traits, dict) and traits.get("second_hit_gate"):
+                        hits = state.setdefault("_chain_damage_gate_hits", {})
+                        key = defender.get("_combat_key") or defender.get("id") or "defender"
+                        cnt = int(hits.get(key, 0) or 0) + 1
+                        hits[key] = cnt
+                        if cnt == 1:
+                            pending["damage_roll"] = 0
+                            pending.setdefault("log", {})["damage_roll"] = 0
+                            pending.setdefault("log", {})["damage_gated"] = True
+                            if self.emit_log:
+                                self.emit_log(ui, "Armor: first hit absorbed (damage gated).", "system")
+                except Exception:
+                    pass
 
             self.apply_action_effects(state, aggressor, defender_group, defense_d20=None)
 

@@ -1,0 +1,22 @@
+{
+  "id": "character.new_blood2",
+  "name": "New Blood2",
+  "path": "stonepulse",
+  "tier": 1,
+  "attributes": {
+    "POW": 10,
+    "AGI": 8,
+    "MND": 8,
+    "SPR": 8
+  },
+  "abilities": [
+    "core.basic_strike",
+    "core.basic_guard",
+    "core.focus_action",
+    "core.shift",
+    "resolve_basic.disengage",
+    "canticle.gleam_strike",
+    "canticle.oathbound_guard",
+    "canticle.hymn_of_embers"
+  ]
+}
